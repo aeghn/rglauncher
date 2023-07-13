@@ -1,0 +1,36 @@
+* {
+
+}
+
+.inputbar {
+    margin: 20px 20px 20px 20px;
+    border: none;
+}
+
+.sidebar {
+    min-width: 300px;
+    max-width: 300px;
+    padding: 10px 10px 10px 10px;
+    border-radius: 5px;
+}
+
+frame {
+    border-style: none;
+}
+
+label {
+word-wrap: normal;
+}
+
+.font32 {
+    font-size: 32px;
+}
+
+.font16 {
+    font-size: 16px;
+}
+
+.centercld {
+  justify-content: center;
+  align-items: center;
+}
