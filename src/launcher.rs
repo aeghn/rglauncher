@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use glib::clone;
+use glib::{clone, MainContext};
 use gtk::{self, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -28,7 +28,7 @@ impl Launcher {
         let (input_tx, input_rx) =
             glib::MainContext::channel::<UserInput>(glib::PRIORITY_DEFAULT);
         let (dispatcher_tx, dispatcher_rx) =
-            glib::MainContext::channel::<Vec<Box<dyn PluginResult + Send>>>(glib::PRIORITY_DEFAULT_IDLE);
+            glib::MainContext::channel::<Vec<Box<dyn PluginResult>>>(glib::PRIORITY_DEFAULT_IDLE);
 
         let input_bar = crate::inputbar::get_input_bar(&input_tx);
         input_bar.set_xalign(0.5);
@@ -56,7 +56,7 @@ impl Launcher {
         sidebar.selection_model.connect_selected_item_notify(clone!(@strong view => move |selection| {
             let item = selection.selected_item();
             if let Some(boxed) = item {
-                let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult + Send>>();
+                let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
                 let preview = tt.preview();
                 preview.set_halign(Center);
                 preview.set_valign(Center);
@@ -125,7 +125,7 @@ impl Launcher {
                     gdk::Key::Return => {
                         let item = selection_model.selected_item();
                         if let Some(boxed) = item {
-                            let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult + Send>>();
+                            let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
                             tt.on_enter();
                             window.destroy();
                         }
@@ -152,7 +152,7 @@ impl Launcher {
         entry.connect_activate(clone!(@weak window, @weak selection_model => move |_| {
             let row_data = &selection_model.selected_item();
             if let Some(boxed) = row_data {
-                let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult + Send>>();
+                let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
                 tt.on_enter();
                 window.destroy();
             }

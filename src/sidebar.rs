@@ -24,25 +24,18 @@ pub struct Sidebar {
 
 impl Sidebar {
     pub fn new() -> Self {
-        let app_plugin = AppPlugin::new();
-        let window_plugin = HyprWindows::new();
-        let clip_plugin = ClipboardPlugin::new("/home/chin/.cache/rglauncher/store.db");
-        let mut plugins : Vec<Box<dyn Plugin + Send>> = vec![];
-        plugins.push(Box::new(app_plugin));
-        plugins.push(Box::new(window_plugin));
-        plugins.push(Box::new(clip_plugin));
-
         let list_store = gio::ListStore::new(BoxedAnyObject::static_type());
 
         let sorter = gtk::CustomSorter::new(move |_o1, _o2| {
             let plugin_result1 =
-                _o1.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult + Send>>();
+                _o1.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
             let plugin_result2 =
-                _o2.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult + Send>>();
+                _o2.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
 
             plugin_result1.get_score().cmp(&plugin_result2.get_score()).into()
         });
-        let sorted_model = gtk::SortListModel::new(Some(list_store.clone()), Some(sorter));
+        let sorted_model = gtk::SortListModel::new(None::<gio::ListModel>, Some(sorter));
+        sorted_model.set_model(Some(&list_store));
 
         let selection_model = gtk::SingleSelection::new(Some(sorted_model.clone()));
 
@@ -56,7 +49,7 @@ impl Sidebar {
         factory.connect_bind(move |_factory, item| {
             let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             let plugin_result_box = item.item().and_downcast::<BoxedAnyObject>().unwrap();
-            let plugin_result = plugin_result_box.borrow::<Box<dyn PluginResult + Send>>();
+            let plugin_result = plugin_result_box.borrow::<Box<dyn PluginResult>>();
 
             let child = item.child().and_downcast::<SidebarRow>().unwrap();
             child.set_sidebar(plugin_result.as_ref());
@@ -71,23 +64,6 @@ impl Sidebar {
             .child(&list_view)
             .focusable(false)
             .build();
-
-        // {
-        //     let list_store = list_store.clone();
-        //     inputrx.attach(None, move |e| {
-        //         let user_input = UserInput::new(e.as_str());
-        //
-        //         list_store.remove_all();
-        //         plugins.iter().for_each(|plugin| {
-        //             let results = plugin.handle_input(&user_input);
-        //             for x in results {
-        //                 list_store.append(&BoxedAnyObject::new(x));
-        //             }
-        //         });
-        //
-        //         glib::Continue(true)
-        //     });
-        // }
 
         Sidebar { list_view, scrolled_window, selection_model, list_store }
     }

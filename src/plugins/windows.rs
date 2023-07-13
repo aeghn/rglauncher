@@ -83,9 +83,6 @@ impl HyprWindows {
     }
 }
 
-unsafe impl Send for HyprWindowResult {}
-unsafe impl Send for HyprWindows {}
-
 impl Clone for HyprWindowResult {
     fn clone(&self) -> Self {
         HyprWindowResult {
@@ -105,9 +102,9 @@ impl Clone for HyprWindowResult {
 }
 
 impl Plugin for HyprWindows {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult + Send>> {
+    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>> {
         let matcher = SkimMatcherV2::default();
-        let mut result: Vec<Box<dyn PluginResult + Send>> = vec![];
+        let mut result: Vec<Box<dyn PluginResult>> = vec![];
 
         for window in &self.windows {
             let mut score : i32= 0;

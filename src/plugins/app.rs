@@ -96,13 +96,10 @@ impl AppPlugin {
     }
 }
 
-unsafe impl Send for AppPlugin {}
-unsafe impl Send for AppResult {}
-
 impl Plugin for AppPlugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult + Send>> {
+    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>> {
         let matcher = SkimMatcherV2::default();
-        let mut result: Vec<Box<dyn PluginResult + Send>> = vec![];
+        let mut result: Vec<Box<dyn PluginResult>> = vec![];
 
         AppInfo::all().iter().for_each(|app_info| {
             if !app_info.should_show() {
