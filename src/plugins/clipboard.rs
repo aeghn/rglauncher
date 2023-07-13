@@ -42,12 +42,10 @@ impl ClipboardPlugin {
     }
 }
 
-unsafe impl Send for ClipboardPlugin {}
-unsafe impl Send for ClipPluginResult {}
 
 impl Plugin for ClipboardPlugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult + Send>> {
-        let mut vec: Vec<Box<dyn PluginResult + Send>> = vec![];
+    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>> {
+        let mut vec: Vec<Box<dyn PluginResult>> = vec![];
 
         if let Some(_conn) = &self.conn {
             let mut stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \

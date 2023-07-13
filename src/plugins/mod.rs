@@ -23,5 +23,5 @@ pub trait PluginResult {
 }
 
 pub trait Plugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult + Send>>;
+    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>>;
 }
