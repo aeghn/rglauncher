@@ -28,7 +28,7 @@ impl Launcher {
         let (input_tx, input_rx) =
             glib::MainContext::channel::<UserInput>(glib::PRIORITY_DEFAULT);
         let (dispatcher_tx, dispatcher_rx) =
-            glib::MainContext::channel::<Vec<Box<dyn PluginResult>>>(glib::PRIORITY_DEFAULT_IDLE);
+            glib::MainContext::channel::<(UserInput, Vec<Box<dyn PluginResult>>)>(glib::PRIORITY_DEFAULT_IDLE);
 
         let input_bar = crate::inputbar::get_input_bar(&input_tx);
         input_bar.set_xalign(0.5);
@@ -69,7 +69,7 @@ impl Launcher {
             let list_store = sidebar.list_store;
             dispatcher_rx.attach(None, move |r| {
                 list_store.remove_all();
-                for x in r {
+                for x in r.1 {
                     list_store.append(&BoxedAnyObject::new(x));
                 };
 
@@ -77,8 +77,12 @@ impl Launcher {
             });
         }
 
-        let dispatcher = Dispatcher::new(input_rx, dispatcher_tx);
+        let dispatcher = Dispatcher::new( dispatcher_tx);
 
+        input_rx.attach(None, move|ui| {
+            dispatcher.handle_messages(ui);
+            Continue(true)
+        });
 
         window.show();
     }
