@@ -80,6 +80,7 @@ impl PluginResult for AppResult {
     }
 }
 
+
 impl AppPlugin {
     pub fn new() -> Self {
         AppPlugin{

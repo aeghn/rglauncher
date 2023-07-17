@@ -9,6 +9,7 @@ mod sidebar_row;
 mod constant;
 mod util;
 mod dispatcher;
+pub mod plugin_worker;
 
 
 use tracing::*;
@@ -65,8 +66,7 @@ fn activate(app: &Application) {
         .title("Launcher")
         .build();
 
-    let launcher = launcher::Launcher{};
-    launcher.build_window(&window);
+    let launcher = launcher::Launcher::new(&window);
 
     let settings = gtk::Settings::default().unwrap();
     settings.set_gtk_icon_theme_name(Some(&"ePapirus"));
