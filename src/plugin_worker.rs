@@ -26,6 +26,16 @@ async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, input: UserInput) -> O
 }
 
 impl <P: Plugin + 'static> PluginWorker<P> {
+    pub fn new(plugin: P, receiver: flume::Receiver<PluginMessage>,
+               result_sender: glib::Sender<Vec<Box<dyn PluginResult>>>) -> Self {
+        PluginWorker {
+            plugin: Arc::new(Mutex::new(plugin)),
+            abort_handle: None,
+            receiver,
+            result_sender,
+        }
+    }
+
     pub fn launch(&mut self) {
         loop {
             match self.receiver.try_recv() {
