@@ -9,14 +9,6 @@ use gtk::prelude::{BoxExt, GridExt, WidgetExt};
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 
-// use lazy_static::lazy_static;
-// use std::sync::{Arc, Mutex};
-
-// lazy_static! {
-//     static ref DEFAULT_ICON : Mutex<gio::Icon> = Mutex::new(
-//         gio::Icon::from(gio::ThemedIcon::from_names(&[&"gnome-windows"])));
-// }
-
 pub struct AppPlugin {
 }
 

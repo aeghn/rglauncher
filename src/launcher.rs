@@ -21,17 +21,18 @@ pub struct Launcher {
 
 impl Launcher {
     pub fn build_window(self, window: &gtk::ApplicationWindow) {
+        let (input_tx, input_rx) =
+            MainContext::channel::<UserInput>(glib::PRIORITY_DEFAULT);
+        let (dispatcher_tx, dispatcher_rx) =
+            MainContext::channel::<(UserInput, Vec<Box<dyn PluginResult>>)>(glib::PRIORITY_DEFAULT_IDLE);
+
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();
+
         window.set_child(Some(&main_box));
-        let (input_tx, input_rx) =
-            glib::MainContext::channel::<UserInput>(glib::PRIORITY_DEFAULT);
-        let (dispatcher_tx, dispatcher_rx) =
-            glib::MainContext::channel::<(UserInput, Vec<Box<dyn PluginResult>>)>(glib::PRIORITY_DEFAULT_IDLE);
 
         let input_bar = crate::inputbar::get_input_bar(&input_tx);
-        input_bar.set_xalign(0.5);
         main_box.append(&input_bar);
 
         let bottom_box = gtk::Box::builder()
@@ -41,29 +42,15 @@ impl Launcher {
         main_box.append(&bottom_box);
 
         let sidebar = crate::sidebar::Sidebar::new();
-
         let sidebar_window = sidebar.scrolled_window;
         bottom_box.append(&sidebar_window);
 
-        let view = gtk::ScrolledWindow::new();
+        let sidebar_scroll_window = gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(Never);
+        bottom_box.append(&sidebar_scroll_window);
 
-        view.set_hscrollbar_policy(Never);
-
-        bottom_box.append(&view);
-
-        self.setup_keybindings(&window, &sidebar.selection_model, &sidebar.list_view, &input_bar);
-
-        sidebar.selection_model.connect_selected_item_notify(clone!(@strong view => move |selection| {
-            let item = selection.selected_item();
-            if let Some(boxed) = item {
-                let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
-                let preview = tt.preview();
-                preview.set_halign(Center);
-                preview.set_valign(Center);
-                preview.set_hexpand(true);
-                view.set_child(Some(&preview));
-            }
-        }));
+        self.setup_keybindings(&window, &sidebar.selection_model,
+                               &sidebar.list_view, &input_bar);
 
         {
             let list_store = sidebar.list_store;
@@ -78,13 +65,20 @@ impl Launcher {
         }
 
         let dispatcher = Dispatcher::new( dispatcher_tx);
-
         input_rx.attach(None, move|ui| {
             dispatcher.handle_messages(ui);
             Continue(true)
         });
 
-        window.show();
+        input_bar.connect_activate(clone!(@weak selection_model => move |_| {
+        let row_data = &selection_model.selected_item();
+        if let Some(boxed) = row_data {
+            let pr = boxed.downcast_ref::<BoxedAnyObject>().unwrap()
+            .borrow::<Box<dyn PluginResult>>();
+            pr.on_enter();
+            gtk::main_quit();
+        }
+    }));
     }
 
     fn setup_keybindings(&self,
@@ -152,14 +146,5 @@ impl Launcher {
                 }
             }));
         window.add_controller(controller);
-
-        entry.connect_activate(clone!(@weak window, @weak selection_model => move |_| {
-            let row_data = &selection_model.selected_item();
-            if let Some(boxed) = row_data {
-                let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
-                tt.on_enter();
-                window.destroy();
-            }
-            }));
     }
 }
