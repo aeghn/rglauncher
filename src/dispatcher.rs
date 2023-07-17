@@ -57,8 +57,4 @@ impl Dispatcher {
             result_sender
         }
     }
-
-    pub fn handle_messages(&self, user_input: UserInput) {
-
-    }
 }

@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use glib::{clone, MainContext};
-use gtk::{self, traits::{WidgetExt, GtkWindowExt, BoxExt}};
+use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::gdk;
@@ -14,17 +14,17 @@ use crate::{dispatcher, plugins::{PluginResult}};
 use tracing::{error};
 use crate::dispatcher::Dispatcher;
 use crate::shared::UserInput;
+use crate::sidebar::Sidebar;
 
 pub struct Launcher {
-
+    input_bar: Entry,
+    sidebar: Sidebar,
+    preview: ScrolledWindow
 }
 
 impl Launcher {
-    pub fn build_window(self, window: &gtk::ApplicationWindow) {
-        let (input_tx, input_rx) =
-            MainContext::channel::<UserInput>(glib::PRIORITY_DEFAULT);
-        let (dispatcher_tx, dispatcher_rx) =
-            MainContext::channel::<(UserInput, Vec<Box<dyn PluginResult>>)>(glib::PRIORITY_DEFAULT_IDLE);
+    pub fn new(window: &gtk::ApplicationWindow) -> Self {
+        let (input_tx, input_rx) = flume::unbounded();
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -32,7 +32,7 @@ impl Launcher {
 
         window.set_child(Some(&main_box));
 
-        let input_bar = crate::inputbar::get_input_bar(&input_tx);
+        let input_bar = crate::inputbar::get_input_bar(input_tx.clone());
         main_box.append(&input_bar);
 
         let bottom_box = gtk::Box::builder()
@@ -42,50 +42,58 @@ impl Launcher {
         main_box.append(&bottom_box);
 
         let sidebar = crate::sidebar::Sidebar::new();
-        let sidebar_window = sidebar.scrolled_window;
-        bottom_box.append(&sidebar_window);
+        let sidebar_window = &sidebar.scrolled_window;
+        bottom_box.append(sidebar_window);
 
-        let sidebar_scroll_window = gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(Never);
-        bottom_box.append(&sidebar_scroll_window);
+        let preview_window = gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(Never)
+            .build();
+        bottom_box.append(&preview_window);
 
-        self.setup_keybindings(&window, &sidebar.selection_model,
+        Launcher::setup_keybindings(&window, &sidebar.selection_model,
                                &sidebar.list_view, &input_bar);
 
-        {
-            let list_store = sidebar.list_store;
-            dispatcher_rx.attach(None, move |r| {
-                list_store.remove_all();
-                for x in r.1 {
-                    list_store.append(&BoxedAnyObject::new(x));
-                };
 
-                Continue(true)
-            });
+
+        Launcher {
+            input_bar,
+            sidebar,
+            preview: preview_window,
         }
 
-        let dispatcher = Dispatcher::new( dispatcher_tx);
-        input_rx.attach(None, move|ui| {
-            dispatcher.handle_messages(ui);
-            Continue(true)
-        });
-
-        input_bar.connect_activate(clone!(@weak selection_model => move |_| {
-        let row_data = &selection_model.selected_item();
-        if let Some(boxed) = row_data {
-            let pr = boxed.downcast_ref::<BoxedAnyObject>().unwrap()
-            .borrow::<Box<dyn PluginResult>>();
-            pr.on_enter();
-            gtk::main_quit();
-        }
-    }));
+        // {
+        //     let list_store = sidebar.list_store;
+        //     dispatcher_rx.attach(None, move |r| {
+        //         list_store.remove_all();
+        //         for x in r.1 {
+        //             list_store.append(&BoxedAnyObject::new(x));
+        //         };
+        //
+        //         Continue(true)
+        //     });
+        // }
+        //
+        // let dispatcher = Dispatcher::new( dispatcher_tx);
+        // input_rx.attach(None, move|ui| {
+        //     dispatcher.handle_messages(ui);
+        //     Continue(true)
+        // });
+        //
+        //     input_bar.connect_activate(clone!(@weak selection_model => move |_| {
+        //     let row_data = &selection_model.selected_item();
+        //     if let Some(boxed) = row_data {
+        //         let pr = boxed.downcast_ref::<BoxedAnyObject>().unwrap()
+        //         .borrow::<Box<dyn PluginResult>>();
+        //         pr.on_enter();
+        //         gtk::main_quit();
+        //     }
+        // }));
     }
 
-    fn setup_keybindings(&self,
-                         window: &gtk::ApplicationWindow,
+    fn setup_keybindings(window: &gtk::ApplicationWindow,
                          selection_model: &gtk::SingleSelection,
                          list_view: &gtk::ListView,
-                         entry: &gtk::Entry) {
+                         entry: &Entry) {
         let controller = gtk::EventControllerKey::new();
 
         controller.connect_key_pressed(clone!(@strong window,

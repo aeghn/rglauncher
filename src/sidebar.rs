@@ -1,14 +1,12 @@
 use std::borrow::Borrow;
 use std::time::{SystemTime, UNIX_EPOCH};
 use gio::{glib, prelude::{Cast, StaticType, CastNone}};
-use glib::{BoxedAnyObject, clone, IsA, Receiver};
+use glib::{BoxedAnyObject, clone, IsA, Priority, Receiver, Sender};
 
 
 use gtk::{prelude::{FrameExt}, traits::BoxExt};
 use gtk::traits::WidgetExt;
 use tracing::error;
-
-
 use crate::{plugins::{Plugin, PluginResult}, sidebar_row::SidebarRow};
 
 pub struct Sidebar {
@@ -16,6 +14,8 @@ pub struct Sidebar {
     pub list_view: gtk::ListView,
     pub selection_model: gtk::SingleSelection,
     pub list_store: gio::ListStore,
+    pub plugin_result_receiver: Receiver<Vec<Box<dyn PluginResult>>>,
+    pub plugin_result_sender: Sender<Vec<Box<dyn PluginResult>>>,
 }
 
 impl Sidebar {
@@ -38,7 +38,16 @@ impl Sidebar {
             .focusable(false)
             .build();
 
-        Sidebar { scrolled_window, list_view,  selection_model, list_store }
+        let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT_IDLE);
+
+        Sidebar {
+            scrolled_window,
+            list_view,
+            selection_model,
+            list_store,
+            plugin_result_receiver: rx,
+            plugin_result_sender: tx
+        }
     }
 
     fn build_sorted_model(list_model: &impl IsA<gio::ListModel>) -> gtk::SortListModel {
@@ -82,17 +91,17 @@ impl Sidebar {
             .model(list_model)
             .build();
 
-        selection_model.connect_selected_item_notify(clone!(@strong view => move |selection| {
-            let item = selection.selected_item();
-            if let Some(boxed) = item {
-                let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
-                let preview = tt.preview();
-                preview.set_halign(Center);
-                preview.set_valign(Center);
-                preview.set_hexpand(true);
-                sidebar_scroll_window.set_child(Some(&preview));
-            }
-        }));
+        // selection_model.connect_selected_item_notify(clone!(@strong view => move |selection| {
+        //     let item = selection.selected_item();
+        //     if let Some(boxed) = item {
+        //         let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
+        //         let preview = tt.preview();
+        //         preview.set_halign(Center);
+        //         preview.set_valign(Center);
+        //         preview.set_hexpand(true);
+        //         sidebar_scroll_window.set_child(Some(&preview));
+        //     }
+        // }));
 
         selection_model
     }
