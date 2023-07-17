@@ -59,27 +59,6 @@ impl Dispatcher {
     }
 
     pub fn handle_messages(&self, user_input: UserInput) {
-            self.plugins.iter().for_each(|plugin| {
-                let (abort_handle, abort_registration) = AbortHandle::new_pair();
 
-                // if let Some(handle) = plugin.replace_abort(abort_handle) {
-                //     handle.abort();
-                // }
-
-                let query_info_fut =
-                    Abortable::new(, abort_registration);
-
-                {
-                    let sender = self.result_sender.clone();
-                    MainContext::ref_thread_default().spawn_local(async move {
-                        match query_info_fut.await {
-                            Ok(res) => {
-                                sender.send(res).unwrap();
-                            }
-                            Err(_) => {}
-                        }
-                    });
-                }
-        });
     }
 }
