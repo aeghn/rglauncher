@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
-use glib::{clone, MainContext};
+use std::thread;
+use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
 use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -13,6 +14,9 @@ use crate::{dispatcher, plugins::{PluginResult}};
 
 use tracing::{error};
 use crate::dispatcher::Dispatcher;
+use crate::inputbar::InputMessage;
+use crate::plugin_worker::PluginMessage;
+use crate::plugins::clipboard::ClipboardPlugin;
 use crate::shared::UserInput;
 use crate::sidebar::Sidebar;
 
@@ -24,7 +28,13 @@ pub struct Launcher {
 
 impl Launcher {
     pub fn new(window: &gtk::ApplicationWindow) -> Self {
+        Launcher::build_window(window)
+    }
+
+    pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
         let (input_tx, input_rx) = flume::unbounded();
+        let (plugin_tx, plugin_rx) = flume::unbounded();
+        let (result_sender, result_receiver) = glib::MainContext::channel(PRIORITY_DEFAULT_IDLE);
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -53,7 +63,29 @@ impl Launcher {
         Launcher::setup_keybindings(&window, &sidebar.selection_model,
                                &sidebar.list_view, &input_bar);
 
+        {
+            thread::spawn(|| {
+                loop {
+                    if let Ok(input_message) = input_rx.try_recv() {
+                        match input_message {
+                            InputMessage::TextChange(text) => {
+                                plugin_tx.send(PluginMessage::Input(text)).unwrap();
+                            }
+                            InputMessage::EmitEnter => {}
+                        }
+                    }
+                }
+            });
+        }
 
+
+
+        thread::spawn(|| {
+            let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
+            let mut plugin = crate::plugin_worker::PluginWorker::
+            new(clipboard, plugin_rx, result_sender.clone());
+            plugin.launch();
+        });
 
         Launcher {
             input_bar,
