@@ -1,11 +1,11 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
-use std::task::ready;
-use futures::future::{Abortable, Aborted, AbortHandle};
-use gio::ListStore;
-use glib::{BoxedAnyObject, Continue, MainContext, Receiver, Sender};
-use gtk::ResponseType::No;
-use tracing::error;
+
+use futures::future::{AbortHandle};
+
+use glib::{Sender};
+
+
 use crate::plugins::app::AppPlugin;
 use crate::plugins::clipboard::ClipboardPlugin;
 use crate::plugins::{Plugin, PluginResult};

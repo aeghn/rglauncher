@@ -82,7 +82,7 @@ fn activate(app: &Application) {
         .title("Launcher")
         .build();
 
-    let launcher = launcher::Launcher::new(&window);
+    let _launcher = launcher::Launcher::new(&window);
 
     let settings = Settings::default().unwrap();
     settings.set_gtk_icon_theme_name(Some(&"ePapirus"));

@@ -1,10 +1,10 @@
-use std::os::unix::raw::mode_t;
-use glib::{clone, GString};
+
+use glib::{GString};
 use flume::Sender;
 use gtk::{self, traits::{WidgetExt, StyleContextExt}};
 use gtk::prelude::EntryExt;
 use gtk::traits::EditableExt;
-use crate::shared::UserInput;
+
 
 pub enum InputMessage {
     TextChange(String),

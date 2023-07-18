@@ -1,5 +1,5 @@
 use glib::GString;
-use gtk::builders::LabelBuilder;
+
 use gtk::Label;
 use gtk::pango::WrapMode::WordChar;
 
