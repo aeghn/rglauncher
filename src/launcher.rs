@@ -1,6 +1,8 @@
 use std::borrow::Borrow;
 use std::thread;
-use glib::{clone, MainContext, PRIORITY_DEFAULT};
+use std::thread::Thread;
+use futures::task::SpawnExt;
+use glib::{clone, MainContext, PRIORITY_DEFAULT, PRIORITY_HIGH_IDLE};
 use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -11,13 +13,14 @@ use glib::{BoxedAnyObject};
 use gtk::PolicyType::Never;
 
 use tokio::sync::oneshot;
+use tracing::error;
 use crate::{plugins::{PluginResult}};
 
 
 
 use crate::inputbar::InputMessage;
 use crate::plugin_worker::PluginMessage;
-use crate::plugins::clipboard::ClipboardPlugin;
+use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
 
 use crate::sidebar::Sidebar;
 
@@ -33,11 +36,9 @@ impl Launcher {
     }
 
     pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
-        let (input_tx, input_rx) = flume::unbounded();
-        let (plugin_tx, plugin_rx) = flume::unbounded();
-        let (result_sender, _result_receiver) = flume::unbounded();
-        let (source_id_sender, _source_id_receiver) =
-            oneshot::channel::<gtk::glib::JoinHandle<()>>();
+        let (input_tx, input_rx) = flume::unbounded::<InputMessage>();
+        let (plugin_tx, plugin_rx) = flume::unbounded::<PluginMessage>();
+        let (result_sender, result_receiver) = flume::unbounded::<Vec<ClipPluginResult>>();
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -65,36 +66,33 @@ impl Launcher {
 
         Launcher::setup_keybindings(&window, &sidebar.selection_model,
                                &sidebar.list_view, &input_bar);
-        window.show();
+
+
 
         {
-            thread::spawn(move || {
-                let context = MainContext::thread_default().unwrap_or_else(glib::MainContext::new);
-                context.block_on(async move {
-                    let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-                    let mut plugin_worker =
-                        crate::plugin_worker::PluginWorker::new(clipboard,
-                                                                plugin_rx,
-                                                                result_sender.clone());
-                    plugin_worker.launch();
-                });
+            let plugin_tx = plugin_tx.clone();
+            MainContext::ref_thread_default().spawn(async move {
+                loop {
+                    if let Ok(input_message) = input_rx.recv_async().await {
+                        match input_message {
+                            InputMessage::TextChange(text) => {
+                                plugin_tx.send(PluginMessage::Input(text)).unwrap();
+                            }
+                            InputMessage::EmitEnter => {}
+                        }
+                    }
+                }
             });
         }
 
-        let plugin_tx = plugin_tx.clone();
-        let handle = MainContext::ref_thread_default().spawn_local_with_priority(PRIORITY_DEFAULT, async move {
-            loop {
-                if let Ok(input_message) = input_rx.try_recv() {
-                    match input_message {
-                        InputMessage::TextChange(text) => {
-                            plugin_tx.send(PluginMessage::Input(text)).unwrap();
-                        }
-                        InputMessage::EmitEnter => {}
-                    }
-                }
-            }
+        MainContext::ref_thread_default().spawn_local_with_priority(PRIORITY_DEFAULT,  async move {
+            let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
+            let mut plugin_worker =
+                crate::plugin_worker::PluginWorker::new(clipboard,
+                                                        plugin_rx,
+                                                        result_sender.clone());
+            plugin_worker.launch();
         });
-        source_id_sender.send(handle).unwrap();
 
         Launcher {
             input_bar,

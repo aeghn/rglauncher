@@ -15,6 +15,7 @@ pub struct ClipboardPlugin {
     conn: Option<Connection>
 }
 
+#[derive(Debug)]
 pub struct ClipPluginResult {
     id: u64,
     content: String,
