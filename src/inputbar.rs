@@ -1,9 +1,10 @@
 
 use glib::{GString};
-use flume::Sender;
+use flume::{Sender, SendError};
 use gtk::{self, traits::{WidgetExt, StyleContextExt}};
 use gtk::prelude::EntryExt;
 use gtk::traits::EditableExt;
+use tracing::error;
 
 
 pub enum InputMessage {
@@ -21,8 +22,12 @@ pub fn get_input_bar(tx: Sender<InputMessage>) -> gtk::Entry {
         let tx = tx.clone();
         input_bar.connect_changed(move |e| {
             let text = e.text().to_string();
-            tx.send(InputMessage::TextChange(text))
-                .expect("unable to get text from input bar");
+            match tx.send(InputMessage::TextChange(text)) {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("err is {:?}", err);
+                }
+            }
         });
     }
 

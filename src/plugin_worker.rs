@@ -9,6 +9,7 @@ use tracing::error;
 use crate::plugins::clipboard::ClipPluginResult;
 use crate::shared::UserInput;
 
+#[derive(Debug)]
 pub enum PluginMessage {
     Input(String)
 }
@@ -41,14 +42,10 @@ impl <P: Plugin + 'static> PluginWorker<P> {
     }
 
     pub async fn launch(&mut self) {
-        error!("=============");
-        error!("..............");
-
         loop {
             let pn = self.receiver.recv_async().await;
-
-
             if let Ok(msg) = pn {
+                error!("plugin worker got message: {:?}", msg);
                 match msg {
                     PluginMessage::Input(input) => {
                         let (abort_handle, abort_registration) = AbortHandle::new_pair();
@@ -68,7 +65,7 @@ impl <P: Plugin + 'static> PluginWorker<P> {
                                 match r {
                                     None => {}
                                     Some(rs) => {
-                                        sender.send(rs).unwrap()
+                                        sender.send(rs).unwrap();
                                     }
                                 }
                             }
