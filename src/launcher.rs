@@ -10,6 +10,7 @@ use glib::{BoxedAnyObject};
 use gtk::Align::Center;
 use gtk::PolicyType::Never;
 use gtk::ResponseType::No;
+use tokio::sync::oneshot;
 use crate::{dispatcher, plugins::{PluginResult}};
 
 use tracing::{error};
@@ -35,6 +36,8 @@ impl Launcher {
         let (input_tx, input_rx) = flume::unbounded();
         let (plugin_tx, plugin_rx) = flume::unbounded();
         let (result_sender, result_receiver) = flume::unbounded();
+        let (source_id_sender, source_id_receiver) =
+            oneshot::channel::<gtk::glib::JoinHandle<()>>();
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -62,27 +65,9 @@ impl Launcher {
 
         Launcher::setup_keybindings(&window, &sidebar.selection_model,
                                &sidebar.list_view, &input_bar);
-
-        {
-            let plugin_tx = plugin_tx.clone();
-            thread::spawn(move || {
-                loop {
-                    if let Ok(input_message) = input_rx.try_recv() {
-                        match input_message {
-                            InputMessage::TextChange(text) => {
-                                plugin_tx.send(PluginMessage::Input(text)).unwrap();
-                            }
-                            InputMessage::EmitEnter => {}
-                        }
-                    }
-                }
-            });
-        }
-
         window.show();
 
         {
-            error!("11111111111111111111");
             thread::spawn(move || {
                 let context = MainContext::thread_default().unwrap_or_else(glib::MainContext::new);
                 context.block_on(async move {
@@ -91,47 +76,31 @@ impl Launcher {
                         crate::plugin_worker::PluginWorker::new(clipboard,
                                                                 plugin_rx,
                                                                 result_sender.clone());
-                    error!("2");
                     plugin_worker.launch();
-                    error!("3");
                 });
             });
         }
 
+        let plugin_tx = plugin_tx.clone();
+        let handle = MainContext::ref_thread_default().spawn_local_with_priority(PRIORITY_DEFAULT, async move {
+            loop {
+                if let Ok(input_message) = input_rx.try_recv() {
+                    match input_message {
+                        InputMessage::TextChange(text) => {
+                            plugin_tx.send(PluginMessage::Input(text)).unwrap();
+                        }
+                        InputMessage::EmitEnter => {}
+                    }
+                }
+            }
+        });
+        source_id_sender.send(handle).unwrap();
 
         Launcher {
             input_bar,
             sidebar,
             preview: preview_window,
         }
-
-        // {
-        //     let list_store = sidebar.list_store;
-        //     dispatcher_rx.attach(None, move |r| {
-        //         list_store.remove_all();
-        //         for x in r.1 {
-        //             list_store.append(&BoxedAnyObject::new(x));
-        //         };
-        //
-        //         Continue(true)
-        //     });
-        // }
-        //
-        // let dispatcher = Dispatcher::new( dispatcher_tx);
-        // input_rx.attach(None, move|ui| {
-        //     dispatcher.handle_messages(ui);
-        //     Continue(true)
-        // });
-        //
-        //     input_bar.connect_activate(clone!(@weak selection_model => move |_| {
-        //     let row_data = &selection_model.selected_item();
-        //     if let Some(boxed) = row_data {
-        //         let pr = boxed.downcast_ref::<BoxedAnyObject>().unwrap()
-        //         .borrow::<Box<dyn PluginResult>>();
-        //         pr.on_enter();
-        //         gtk::main_quit();
-        //     }
-        // }));
     }
 
     fn setup_keybindings(window: &gtk::ApplicationWindow,

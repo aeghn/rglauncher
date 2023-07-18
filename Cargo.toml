@@ -12,7 +12,7 @@ edition = "2021"
 #futures = "0.3.21"
 fuzzy-matcher = "0.3.7"
 gio = "0.17.9"
-gtk = { version = "0.6.6", package = "gtk4" , features = ["v4_10"]}
+gtk = { version = "0.6", package = "gtk4"}
 lazy_static = "1.4.0"
 #libc = "0.2.103"
 locale-types = "0.4.0"
