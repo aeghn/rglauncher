@@ -1,15 +1,15 @@
 use std::process::Command;
-use std::thread::sleep;
+
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use gio::Icon;
 use glib::Cast;
-use gtk::{Label, Orientation, Widget};
-use gtk::Orientation::{Horizontal, Vertical};
+use gtk::{Label, Widget};
+
 use gtk::pango::WrapMode::WordChar;
-use gtk::prelude::{BoxExt, GridExt, WidgetExt};
-use tracing::{error, info};
-use tracing_subscriber::fmt::format;
+use gtk::prelude::{GridExt, WidgetExt};
+use tracing::{error};
+
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 

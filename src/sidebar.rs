@@ -1,13 +1,13 @@
 use std::borrow::Borrow;
-use std::time::{SystemTime, UNIX_EPOCH};
+
 use gio::{glib, prelude::{Cast, StaticType, CastNone}};
-use glib::{BoxedAnyObject, clone, IsA, Priority, Receiver, Sender};
+use glib::{BoxedAnyObject, IsA, Receiver, Sender};
 
 
-use gtk::{prelude::{FrameExt}, traits::BoxExt};
+use gtk::{prelude::{FrameExt}};
 use gtk::traits::WidgetExt;
-use tracing::error;
-use crate::{plugins::{Plugin, PluginResult}, sidebar_row::SidebarRow};
+
+use crate::{plugins::{PluginResult}, sidebar_row::SidebarRow};
 
 pub struct Sidebar {
     pub scrolled_window: gtk::ScrolledWindow,

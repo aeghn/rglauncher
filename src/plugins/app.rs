@@ -1,11 +1,11 @@
-use std::ffi::OsStr;
+
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use gio::{AppInfo};
 use gio::prelude::AppInfoExt;
 use glib::Cast;
-use gtk::{Orientation, Widget};
-use gtk::prelude::{BoxExt, GridExt, WidgetExt};
+use gtk::{Widget};
+use gtk::prelude::{GridExt, WidgetExt};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;

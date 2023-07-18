@@ -1,24 +1,24 @@
 use std::borrow::Borrow;
 use std::thread;
-use glib::{clone, MainContext, PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE, PRIORITY_LOW};
+use glib::{clone, MainContext, PRIORITY_DEFAULT};
 use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
 use gtk::gdk;
 use gtk::Inhibit;
 use glib::{BoxedAnyObject};
-use gtk::Align::Center;
-use gtk::PolicyType::Never;
-use gtk::ResponseType::No;
-use tokio::sync::oneshot;
-use crate::{dispatcher, plugins::{PluginResult}};
 
-use tracing::{error};
-use crate::dispatcher::Dispatcher;
+use gtk::PolicyType::Never;
+
+use tokio::sync::oneshot;
+use crate::{plugins::{PluginResult}};
+
+
+
 use crate::inputbar::InputMessage;
 use crate::plugin_worker::PluginMessage;
 use crate::plugins::clipboard::ClipboardPlugin;
-use crate::shared::UserInput;
+
 use crate::sidebar::Sidebar;
 
 pub struct Launcher {
@@ -35,8 +35,8 @@ impl Launcher {
     pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
         let (input_tx, input_rx) = flume::unbounded();
         let (plugin_tx, plugin_rx) = flume::unbounded();
-        let (result_sender, result_receiver) = flume::unbounded();
-        let (source_id_sender, source_id_receiver) =
+        let (result_sender, _result_receiver) = flume::unbounded();
+        let (source_id_sender, _source_id_receiver) =
             oneshot::channel::<gtk::glib::JoinHandle<()>>();
 
         let main_box = gtk::Box::builder()
@@ -112,7 +112,7 @@ impl Launcher {
         controller.connect_key_pressed(clone!(@strong window,
             @strong selection_model,
             @strong entry,
-            @strong list_view => move |_, key, keycode, _| {
+            @strong list_view => move |_, key, _keycode, _| {
 
                 match key {
                     gdk::Key::Up => {

@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
-use std::task::Poll;
-use flume::{RecvError, TryRecvError};
-use futures::future::{Abortable, Aborted, AbortHandle};
-use glib::{Error, MainContext};
-use crate::plugins::{Plugin, PluginResult};
-use gio::FileInfo;
+
+
+use futures::future::{Abortable, AbortHandle};
+use glib::{MainContext};
+use crate::plugins::{Plugin};
+
 use tracing::error;
 use crate::plugins::clipboard::ClipPluginResult;
 use crate::shared::UserInput;
@@ -22,10 +22,10 @@ pub struct PluginWorker<P: Plugin> {
 }
 
 
-async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, input: UserInput) -> Option<Vec<ClipPluginResult>> {
-    let p = plugin.lock().unwrap();
+async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> Option<Vec<ClipPluginResult>> {
+    let _p = plugin.lock().unwrap();
     // Some(p.handle_input(&input));
-    let mut vec = vec![];
+    let vec = vec![];
     Some(vec)
 }
 

@@ -1,15 +1,15 @@
-use std::thread;
-use std::time::Duration;
+
+
 use gio::Icon;
 use glib::Cast;
-use gtk::ResponseType::No;
+
 use gtk::{Grid, Label, Widget};
 use gtk::pango::WrapMode::WordChar;
 use gtk::traits::GridExt;
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
-use rusqlite::{Connection, Result};
-use serde_json::map;
+use rusqlite::{Connection};
+
 
 pub struct ClipboardPlugin {
     conn: Option<Connection>
@@ -48,7 +48,7 @@ impl Plugin for ClipboardPlugin {
         let mut vec: Vec<Box<dyn PluginResult>> = vec![];
 
         if let Some(_conn) = &self.conn {
-            let mut stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \
+            let stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \
             where content0 like '%{}%' order by INSERT_TIME desc limit 300", user_input.input.as_str()).as_str());
             if let Ok(mut _stmt) =stmt {
                 let iter = _stmt.query_map([], |row| {
