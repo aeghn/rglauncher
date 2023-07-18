@@ -2,39 +2,36 @@ use std::sync::{Arc, Mutex};
 use std::task::Poll;
 use flume::{RecvError, TryRecvError};
 use futures::future::{Abortable, Aborted, AbortHandle};
-use futures::Stream;
 use glib::{Error, MainContext};
 use crate::plugins::{Plugin, PluginResult};
 use gio::FileInfo;
+use tracing::error;
+use crate::plugins::clipboard::ClipPluginResult;
 use crate::shared::UserInput;
 
 pub enum PluginMessage {
     Input(String)
 }
 
-pub enum PluginOutputMessage {
-    Output(Vec<FileInfo>)
-}
 
 pub struct PluginWorker<P: Plugin> {
     plugin: Arc<Mutex<P>>,
     abort_handle: Option<AbortHandle>,
     receiver: flume::Receiver<PluginMessage>,
-    result_sender: flume::Sender<PluginOutputMessage>
+    result_sender: flume::Sender<Vec<ClipPluginResult>>
 }
 
 
-async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, input: UserInput) -> Option<Vec<FileInfo>> {
+async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, input: UserInput) -> Option<Vec<ClipPluginResult>> {
     let p = plugin.lock().unwrap();
-    // Some(p.handle_input(&input))
-    let mut  vec = vec![];
-    vec.push(FileInfo::new());
+    // Some(p.handle_input(&input));
+    let mut vec = vec![];
     Some(vec)
 }
 
 impl <P: Plugin + 'static> PluginWorker<P> {
     pub fn new(plugin: P, receiver: flume::Receiver<PluginMessage>,
-               result_sender: flume::Sender<PluginOutputMessage>) -> Self {
+               result_sender: flume::Sender<Vec<ClipPluginResult>>) -> Self {
         PluginWorker {
             plugin: Arc::new(Mutex::new(plugin)),
             abort_handle: None,
@@ -43,9 +40,15 @@ impl <P: Plugin + 'static> PluginWorker<P> {
         }
     }
 
-    pub fn launch(&mut self) {
+    pub async fn launch(&mut self) {
+        error!("=============");
+        error!("..............");
+
         loop {
-            if let Ok(msg) = self.receiver.try_recv() {
+            let pn = self.receiver.recv_async().await;
+
+
+            if let Ok(msg) = pn {
                 match msg {
                     PluginMessage::Input(input) => {
                         let (abort_handle, abort_registration) = AbortHandle::new_pair();
@@ -65,7 +68,7 @@ impl <P: Plugin + 'static> PluginWorker<P> {
                                 match r {
                                     None => {}
                                     Some(rs) => {
-                                        sender.send(PluginOutputMessage::Output(rs)).unwrap()
+                                        sender.send(rs).unwrap()
                                     }
                                 }
                             }
