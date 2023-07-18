@@ -72,6 +72,18 @@ impl Plugin for ClipboardPlugin {
     }
 }
 
+impl ClipPluginResult {
+    pub fn new() -> Self {
+        Self{
+            id: 0,
+            content: "".to_string(),
+            score: 0,
+            mime: "".to_string(),
+            insert_time: "".to_string(),
+        }
+    }
+}
+
 impl PluginResult for ClipPluginResult {
     fn get_score(&self) -> i32 {
         self.score

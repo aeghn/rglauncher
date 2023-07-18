@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::thread;
-use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
+use glib::{clone, MainContext, PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE, PRIORITY_LOW};
 use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -34,7 +34,7 @@ impl Launcher {
     pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
         let (input_tx, input_rx) = flume::unbounded();
         let (plugin_tx, plugin_rx) = flume::unbounded();
-        let (result_sender, result_receiver) = glib::MainContext::channel(PRIORITY_DEFAULT_IDLE);
+        let (result_sender, result_receiver) = flume::unbounded();
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -64,7 +64,8 @@ impl Launcher {
                                &sidebar.list_view, &input_bar);
 
         {
-            thread::spawn(|| {
+            let plugin_tx = plugin_tx.clone();
+            thread::spawn(move || {
                 loop {
                     if let Ok(input_message) = input_rx.try_recv() {
                         match input_message {
@@ -78,14 +79,25 @@ impl Launcher {
             });
         }
 
+        window.show();
 
+        {
+            error!("11111111111111111111");
+            thread::spawn(move || {
+                let context = MainContext::thread_default().unwrap_or_else(glib::MainContext::new);
+                context.block_on(async move {
+                    let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
+                    let mut plugin_worker =
+                        crate::plugin_worker::PluginWorker::new(clipboard,
+                                                                plugin_rx,
+                                                                result_sender.clone());
+                    error!("2");
+                    plugin_worker.launch();
+                    error!("3");
+                });
+            });
+        }
 
-        thread::spawn(|| {
-            let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-            let mut plugin = crate::plugin_worker::PluginWorker::
-            new(clipboard, plugin_rx, result_sender.clone());
-            plugin.launch();
-        });
 
         Launcher {
             input_bar,
