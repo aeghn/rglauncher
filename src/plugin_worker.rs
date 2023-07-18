@@ -3,10 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use futures::future::{Abortable, AbortHandle};
 use glib::{MainContext};
-use crate::plugins::{Plugin};
+use crate::plugins::{Plugin, PluginResult};
 
 use tracing::error;
-use crate::plugins::clipboard::ClipPluginResult;
 use crate::shared::UserInput;
 
 #[derive(Debug)]
@@ -19,11 +18,11 @@ pub struct PluginWorker<P: Plugin> {
     plugin: Arc<Mutex<P>>,
     abort_handle: Option<AbortHandle>,
     receiver: flume::Receiver<PluginMessage>,
-    result_sender: flume::Sender<Vec<ClipPluginResult>>
+    result_sender: flume::Sender<Vec<Box<dyn PluginResult>>>
 }
 
 
-async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> Option<Vec<ClipPluginResult>> {
+async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> Option<Vec<Box<dyn PluginResult>>> {
     let _p = plugin.lock().unwrap();
     // Some(p.handle_input(&input));
     let vec = vec![];
@@ -32,7 +31,7 @@ async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> 
 
 impl <P: Plugin + 'static> PluginWorker<P> {
     pub fn new(plugin: P, receiver: flume::Receiver<PluginMessage>,
-               result_sender: flume::Sender<Vec<ClipPluginResult>>) -> Self {
+               result_sender: flume::Sender<Vec<Box<dyn PluginResult>>>) -> Self {
         PluginWorker {
             plugin: Arc::new(Mutex::new(plugin)),
             abort_handle: None,

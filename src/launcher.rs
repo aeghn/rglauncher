@@ -38,7 +38,7 @@ impl Launcher {
     pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
         let (input_tx, input_rx) = flume::unbounded::<InputMessage>();
         let (plugin_tx, plugin_rx) = flume::unbounded::<PluginMessage>();
-        let (result_sender, result_receiver) = flume::unbounded::<Vec<ClipPluginResult>>();
+        let (result_sender, result_receiver) = flume::unbounded::<Vec<Box<dyn PluginResult>>>();
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -91,7 +91,7 @@ impl Launcher {
                 crate::plugin_worker::PluginWorker::new(clipboard,
                                                         plugin_rx,
                                                         result_sender.clone());
-            plugin_worker.launch();
+            plugin_worker.launch().await;
         });
 
         Launcher {
