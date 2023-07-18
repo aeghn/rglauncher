@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use gio::{AppInfo};
@@ -15,6 +16,15 @@ pub struct AppPlugin {
 pub struct AppResult {
     app_info: AppInfo,
     score: i32,
+}
+
+impl AppResult {
+    pub fn new() -> Self {
+        Self {
+            app_info: AppInfo::all().get(0).unwrap().clone(),
+            score: 0,
+        }
+    }
 }
 
 impl PluginResult for AppResult {
