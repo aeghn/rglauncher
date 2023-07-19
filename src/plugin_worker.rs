@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use futures::future::{Abortable, AbortHandle};
 use glib::{MainContext, PRIORITY_DEFAULT};
-use crate::plugins::{Plugin, PluginResult};
+use crate::plugins::{Plugin};
 
-use tracing::error;
+
 use crate::shared::UserInput;
 use crate::sidebar::SidebarMsg;
 

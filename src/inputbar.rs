@@ -1,6 +1,6 @@
 
 use glib::{GString};
-use flume::{Sender, SendError};
+use flume::{Sender};
 use gtk::{self, traits::{WidgetExt, StyleContextExt}};
 use gtk::prelude::EntryExt;
 use gtk::traits::EditableExt;

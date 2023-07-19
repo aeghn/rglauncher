@@ -10,7 +10,7 @@ use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use rusqlite::{Connection};
 use tracing::error;
-use tracing::subscriber::with_default;
+
 use crate::util::widget_utils;
 
 

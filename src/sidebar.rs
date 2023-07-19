@@ -1,13 +1,13 @@
 use std::borrow::Borrow;
-use flume::RecvError;
 
-use gio::{glib, Icon, prelude::{Cast, StaticType, CastNone}};
-use glib::{BoxedAnyObject, Continue, IsA, StrV};
+
+use gio::{glib, prelude::{Cast, StaticType, CastNone}};
+use glib::{BoxedAnyObject, IsA, StrV};
 
 
 use gtk::{Image, Label, prelude::{FrameExt}};
-use gtk::AccessibleRole::Grid;
-use gtk::ResponseType::No;
+
+
 use gtk::traits::{GridExt, WidgetExt};
 use tracing::error;
 

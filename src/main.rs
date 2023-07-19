@@ -10,11 +10,11 @@ mod util;
 pub mod plugin_worker;
 
 
-use glib::once_cell::sync::{Lazy, OnceCell};
+
 use tracing::*;
 use tracing_subscriber::prelude::*;
-use tracing_subscriber::EnvFilter;
-use tracing_tree::HierarchicalLayer;
+
+
 use gtk::gdk::*;
 use gtk::prelude::*;
 use gtk::*;
