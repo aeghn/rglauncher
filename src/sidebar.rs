@@ -1,16 +1,17 @@
 use std::borrow::Borrow;
 use flume::RecvError;
 
-use gio::{glib, prelude::{Cast, StaticType, CastNone}};
+use gio::{glib, Icon, prelude::{Cast, StaticType, CastNone}};
 use glib::{BoxedAnyObject, Continue, IsA, StrV};
 
 
-use gtk::{prelude::{FrameExt}};
+use gtk::{Image, Label, prelude::{FrameExt}};
+use gtk::AccessibleRole::Grid;
 use gtk::ResponseType::No;
-use gtk::traits::WidgetExt;
+use gtk::traits::{GridExt, WidgetExt};
 use tracing::error;
 
-use crate::{plugins::{PluginResult}, sidebar_row::SidebarRow};
+use crate::{plugins::{PluginResult}};
 use crate::shared::UserInput;
 
 pub enum SidebarMsg {
@@ -47,6 +48,7 @@ impl Sidebar {
             .css_classes(StrV::from(vec!["sidebar"]))
             .child(&list_view)
             .focusable(false)
+            .can_focus(false)
             .build();
 
         let (tx, rx) = flume::unbounded();
@@ -113,11 +115,49 @@ impl Sidebar {
             .build()
     }
 
+    fn get_sidebar_item() -> gtk::Grid {
+        let grid = gtk::Grid::builder()
+            .hexpand(true)
+            .focusable(false)
+            .can_focus(false)
+            .build();
+
+        let image = gtk::Image::builder()
+            .pixel_size(48)
+            .build();
+
+        let label = crate::util::widget_utils::get_wrapped_label("", 0.5);
+        grid.attach(&image, 0, 0, 1, 2);
+        grid.attach(&label, 1, 0, 1, 1);
+
+        grid
+    }
+
+    fn arrange_sidebar_item(grid: &gtk::Grid, pr: &dyn PluginResult) {
+        if let Some(gi) = grid.child_at(0, 0) {
+            if let Some(icon) = pr.sidebar_icon() {
+                let image = gi.downcast_ref::<Image>().unwrap();
+                image.set_from_gicon(&icon);
+            }
+        }
+
+        if let Some(gi) = grid.child_at(1, 0) {
+            if let Some(text) = pr.sidebar_label() {
+                let label = gi.downcast_ref::<Label>().unwrap();
+                label.set_label(text.as_str());
+            }
+        }
+
+        if let Some(con) = pr.sidebar_content() {
+            grid.attach(&con, 1, 1, 1, 1);
+        }
+    }
+
     fn build_signal_list_item_factory() -> gtk::SignalListItemFactory {
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let item = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let row = SidebarRow::new();
+            let row = Sidebar::get_sidebar_item();
             item.set_child(Some(&row));
         });
 
@@ -126,8 +166,8 @@ impl Sidebar {
             let plugin_result_box = item.item().and_downcast::<BoxedAnyObject>().unwrap();
             let plugin_result = plugin_result_box.borrow::<Box<dyn PluginResult>>();
 
-            let child = item.child().and_downcast::<SidebarRow>().unwrap();
-            child.set_sidebar(plugin_result.as_ref());
+            let child = item.child().and_downcast::<gtk::Grid>().unwrap();
+            Sidebar::arrange_sidebar_item(&child, plugin_result.as_ref())
         });
 
         factory

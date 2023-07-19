@@ -5,7 +5,6 @@ mod inputbar;
 mod shared;
 mod sidebar;
 mod plugins;
-mod sidebar_row;
 mod constant;
 mod util;
 pub mod plugin_worker;
