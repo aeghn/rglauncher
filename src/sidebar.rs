@@ -1,21 +1,32 @@
 use std::borrow::Borrow;
+use flume::RecvError;
 
 use gio::{glib, prelude::{Cast, StaticType, CastNone}};
-use glib::{BoxedAnyObject, IsA, Receiver, Sender};
+use glib::{BoxedAnyObject, Continue, IsA, StrV};
 
 
 use gtk::{prelude::{FrameExt}};
+use gtk::ResponseType::No;
 use gtk::traits::WidgetExt;
+use tracing::error;
 
 use crate::{plugins::{PluginResult}, sidebar_row::SidebarRow};
+use crate::shared::UserInput;
+
+pub enum SidebarMsg {
+    TextChanged(String),
+    PluginResult(UserInput, Vec<Box<dyn PluginResult>>)
+}
 
 pub struct Sidebar {
     pub scrolled_window: gtk::ScrolledWindow,
     pub list_view: gtk::ListView,
     pub selection_model: gtk::SingleSelection,
     pub list_store: gio::ListStore,
-    pub plugin_result_receiver: Receiver<Vec<Box<dyn PluginResult>>>,
-    pub plugin_result_sender: Sender<Vec<Box<dyn PluginResult>>>,
+    pub sorted_store: gtk::SortListModel,
+    pub plugin_result_receiver: flume::Receiver<SidebarMsg>,
+    pub plugin_result_sender: flume::Sender<SidebarMsg>,
+    pub current_input: Option<UserInput>
 }
 
 impl Sidebar {
@@ -28,25 +39,61 @@ impl Sidebar {
         let list_view = gtk::ListView::builder()
             .factory(&factory)
             .model(&selection_model)
-            .css_name("sidebar")
             .can_focus(false)
             .build();
 
         let scrolled_window = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never) // Disable horizontal scrolling
+            .css_classes(StrV::from(vec!["sidebar"]))
             .child(&list_view)
             .focusable(false)
             .build();
 
-        let (tx, rx) = glib::MainContext::channel(glib::PRIORITY_DEFAULT_IDLE);
+        let (tx, rx) = flume::unbounded();
+
+
 
         Sidebar {
             scrolled_window,
             list_view,
             selection_model,
             list_store,
+            sorted_store: sorted_model,
             plugin_result_receiver: rx,
-            plugin_result_sender: tx
+            plugin_result_sender: tx,
+            current_input: None
+        }
+    }
+
+    pub async fn receive_msgs(&mut self) {
+        let prr = &self.plugin_result_receiver;
+        loop {
+            let pr = prr.recv_async().await;
+            match pr {
+                Ok(msg) => {
+                    match msg {
+                        SidebarMsg::TextChanged(text) => {
+                            self.current_input.replace(UserInput::new(text.as_str()));
+                            error!("start remove");
+                            self.list_store.remove_all();
+                            error!("end remove");
+                        }
+                        SidebarMsg::PluginResult(ui_, pr_) => {
+                            if let Some(ui) = &self.current_input {
+                                if ui_.input == ui.input {
+                                    error!("start extend");
+                                    self.list_store.extend(pr_.into_iter()
+                                        .map(move |e| {
+                                            BoxedAnyObject::new(e)
+                                        }));
+                                    error!("end extend");
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(_) => {}
+            }
         }
     }
 

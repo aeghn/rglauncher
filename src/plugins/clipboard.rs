@@ -9,6 +9,7 @@ use gtk::traits::GridExt;
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use rusqlite::{Connection};
+use tracing::error;
 
 
 pub struct ClipboardPlugin {
@@ -46,11 +47,12 @@ impl ClipboardPlugin {
 
 impl Plugin for ClipboardPlugin {
     fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>> {
+        error!("begin to collect: {:?}", user_input);
         let mut vec: Vec<Box<dyn PluginResult>> = vec![];
 
         if let Some(_conn) = &self.conn {
             let stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \
-            where content0 like '%{}%' order by INSERT_TIME desc limit 300", user_input.input.as_str()).as_str());
+            where content0 like '%{}%' order by INSERT_TIME desc limit 1000", user_input.input.as_str()).as_str());
             if let Ok(mut _stmt) =stmt {
                 let iter = _stmt.query_map([], |row| {
                     Ok(ClipPluginResult {
@@ -68,7 +70,7 @@ impl Plugin for ClipboardPlugin {
                 }
             }
         };
-
+        error!("end to collect: {:?}", user_input);
         vec
     }
 }
@@ -85,6 +87,14 @@ impl ClipPluginResult {
     }
 }
 
+fn truncate(s: &str, max_chars: usize) -> &str {
+    match s.char_indices().nth(max_chars) {
+        None => s,
+        Some((idx, _)) => &s[..idx],
+    }
+}
+
+
 impl PluginResult for ClipPluginResult {
     fn get_score(&self) -> i32 {
         self.score
@@ -99,7 +109,7 @@ impl PluginResult for ClipPluginResult {
     }
 
     fn sidebar_content(&self) -> Option<Widget> {
-        let label = Label::new(Some(self.content.replace("\n", "").as_str()));
+        let label = Label::new(Some(truncate(self.content.trim(), 60)));
         label.set_wrap(true);
         label.set_wrap_mode(WordChar);
         Some(label.upcast())

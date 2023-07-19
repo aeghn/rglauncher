@@ -8,7 +8,6 @@ mod plugins;
 mod sidebar_row;
 mod constant;
 mod util;
-mod dispatcher;
 pub mod plugin_worker;
 
 
@@ -20,28 +19,13 @@ use tracing_tree::HierarchicalLayer;
 use gtk::gdk::*;
 use gtk::prelude::*;
 use gtk::*;
-use tokio::runtime::Runtime;
 
 const APP_ID: &str = "org.codeberg.wangzh.rglauncher";
 
-pub static RELM_THREADS: OnceCell<usize> = OnceCell::new();
-pub static RELM_BLOCKING_THREADS: OnceCell<usize> = OnceCell::new();
-
-static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .worker_threads(*RELM_THREADS.get_or_init(|| 1))
-        .max_blocking_threads(*RELM_BLOCKING_THREADS.get_or_init(|| 512))
-        .build()
-        .unwrap()
-});
-
-// #[no_mangle]
-// #[tokio::main]
 fn main() {
-    tracing_subscriber::registry()
-        .with(HierarchicalLayer::new(2))
-        .with(EnvFilter::from_default_env())
+    tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .with_timer(tracing_subscriber::fmt::time::time())
         .init();
 
     let app = Application::builder()
@@ -54,7 +38,6 @@ fn main() {
 
     info!("Ready.");
 
-    let _guard = RUNTIME.enter();
     app.run();
 }
 
