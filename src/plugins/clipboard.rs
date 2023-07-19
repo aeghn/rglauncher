@@ -10,6 +10,8 @@ use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use rusqlite::{Connection};
 use tracing::error;
+use tracing::subscriber::with_default;
+use crate::util::widget_utils;
 
 
 pub struct ClipboardPlugin {
@@ -87,14 +89,6 @@ impl ClipPluginResult {
     }
 }
 
-fn truncate(s: &str, max_chars: usize) -> &str {
-    match s.char_indices().nth(max_chars) {
-        None => s,
-        Some((idx, _)) => &s[..idx],
-    }
-}
-
-
 impl PluginResult for ClipPluginResult {
     fn get_score(&self) -> i32 {
         self.score
@@ -109,9 +103,7 @@ impl PluginResult for ClipPluginResult {
     }
 
     fn sidebar_content(&self) -> Option<Widget> {
-        let label = Label::new(Some(truncate(self.content.trim(), 60)));
-        label.set_wrap(true);
-        label.set_wrap_mode(WordChar);
+        let label = widget_utils::limit_length_label(self.content.as_str(), 60, 0.0);
         Some(label.upcast())
     }
 
