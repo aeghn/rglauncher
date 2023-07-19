@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::thread;
 use std::thread::Thread;
 use futures::task::SpawnExt;
-use glib::{clone, MainContext, PRIORITY_DEFAULT, PRIORITY_HIGH_IDLE};
+use glib::{clone, MainContext, PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE, PRIORITY_HIGH_IDLE};
 use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -12,9 +12,8 @@ use glib::{BoxedAnyObject};
 
 use gtk::PolicyType::Never;
 
-use tokio::sync::oneshot;
 use tracing::error;
-use crate::{plugins::{PluginResult}};
+use crate::{plugin_worker, plugins::{PluginResult}};
 
 
 
@@ -22,11 +21,10 @@ use crate::inputbar::InputMessage;
 use crate::plugin_worker::PluginMessage;
 use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
 
-use crate::sidebar::Sidebar;
+use crate::sidebar::{Sidebar, SidebarMsg};
 
 pub struct Launcher {
     input_bar: Entry,
-    sidebar: Sidebar,
     preview: ScrolledWindow
 }
 
@@ -55,7 +53,7 @@ impl Launcher {
             .build();
         main_box.append(&bottom_box);
 
-        let sidebar = crate::sidebar::Sidebar::new();
+        let mut sidebar = crate::sidebar::Sidebar::new();
         let sidebar_window = &sidebar.scrolled_window;
         bottom_box.append(sidebar_window);
 
@@ -67,15 +65,15 @@ impl Launcher {
         Launcher::setup_keybindings(&window, &sidebar.selection_model,
                                &sidebar.list_view, &input_bar);
 
-
-
         {
             let plugin_tx = plugin_tx.clone();
-            MainContext::ref_thread_default().spawn(async move {
+            let sidebar_receiver = sidebar.plugin_result_sender.clone();
+            MainContext::ref_thread_default().spawn_local(async move {
                 loop {
                     if let Ok(input_message) = input_rx.recv_async().await {
                         match input_message {
                             InputMessage::TextChange(text) => {
+                                sidebar_receiver.send(SidebarMsg::TextChanged(text.clone())).unwrap();
                                 plugin_tx.send(PluginMessage::Input(text)).unwrap();
                             }
                             InputMessage::EmitEnter => {}
@@ -85,18 +83,22 @@ impl Launcher {
             });
         }
 
-        MainContext::ref_thread_default().spawn_local_with_priority(PRIORITY_DEFAULT,  async move {
-            let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-            let mut plugin_worker =
-                crate::plugin_worker::PluginWorker::new(clipboard,
-                                                        plugin_rx,
-                                                        result_sender.clone());
-            plugin_worker.launch().await;
-        });
+
+        let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
+        plugin_worker::PluginWorker::<ClipboardPlugin>::launch(&sidebar.plugin_result_sender,
+                                                               clipboard,
+                                                               &plugin_rx);
+
+        {
+            MainContext::ref_thread_default().spawn_local_with_priority(
+                PRIORITY_DEFAULT_IDLE,
+                async move {
+                    sidebar.receive_msgs().await;
+                });
+        }
 
         Launcher {
             input_bar,
-            sidebar,
             preview: preview_window,
         }
     }

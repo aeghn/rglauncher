@@ -2,11 +2,12 @@ use std::sync::{Arc, Mutex};
 
 
 use futures::future::{Abortable, AbortHandle};
-use glib::{MainContext};
+use glib::{MainContext, PRIORITY_DEFAULT};
 use crate::plugins::{Plugin, PluginResult};
 
 use tracing::error;
 use crate::shared::UserInput;
+use crate::sidebar::SidebarMsg;
 
 #[derive(Debug)]
 pub enum PluginMessage {
@@ -18,20 +19,20 @@ pub struct PluginWorker<P: Plugin> {
     plugin: Arc<Mutex<P>>,
     abort_handle: Option<AbortHandle>,
     receiver: flume::Receiver<PluginMessage>,
-    result_sender: flume::Sender<Vec<Box<dyn PluginResult>>>
+    result_sender: flume::Sender<SidebarMsg>
 }
 
 
-async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> Option<Vec<Box<dyn PluginResult>>> {
+async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> Option<SidebarMsg> {
     let _p = plugin.lock().unwrap();
-    // Some(p.handle_input(&input));
-    let vec = vec![];
-    Some(vec)
+    let pr = _p.handle_input(&_input);
+    Some(SidebarMsg::PluginResult(_input, pr))
 }
 
 impl <P: Plugin + 'static> PluginWorker<P> {
-    pub fn new(plugin: P, receiver: flume::Receiver<PluginMessage>,
-               result_sender: flume::Sender<Vec<Box<dyn PluginResult>>>) -> Self {
+    pub fn new(plugin: P,
+               receiver: flume::Receiver<PluginMessage>,
+               result_sender: flume::Sender<SidebarMsg>) -> Self {
         PluginWorker {
             plugin: Arc::new(Mutex::new(plugin)),
             abort_handle: None,
@@ -40,11 +41,26 @@ impl <P: Plugin + 'static> PluginWorker<P> {
         }
     }
 
-    pub async fn launch(&mut self) {
+    pub fn launch(result_sender: &flume::Sender<SidebarMsg>,
+                  plugin: impl Plugin + 'static,
+                  receiver: &flume::Receiver<PluginMessage>) {
+        let result_sender = result_sender.clone();
+        let receiver = receiver.clone();
+        MainContext::ref_thread_default().spawn_local_with_priority(
+            PRIORITY_DEFAULT,
+            async move {
+                let mut plugin_worker =
+                    PluginWorker::new(plugin,
+                                      receiver,
+                                      result_sender);
+                plugin_worker.run().await;
+            });
+    }
+
+    pub async fn run(&mut self) {
         loop {
             let pn = self.receiver.recv_async().await;
             if let Ok(msg) = pn {
-                error!("plugin worker got message: {:?}", msg);
                 match msg {
                     PluginMessage::Input(input) => {
                         let (abort_handle, abort_registration) = AbortHandle::new_pair();
