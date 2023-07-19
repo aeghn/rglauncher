@@ -1,8 +1,8 @@
 use std::borrow::Borrow;
-use std::thread;
-use std::thread::Thread;
-use futures::task::SpawnExt;
-use glib::{clone, MainContext, PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE, PRIORITY_HIGH_IDLE};
+
+
+
+use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
 use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gio::prelude::*;
 use gtk::prelude::*;
@@ -12,16 +12,16 @@ use glib::{BoxedAnyObject};
 
 use gtk::PolicyType::Never;
 
-use tracing::error;
+
 use crate::{plugin_worker, plugins::{PluginResult}};
 
 
 
 use crate::inputbar::InputMessage;
 use crate::plugin_worker::PluginMessage;
-use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
+use crate::plugins::clipboard::{ClipboardPlugin};
 
-use crate::sidebar::{Sidebar, SidebarMsg};
+use crate::sidebar::{SidebarMsg};
 
 pub struct Launcher {
     input_bar: Entry,
@@ -36,7 +36,7 @@ impl Launcher {
     pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
         let (input_tx, input_rx) = flume::unbounded::<InputMessage>();
         let (plugin_tx, plugin_rx) = flume::unbounded::<PluginMessage>();
-        let (result_sender, result_receiver) = flume::unbounded::<Vec<Box<dyn PluginResult>>>();
+        let (_result_sender, _result_receiver) = flume::unbounded::<Vec<Box<dyn PluginResult>>>();
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
