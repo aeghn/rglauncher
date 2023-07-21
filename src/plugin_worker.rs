@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 
 use futures::future::{Abortable, AbortHandle};
+use gio::Task;
 use glib::{MainContext, PRIORITY_DEFAULT};
 use crate::plugins::{Plugin};
 
@@ -21,7 +22,6 @@ pub struct PluginWorker<P: Plugin> {
     receiver: flume::Receiver<PluginMessage>,
     result_sender: flume::Sender<SidebarMsg>
 }
-
 
 async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> Option<SidebarMsg> {
     let _p = plugin.lock().unwrap();
@@ -73,6 +73,8 @@ impl <P: Plugin + 'static> PluginWorker<P> {
                         let query_info_fut =
                             Abortable::new(handle_message(Arc::clone(&self.plugin), ui),
                                            abort_registration);
+
+
 
                         let sender = self.result_sender.clone();
                         MainContext::ref_thread_default().spawn_local(async move {

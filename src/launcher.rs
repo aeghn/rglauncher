@@ -1,31 +1,25 @@
 use std::borrow::Borrow;
 
-
-
 use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
-use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
+use glib::{BoxedAnyObject};
 use gio::prelude::*;
+use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gtk::prelude::*;
 use gtk::gdk;
 use gtk::Inhibit;
-use glib::{BoxedAnyObject};
-
 use gtk::PolicyType::Never;
 
-
 use crate::{plugin_worker, plugins::{PluginResult}};
-
-
-
-use crate::inputbar::InputMessage;
+use crate::inputbar::{InputBar, InputMessage};
 use crate::plugin_worker::PluginMessage;
 use crate::plugins::clipboard::{ClipboardPlugin};
 
 use crate::sidebar::{SidebarMsg};
 
 pub struct Launcher {
-    input_bar: Entry,
-    preview: ScrolledWindow
+    input_bar: InputBar,
+    preview: ScrolledWindow,
+
 }
 
 impl Launcher {
@@ -34,7 +28,6 @@ impl Launcher {
     }
 
     pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
-        let (input_tx, input_rx) = flume::unbounded::<InputMessage>();
         let (plugin_tx, plugin_rx) = flume::unbounded::<PluginMessage>();
         let (_result_sender, _result_receiver) = flume::unbounded::<Vec<Box<dyn PluginResult>>>();
 
@@ -44,8 +37,8 @@ impl Launcher {
 
         window.set_child(Some(&main_box));
 
-        let input_bar = crate::inputbar::get_input_bar(input_tx.clone());
-        main_box.append(&input_bar);
+        let input_bar = InputBar::new();
+        main_box.append(&input_bar.entry);
 
         let bottom_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
@@ -62,30 +55,30 @@ impl Launcher {
             .build();
         bottom_box.append(&preview_window);
 
-        Launcher::setup_keybindings(&window, &sidebar.selection_model,
-                               &sidebar.list_view, &input_bar);
+        // Launcher::setup_keybindings(&window, &sidebar.selection_model,
+        //                        &sidebar.list_view, &input_bar.entry);
 
-        {
-            let plugin_tx = plugin_tx.clone();
-            let sidebar_receiver = sidebar.plugin_result_sender.clone();
-            MainContext::ref_thread_default().spawn_local(async move {
-                loop {
-                    if let Ok(input_message) = input_rx.recv_async().await {
-                        match input_message {
-                            InputMessage::TextChange(text) => {
-                                sidebar_receiver.send(SidebarMsg::TextChanged(text.clone())).unwrap();
-                                plugin_tx.send(PluginMessage::Input(text)).unwrap();
-                            }
-                            InputMessage::EmitEnter => {}
-                        }
-                    }
-                }
-            });
-        }
+        // {
+        //     let plugin_tx = plugin_tx.clone();
+        //     let sidebar_receiver = sidebar.plugin_result_sender.clone();
+        //     MainContext::ref_thread_default().spawn_local(async move {
+        //         loop {
+        //             if let Ok(input_message) = input_rx.recv_async().await {
+        //                 match input_message {
+        //                     InputMessage::TextChange(text) => {
+        //                         sidebar_receiver.send(SidebarMsg::TextChanged(text.clone())).unwrap();
+        //                         plugin_tx.send(PluginMessage::Input(text)).unwrap();
+        //                     }
+        //                     InputMessage::EmitEnter => {}
+        //                 }
+        //             }
+        //         }
+        //     });
+        // }
 
 
         let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-        plugin_worker::PluginWorker::<ClipboardPlugin>::launch(&sidebar.plugin_result_sender,
+        plugin_worker::PluginWorker::<ClipboardPlugin>::launch(&sidebar.sidebar_sender,
                                                                clipboard,
                                                                &plugin_rx);
 
@@ -152,7 +145,6 @@ impl Launcher {
                         Inhibit(false)
                     }
                     _ => {
-
                         if !(key.is_lower() && key.is_upper()) {
                             if let Some(key_name) = key.name() {
                                 let buffer = entry.buffer();
