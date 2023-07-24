@@ -1,8 +1,9 @@
 use std::borrow::Borrow;
 use std::ops::Deref;
+use std::sync::Arc;
 use flume::{Receiver, Sender, unbounded};
-
-
+use futures::StreamExt;
+use futures::select;
 use gio::{glib, prelude::{Cast, StaticType, CastNone}};
 use glib::{BoxedAnyObject, IsA, StrV};
 
@@ -33,7 +34,7 @@ pub struct Sidebar {
 
     input: Option<UserInput>,
 
-    input_broadcast: barrage::Receiver<InputMessage>,
+    input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
     sidebar_receiver: Receiver<SidebarMsg>,
     pub sidebar_sender: Sender<SidebarMsg>,
     pub selection_change_receiver: Receiver<BoxedAnyObject>,
@@ -41,7 +42,7 @@ pub struct Sidebar {
 }
 
 impl Sidebar {
-    pub fn new(input_broadcast: barrage::Receiver<InputMessage>) -> Self {
+    pub fn new(input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>) -> Self {
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
         let (selection_change_sender, selection_change_receiver) = unbounded();
 
@@ -79,41 +80,43 @@ impl Sidebar {
         }
     }
 
-    pub async fn loop_recv(&self) {
-        let prr = &self.sidebar_receiver;
+    pub async fn loop_recv(&mut self) {
+        let sidebar_receiver = &self.sidebar_receiver;
+        let mut input_receiver = self.input_broadcast.clone();
         loop {
-            if let Ok(msg) = prr.recv_async().await {
-                match msg {
-                    SidebarMsg::PluginResult(ui_, pr_) => {
-                        if let Some(ui) = &self.input {
-                            if ui_.input == ui.input {
-                                self.list_store.append(&BoxedAnyObject::new(pr_));
+            select! {
+                sidebar_msg = sidebar_receiver.recv_async() => {
+                    match sidebar_msg {
+                        Ok(SidebarMsg::PluginResult(ui_, pr_)) => {
+                            if let Some(ui) = &self.input {
+                                if ui_.input == ui.input {
+                                    self.list_store.append(&BoxedAnyObject::new(pr_));
 
+                                }
                             }
                         }
+                        _ => {}
                     }
-                    _ => {}
+                }
+                input_msg = input_receiver.next() => {
+                    match input_msg {
+                        Some(arc) => {
+                            match arc.borrow() {
+                                InputMessage::TextChanged(text) => {
+                                    self.input.replace(UserInput::new(text.as_str()));
+                                    self.list_store.remove_all();
+                                }
+                                _ => {}
+                            }
+                        }
+                        _ => {}
+                    }
                 }
             }
         }
     }
 
     pub async fn loop_recv_input(&mut self) {
-        let broadcast = self.input_broadcast.clone();
-        loop {
-            if let Ok(msg) = broadcast.recv_async().await {
-                error!("input: {:?}", msg);
-
-                match msg {
-                    InputMessage::TextChanged(text) => {
-                        self.input.replace(UserInput::new(text.as_str()));
-
-                        self.list_store.remove_all();
-                    }
-                    InputMessage::EmitSubmit(_) => {}
-                }
-            }
-        }
     }
 
     fn build_sorted_model(list_model: &impl IsA<gio::ListModel>) -> gtk::SortListModel {

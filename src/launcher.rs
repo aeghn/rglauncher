@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use barrage::{Receiver, Sender};
+use async_broadcast::{Receiver, Sender};
 
 use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
 use glib::{BoxedAnyObject};
@@ -46,21 +46,21 @@ impl Launcher {
         main_box.append(&bottom_box);
         let (selection_change_sender, selection_change_receiver) = flume::unbounded();
 
-        let mut sidebar = crate::sidebar::Sidebar::new(input_bar.input_boardcast.clone());
+        let mut sidebar = crate::sidebar::Sidebar::new(input_bar.input_broadcast.clone());
         let sidebar_window = &sidebar.scrolled_window;
         bottom_box.append(sidebar_window);
 
-        let sidebar_worker = sidebar.clone();
+        let mut sidebar_worker = sidebar.clone();
         MainContext::ref_thread_default().spawn_local(async move {
             sidebar_worker.loop_recv().await;
         });
 
-        let mut sidebar_worker = sidebar.clone();
-        MainContext::ref_thread_default().spawn_local(async move {
-            sidebar_worker.loop_recv_input().await;
-        });
+        // let mut sidebar_worker = sidebar.clone();
+        // MainContext::ref_thread_default().spawn_local(async move {
+        //     sidebar_worker.loop_recv_input().await;
+        // });
 
-        let preview = crate::preview::Preview::new(selection_change_receiver.clone());
+        let preview = Preview::new(selection_change_receiver.clone());
         bottom_box.append(&preview.preview_window.clone());
 
         let preview_worker = preview.clone();
@@ -92,7 +92,7 @@ impl Launcher {
         let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
         plugin_worker::PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar.sidebar_sender,
                                                                clipboard,
-                                                               &input_bar.input_boardcast);
+                                                               &input_bar.input_broadcast);
 
         // {
         //     MainContext::ref_thread_default().spawn_local_with_priority(
