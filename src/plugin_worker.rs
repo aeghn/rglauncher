@@ -1,93 +1,102 @@
-use std::sync::{Arc, Mutex};
+use std::borrow::Borrow;
+use std::mem::take;
+use std::sync::Arc;
+use tokio::sync::{Mutex};
+use std::thread::sleep;
+use flume::{Receiver, Sender};
 
 
 use futures::future::{Abortable, AbortHandle};
-use gio::Task;
-use glib::{MainContext, PRIORITY_DEFAULT};
-use crate::plugins::{Plugin};
+use gio::{Cancellable, Task};
+use gio::prelude::CancellableExt;
+use glib::{BoxedAnyObject, MainContext, PRIORITY_DEFAULT, PRIORITY_HIGH_IDLE, StaticType, ToValue, Type, Value};
+use glib::ffi::G_PRIORITY_HIGH_IDLE;
+use glib::value::{FromValue, ValueType};
+use gtk::ResponseType::No;
+use tokio::task::JoinHandle;
+use tracing::error;
+use crate::inputbar::InputMessage;
+use crate::inputbar::InputMessage::TextChanged;
+use crate::plugins::{Plugin, PluginResult};
 
 
 use crate::shared::UserInput;
 use crate::sidebar::SidebarMsg;
 
-#[derive(Debug)]
-pub enum PluginMessage {
-    Input(String)
-}
 
-
-pub struct PluginWorker<P: Plugin> {
+pub struct PluginWorker<P: Plugin<R>, R: PluginResult> {
     plugin: Arc<Mutex<P>>,
-    abort_handle: Option<AbortHandle>,
-    receiver: flume::Receiver<PluginMessage>,
-    result_sender: flume::Sender<SidebarMsg>
+    results: Option<R>,
+    cancelable: Option<JoinHandle<()>>,
+    receiver: barrage::Receiver<InputMessage>,
+    result_sender: Sender<SidebarMsg>
 }
 
-async fn handle_message<P: Plugin>(plugin: Arc<Mutex<P>>, _input: UserInput) -> Option<SidebarMsg> {
-    let _p = plugin.lock().unwrap();
-    let pr = _p.handle_input(&_input);
-    Some(SidebarMsg::PluginResult(_input, pr))
-}
 
-impl <P: Plugin + 'static> PluginWorker<P> {
+
+impl <P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R> {
     pub fn new(plugin: P,
-               receiver: flume::Receiver<PluginMessage>,
-               result_sender: flume::Sender<SidebarMsg>) -> Self {
+               input_receiver: barrage::Receiver<InputMessage>,
+               result_sender: Sender<SidebarMsg>) -> Self {
         PluginWorker {
             plugin: Arc::new(Mutex::new(plugin)),
-            abort_handle: None,
-            receiver,
+            results: None,
+            cancelable: None,
+            receiver: input_receiver,
             result_sender,
         }
     }
 
-    pub fn launch(result_sender: &flume::Sender<SidebarMsg>,
-                  plugin: impl Plugin + 'static,
-                  receiver: &flume::Receiver<PluginMessage>) {
+    pub fn launch(result_sender: &Sender<SidebarMsg>,
+                  plugin: impl Plugin<R> + 'static + Send,
+                  input_receiver: &barrage::Receiver<InputMessage>) {
         let result_sender = result_sender.clone();
-        let receiver = receiver.clone();
+        let input_receiver = input_receiver.clone();
         MainContext::ref_thread_default().spawn_local_with_priority(
             PRIORITY_DEFAULT,
             async move {
                 let mut plugin_worker =
-                    PluginWorker::new(plugin,
-                                      receiver,
-                                      result_sender);
-                plugin_worker.run().await;
+                    PluginWorker::new(plugin, input_receiver, result_sender);
+                plugin_worker.loop_recv().await;
             });
     }
 
-    pub async fn run(&mut self) {
+    async fn loop_recv(&mut self) {
         loop {
             let pn = self.receiver.recv_async().await;
+            if let Some(plugin) = self.cancelable.take() {
+                plugin.abort();
+            }
+
             if let Ok(msg) = pn {
                 match msg {
-                    PluginMessage::Input(input) => {
-                        let (abort_handle, abort_registration) = AbortHandle::new_pair();
+                    TextChanged(input) => {
+                        let plugin_arc = self.plugin.clone();
+                        let result_sender = self.result_sender.clone();
+                        let fu = tokio::spawn(async move {
+                            let p = plugin_arc.clone();
+                            if let lock = p.lock().await {
+                                let ui = UserInput::new(input.as_str());
+                                let result = lock.handle_input(&ui);
 
-                        if let Some(handle) = self.abort_handle.replace(abort_handle) {
-                            handle.abort();
-                        }
-
-                        let ui = UserInput { input };
-                        let query_info_fut =
-                            Abortable::new(handle_message(Arc::clone(&self.plugin), ui),
-                                           abort_registration);
-
-
-
-                        let sender = self.result_sender.clone();
-                        MainContext::ref_thread_default().spawn_local(async move {
-                            if let Ok(r) = query_info_fut.await {
-                                match r {
-                                    None => {}
-                                    Some(rs) => {
-                                        sender.send(rs).unwrap();
-                                    }
+                                for x in result {
+                                    let rs = result_sender.clone();
+                                    let ui = ui.clone();
+                                    MainContext::default().invoke_with_priority(
+                                        PRIORITY_HIGH_IDLE,
+                                        move|| {
+                                            rs.send(SidebarMsg::PluginResult(
+                                                ui.clone(),
+                                                Box::new(x)
+                                            )).unwrap();
+                                        }
+                                    );
                                 }
-                            }
+                            };
                         });
+                        self.cancelable.replace(fu);
                     }
+                    _ => {}
                 }
             }
         }

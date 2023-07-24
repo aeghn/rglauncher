@@ -5,7 +5,7 @@ pub mod clipboard;
 
 use crate::shared::UserInput;
 
-pub trait PluginResult {
+pub trait PluginResult: Send {
     /*
      * 获取匹配得分
      */
@@ -22,6 +22,6 @@ pub trait PluginResult {
     fn on_enter(&self);
 }
 
-pub trait Plugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>>;
+pub trait Plugin<R: PluginResult> {
+    fn handle_input(&self, user_input: &UserInput) -> Vec<R>;
 }
