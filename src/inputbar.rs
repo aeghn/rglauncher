@@ -1,4 +1,7 @@
-use barrage::{Receiver, Sender};
+use std::sync::Arc;
+use async_broadcast::{Receiver, Sender};
+use futures::executor::block_on;
+use futures::future::err;
 use glib::{GString, StrV};
 use gtk::{self, traits::{WidgetExt, StyleContextExt}};
 use gtk::prelude::EntryExt;
@@ -14,13 +17,15 @@ pub enum InputMessage {
 
 pub struct InputBar {
     pub entry: gtk::Entry,
-    pub input_boardcast: Receiver<InputMessage>,
-    input_sender: Sender<InputMessage>,
+    pub input_broadcast: Receiver<Arc<InputMessage>>,
+    input_sender: Sender<Arc<InputMessage>>,
 }
 
 impl InputBar {
     pub fn new() -> Self {
-        let (input_sender, input_boardcast) = barrage::unbounded::<InputMessage>();
+        let (mut input_sender, input_broadcast) = async_broadcast::broadcast(1);
+        input_sender.set_overflow(true);
+
         let entry = gtk::Entry::builder()
             .placeholder_text("Input Anything...")
             .css_classes(StrV::from(vec!["inputbar"]))
@@ -28,25 +33,23 @@ impl InputBar {
             .build();
 
 
-
         let tc_tx = input_sender.clone();
         entry.connect_changed(move |e| {
             let text = e.text().to_string();
-            match tc_tx.send(InputMessage::TextChanged(text)) {
-                Ok(_) => {}
-                Err(err) => {
-                }
-            }
+            block_on(async {
+                tc_tx.broadcast(Arc::new(InputMessage::TextChanged(text))).await
+            }).expect("TODO: panic message");
         });
 
         let tc_tx = input_sender.clone();
         entry.connect_activate(move |e| {
-            tc_tx.send(InputMessage::EmitSubmit(e.text().to_string()));
+            let text = e.text().to_string();
+            block_on(async { tc_tx.broadcast(Arc::new(InputMessage::EmitSubmit(text))).await }).expect("TODO: panic message");
         });
 
         InputBar {
             entry,
-            input_boardcast,
+            input_broadcast,
             input_sender
         }
     }

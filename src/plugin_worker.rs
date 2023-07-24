@@ -1,12 +1,12 @@
 use std::borrow::Borrow;
 use std::mem::take;
-use std::sync::Arc;
-use tokio::sync::{Mutex};
+use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use flume::{Receiver, Sender};
 
 
 use futures::future::{Abortable, AbortHandle};
+use futures::StreamExt;
 use gio::{Cancellable, Task};
 use gio::prelude::CancellableExt;
 use glib::{BoxedAnyObject, MainContext, PRIORITY_DEFAULT, PRIORITY_HIGH_IDLE, StaticType, ToValue, Type, Value};
@@ -28,7 +28,7 @@ pub struct PluginWorker<P: Plugin<R>, R: PluginResult> {
     plugin: Arc<Mutex<P>>,
     results: Option<R>,
     cancelable: Option<JoinHandle<()>>,
-    receiver: barrage::Receiver<InputMessage>,
+    receiver: async_broadcast::Receiver<Arc<InputMessage>>,
     result_sender: Sender<SidebarMsg>
 }
 
@@ -36,7 +36,7 @@ pub struct PluginWorker<P: Plugin<R>, R: PluginResult> {
 
 impl <P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R> {
     pub fn new(plugin: P,
-               input_receiver: barrage::Receiver<InputMessage>,
+               input_receiver: async_broadcast::Receiver<Arc<InputMessage>>,
                result_sender: Sender<SidebarMsg>) -> Self {
         PluginWorker {
             plugin: Arc::new(Mutex::new(plugin)),
@@ -49,7 +49,7 @@ impl <P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, 
 
     pub fn launch(result_sender: &Sender<SidebarMsg>,
                   plugin: impl Plugin<R> + 'static + Send,
-                  input_receiver: &barrage::Receiver<InputMessage>) {
+                  input_receiver: &async_broadcast::Receiver<Arc<InputMessage>>) {
         let result_sender = result_sender.clone();
         let input_receiver = input_receiver.clone();
         MainContext::ref_thread_default().spawn_local_with_priority(
@@ -63,19 +63,21 @@ impl <P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, 
 
     async fn loop_recv(&mut self) {
         loop {
-            let pn = self.receiver.recv_async().await;
+            let pn = self.receiver.next().await;
             if let Some(plugin) = self.cancelable.take() {
                 plugin.abort();
             }
 
-            if let Ok(msg) = pn {
+            if let Some(msg) = pn {
+                let msg: InputMessage = msg.as_ref().clone();
                 match msg {
                     TextChanged(input) => {
                         let plugin_arc = self.plugin.clone();
                         let result_sender = self.result_sender.clone();
                         let fu = tokio::spawn(async move {
                             let p = plugin_arc.clone();
-                            if let lock = p.lock().await {
+
+                            if let Ok(lock) = p.lock() {
                                 let ui = UserInput::new(input.as_str());
                                 let result = lock.handle_input(&ui);
 
