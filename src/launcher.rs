@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use barrage::{Receiver, Sender};
 
 use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
 use glib::{BoxedAnyObject};
@@ -8,17 +9,18 @@ use gtk::prelude::*;
 use gtk::gdk;
 use gtk::Inhibit;
 use gtk::PolicyType::Never;
+use tracing::error;
 
 use crate::{plugin_worker, plugins::{PluginResult}};
-use crate::inputbar::{InputBar, InputMessage};
-use crate::plugin_worker::PluginMessage;
-use crate::plugins::clipboard::{ClipboardPlugin};
+use crate::inputbar::{InputBar};
+use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
+use crate::preview::Preview;
 
 use crate::sidebar::{SidebarMsg};
 
 pub struct Launcher {
     input_bar: InputBar,
-    preview: ScrolledWindow,
+    preview: Preview,
 
 }
 
@@ -28,9 +30,6 @@ impl Launcher {
     }
 
     pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
-        let (plugin_tx, plugin_rx) = flume::unbounded::<PluginMessage>();
-        let (_result_sender, _result_receiver) = flume::unbounded::<Vec<Box<dyn PluginResult>>>();
-
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();
@@ -45,15 +44,29 @@ impl Launcher {
             .vexpand(true)
             .build();
         main_box.append(&bottom_box);
+        let (selection_change_sender, selection_change_receiver) = flume::unbounded();
 
-        let mut sidebar = crate::sidebar::Sidebar::new();
+        let mut sidebar = crate::sidebar::Sidebar::new(input_bar.input_boardcast.clone());
         let sidebar_window = &sidebar.scrolled_window;
         bottom_box.append(sidebar_window);
 
-        let preview_window = gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(Never)
-            .build();
-        bottom_box.append(&preview_window);
+        let sidebar_worker = sidebar.clone();
+        MainContext::ref_thread_default().spawn_local(async move {
+            sidebar_worker.loop_recv().await;
+        });
+
+        let mut sidebar_worker = sidebar.clone();
+        MainContext::ref_thread_default().spawn_local(async move {
+            sidebar_worker.loop_recv_input().await;
+        });
+
+        let preview = crate::preview::Preview::new(selection_change_receiver.clone());
+        bottom_box.append(&preview.preview_window.clone());
+
+        let preview_worker = preview.clone();
+        MainContext::ref_thread_default().spawn_local(async move {
+            preview_worker.loop_recv().await;
+        });
 
         // Launcher::setup_keybindings(&window, &sidebar.selection_model,
         //                        &sidebar.list_view, &input_bar.entry);
@@ -76,23 +89,22 @@ impl Launcher {
         //     });
         // }
 
-
         let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-        plugin_worker::PluginWorker::<ClipboardPlugin>::launch(&sidebar.sidebar_sender,
+        plugin_worker::PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar.sidebar_sender,
                                                                clipboard,
-                                                               &plugin_rx);
+                                                               &input_bar.input_boardcast);
 
-        {
-            MainContext::ref_thread_default().spawn_local_with_priority(
-                PRIORITY_DEFAULT_IDLE,
-                async move {
-                    sidebar.receive_msgs().await;
-                });
-        }
+        // {
+        //     MainContext::ref_thread_default().spawn_local_with_priority(
+        //         PRIORITY_DEFAULT_IDLE,
+        //         async move {
+        //             sidebar.receive_msgs().await;
+        //         });
+        // }
 
         Launcher {
             input_bar,
-            preview: preview_window,
+            preview,
         }
     }
 

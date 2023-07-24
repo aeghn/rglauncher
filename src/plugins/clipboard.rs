@@ -46,11 +46,11 @@ impl ClipboardPlugin {
     }
 }
 
+unsafe impl Send for ClipPluginResult {}
 
-impl Plugin for ClipboardPlugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>> {
-        error!("begin to collect: {:?}", user_input);
-        let mut vec: Vec<Box<dyn PluginResult>> = vec![];
+impl Plugin<ClipPluginResult> for ClipboardPlugin {
+    fn handle_input(&self, user_input: &UserInput) -> Vec<ClipPluginResult> {
+        let mut vec: Vec<ClipPluginResult> = vec![];
 
         if let Some(_conn) = &self.conn {
             let stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \
@@ -67,12 +67,11 @@ impl Plugin for ClipboardPlugin {
                 });
                 if let Ok(_iter) = iter {
                     for cpr in _iter {
-                        vec.push(Box::new(cpr.unwrap()));
+                        vec.push(cpr.unwrap());
                     }
                 }
             }
         };
-        error!("end to collect: {:?}", user_input);
         vec
     }
 }

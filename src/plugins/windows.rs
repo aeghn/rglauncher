@@ -101,10 +101,12 @@ impl Clone for HyprWindowResult {
     }
 }
 
-impl Plugin for HyprWindows {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>> {
+unsafe impl Send for HyprWindowResult {}
+
+impl Plugin<HyprWindowResult> for HyprWindows {
+    fn handle_input(&self, user_input: &UserInput) -> Vec<HyprWindowResult> {
         let matcher = SkimMatcherV2::default();
-        let mut result: Vec<Box<dyn PluginResult>> = vec![];
+        let mut result: Vec<HyprWindowResult> = vec![];
 
         for window in &self.windows {
             let mut score : i32= 0;
@@ -119,7 +121,7 @@ impl Plugin for HyprWindows {
             let mut mw = window.clone();
             mw.score = score;
             if score > 0 {
-                result.push(Box::new(mw));
+                result.push(mw);
             }
         }
 
@@ -193,6 +195,5 @@ impl PluginResult for HyprWindowResult {
             .arg("address:".to_owned() + self.address.as_str())
             .output()
             .expect("unable to switch to the window");
-        error!("msg: {:?}", msg);
     }
 }

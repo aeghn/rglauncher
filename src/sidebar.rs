@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 use std::ops::Deref;
-use fragile::Fragile;
+use flume::{Receiver, Sender, unbounded};
 
 
 use gio::{glib, prelude::{Cast, StaticType, CastNone}};
@@ -8,35 +8,42 @@ use glib::{BoxedAnyObject, IsA, StrV};
 
 
 use gtk::{Image, Label, prelude::{FrameExt}};
+use gtk::ResponseType::No;
 
 
 use gtk::traits::{GridExt, WidgetExt};
 use tracing::error;
 
 use crate::{plugins::{PluginResult}};
+use crate::inputbar::InputMessage;
 use crate::shared::UserInput;
 
 pub enum SidebarMsg {
     TextChanged(String),
-    PluginResult(UserInput, BoxedAnyObject)
+    PluginResult(UserInput, Box<dyn PluginResult>),
 }
 
+#[derive(Clone)]
 pub struct Sidebar {
     pub scrolled_window: gtk::ScrolledWindow,
     list_view: gtk::ListView,
     selection_model: gtk::SingleSelection,
     sorted_model: gtk::SortListModel,
-    pub list_store: gio::ListStore,
-    sidebar_receiver: flume::Receiver<SidebarMsg>,
-    pub sidebar_sender: flume::Sender<SidebarMsg>,
-    pub selection_change_receiver: flume::Receiver<BoxedAnyObject>,
-    selection_change_sender: flume::Sender<BoxedAnyObject>,
+    list_store: gio::ListStore,
+
+    input: Option<UserInput>,
+
+    input_broadcast: barrage::Receiver<InputMessage>,
+    sidebar_receiver: Receiver<SidebarMsg>,
+    pub sidebar_sender: Sender<SidebarMsg>,
+    pub selection_change_receiver: Receiver<BoxedAnyObject>,
+    selection_change_sender: Sender<BoxedAnyObject>,
 }
 
 impl Sidebar {
-    pub fn new() -> Self {
-        let (plugin_result_sender, plugin_result_receiver) = flume::unbounded();
-        let (selection_change_sender, selection_change_receiver) = flume::unbounded();
+    pub fn new(input_broadcast: barrage::Receiver<InputMessage>) -> Self {
+        let (sidebar_sender, sidebar_receiver) = flume::unbounded();
+        let (selection_change_sender, selection_change_receiver) = unbounded();
 
         let list_store = gio::ListStore::new(BoxedAnyObject::static_type());
         let sorted_model = Sidebar::build_sorted_model(&list_store);
@@ -63,31 +70,47 @@ impl Sidebar {
             selection_model,
             list_store,
             sorted_model,
-            sidebar_receiver: plugin_result_receiver,
-            sidebar_sender: plugin_result_sender,
+            input: None,
+            input_broadcast,
+            sidebar_receiver,
+            sidebar_sender,
             selection_change_receiver,
             selection_change_sender,
         }
     }
 
-    pub async fn receive_msgs(&mut self) {
-        let prr = &self.plugin_result_receiver;
+    pub async fn loop_recv(&self) {
+        let prr = &self.sidebar_receiver;
         loop {
             if let Ok(msg) = prr.recv_async().await {
                 match msg {
-                    SidebarMsg::TextChanged(text) => {
-                        self.list_store.remove_all();
-                    }
                     SidebarMsg::PluginResult(ui_, pr_) => {
-                        if let Some(ui) = &self.current_input {
+                        if let Some(ui) = &self.input {
                             if ui_.input == ui.input {
-                                self.list_store.extend(pr_.into_iter()
-                                    .map(move |e| {
-                                        BoxedAnyObject::new(e)
-                                    }));
+                                self.list_store.append(&BoxedAnyObject::new(pr_));
+
                             }
                         }
                     }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    pub async fn loop_recv_input(&mut self) {
+        let broadcast = self.input_broadcast.clone();
+        loop {
+            if let Ok(msg) = broadcast.recv_async().await {
+                error!("input: {:?}", msg);
+
+                match msg {
+                    InputMessage::TextChanged(text) => {
+                        self.input.replace(UserInput::new(text.as_str()));
+
+                        self.list_store.remove_all();
+                    }
+                    InputMessage::EmitSubmit(_) => {}
                 }
             }
         }
@@ -168,19 +191,20 @@ impl Sidebar {
     }
 
     fn build_selection_model(list_model: &impl IsA<gio::ListModel>,
-                             selection_change_sender: &flume::Sender<BoxedAnyObject>)
+                             selection_change_sender: &Sender<BoxedAnyObject>)
                              -> gtk::SingleSelection {
         let selection_model = gtk::SingleSelection::builder()
             .model(list_model)
             .build();
 
+        let selection_change_sender = selection_change_sender.clone();
         selection_model.connect_selected_item_notify(move |selection| {
             let item = selection.selected_item();
             if let Some(boxed) = item {
                 let plugin_result_box = boxed.downcast::<BoxedAnyObject>()
                     .unwrap();
                 selection_change_sender.send(plugin_result_box.clone())
-                    .expect("Unable to send to previe");
+                    .expect("Unable to send to preview");
             }
         });
 

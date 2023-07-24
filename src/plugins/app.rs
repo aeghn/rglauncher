@@ -27,6 +27,8 @@ impl AppResult {
     }
 }
 
+unsafe impl Send for AppResult {}
+
 impl PluginResult for AppResult {
     fn get_score(&self) -> i32 {
         self.score
@@ -99,10 +101,10 @@ impl AppPlugin {
     }
 }
 
-impl Plugin for AppPlugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<Box<dyn PluginResult>> {
+impl Plugin<AppResult> for AppPlugin {
+    fn handle_input(&self, user_input: &UserInput) -> Vec<AppResult> {
         let matcher = SkimMatcherV2::default();
-        let mut result: Vec<Box<dyn PluginResult>> = vec![];
+        let mut result: Vec<AppResult> = vec![];
 
         AppInfo::all().iter().for_each(|app_info| {
             if !app_info.should_show() {
@@ -117,7 +119,7 @@ impl Plugin for AppPlugin {
             }
 
             if score > 0 {
-                result.push(Box::new(AppResult{app_info: app_info.clone(), score}));
+                result.push(AppResult{app_info: app_info.clone(), score});
             }
         });
 
