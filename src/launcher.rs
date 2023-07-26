@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::process::exit;
 use async_broadcast::{Receiver, Sender};
 
 use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
@@ -13,6 +14,7 @@ use tracing::error;
 
 use crate::{plugin_worker, plugins::{PluginResult}};
 use crate::inputbar::{InputBar};
+use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
 use crate::preview::Preview;
 
@@ -94,13 +96,14 @@ impl Launcher {
                                                                clipboard,
                                                                &input_bar.input_broadcast);
 
-        // {
-        //     MainContext::ref_thread_default().spawn_local_with_priority(
-        //         PRIORITY_DEFAULT_IDLE,
-        //         async move {
-        //             sidebar.receive_msgs().await;
-        //         });
-        // }
+        let plugin = AppPlugin::new();
+        plugin_worker::PluginWorker::<AppPlugin, AppResult>::launch(&sidebar.sidebar_sender,
+                                                                    plugin,
+                                                                    &input_bar.input_broadcast);
+
+        window.connect_destroy(|_| {
+            exit(0);
+        });
 
         Launcher {
             input_bar,

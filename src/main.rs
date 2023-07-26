@@ -9,6 +9,7 @@ mod constant;
 mod util;
 pub mod plugin_worker;
 mod preview;
+mod sidebar_row;
 
 
 use std::env;
@@ -22,8 +23,7 @@ use gtk::*;
 
 const APP_ID: &str = "org.codeberg.wangzh.rglauncher";
 
-#[tokio::main]
-async fn main() {
+fn main() {
     tracing_subscriber::fmt()
         .with_max_level(Level::TRACE)
         .with_timer(tracing_subscriber::fmt::time::time())
