@@ -1,19 +1,18 @@
 use std::borrow::Borrow;
 use std::mem::take;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LockResult, Mutex};
 use std::thread::sleep;
 use flume::{Receiver, Sender};
 
 
 use futures::future::{Abortable, AbortHandle};
 use futures::StreamExt;
-use gio::{Cancellable, Task};
+use gio::{Cancellable, JoinHandle, Task};
 use gio::prelude::CancellableExt;
-use glib::{BoxedAnyObject, MainContext, PRIORITY_DEFAULT, PRIORITY_HIGH_IDLE, StaticType, ToValue, Type, Value};
+use glib::{BoxedAnyObject, MainContext, PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE, PRIORITY_HIGH_IDLE, StaticType, ToValue, Type, Value};
 use glib::ffi::G_PRIORITY_HIGH_IDLE;
 use glib::value::{FromValue, ValueType};
 use gtk::ResponseType::No;
-use tokio::task::JoinHandle;
 use tracing::error;
 use crate::inputbar::InputMessage;
 use crate::inputbar::InputMessage::TextChanged;
@@ -64,39 +63,26 @@ impl <P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, 
     async fn loop_recv(&mut self) {
         loop {
             let pn = self.receiver.next().await;
-            if let Some(plugin) = self.cancelable.take() {
-                plugin.abort();
-            }
-
+            let rs = self.result_sender.clone();
             if let Some(msg) = pn {
                 let msg: InputMessage = msg.as_ref().clone();
                 match msg {
                     TextChanged(input) => {
                         let plugin_arc = self.plugin.clone();
-                        let result_sender = self.result_sender.clone();
-                        let fu = tokio::spawn(async move {
-                            let p = plugin_arc.clone();
-
-                            if let Ok(lock) = p.lock() {
+                        let ui = UserInput::new(input.as_str());
+                        let jh = gio::spawn_blocking( move || {
+                            let vr = if let Ok(lock) = plugin_arc.lock() {
                                 let ui = UserInput::new(input.as_str());
                                 let result = lock.handle_input(&ui);
-
-                                for x in result {
-                                    let rs = result_sender.clone();
-                                    let ui = ui.clone();
-                                    MainContext::default().invoke_with_priority(
-                                        PRIORITY_HIGH_IDLE,
-                                        move|| {
-                                            rs.send(SidebarMsg::PluginResult(
-                                                ui.clone(),
-                                                Box::new(x)
-                                            )).unwrap();
-                                        }
-                                    );
-                                }
+                                let res = result.into_iter().map(|r|
+                                    Box::new(r ) as Box<dyn PluginResult>).collect();
+                                res
+                            } else {
+                                vec![]
                             };
+                            vr
                         });
-                        self.cancelable.replace(fu);
+                        jh.()
                     }
                     _ => {}
                 }
