@@ -14,6 +14,7 @@ use tracing::error;
 
 use crate::{plugin_worker, plugins::{PluginResult}};
 use crate::inputbar::{InputBar};
+use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
 use crate::preview::Preview;
@@ -48,7 +49,8 @@ impl Launcher {
         main_box.append(&bottom_box);
         let (selection_change_sender, selection_change_receiver) = flume::unbounded();
 
-        let mut sidebar = crate::sidebar::Sidebar::new(input_bar.input_broadcast.clone());
+        let mut sidebar = crate::sidebar::Sidebar::new(input_bar.input_broadcast.clone(),
+        selection_change_sender);
         let sidebar_window = &sidebar.scrolled_window;
         bottom_box.append(sidebar_window);
 
@@ -57,47 +59,24 @@ impl Launcher {
             sidebar_worker.loop_recv().await;
         });
 
-        // let mut sidebar_worker = sidebar.clone();
-        // MainContext::ref_thread_default().spawn_local(async move {
-        //     sidebar_worker.loop_recv_input().await;
-        // });
-
-        let preview = Preview::new(selection_change_receiver.clone());
+        let preview = Preview::new();
         bottom_box.append(&preview.preview_window.clone());
 
         let preview_worker = preview.clone();
         MainContext::ref_thread_default().spawn_local(async move {
-            preview_worker.loop_recv().await;
+            preview_worker.loop_recv(selection_change_receiver.clone()).await;
         });
 
         // Launcher::setup_keybindings(&window, &sidebar.selection_model,
         //                        &sidebar.list_view, &input_bar.entry);
 
-        // {
-        //     let plugin_tx = plugin_tx.clone();
-        //     let sidebar_receiver = sidebar.plugin_result_sender.clone();
-        //     MainContext::ref_thread_default().spawn_local(async move {
-        //         loop {
-        //             if let Ok(input_message) = input_rx.recv_async().await {
-        //                 match input_message {
-        //                     InputMessage::TextChange(text) => {
-        //                         sidebar_receiver.send(SidebarMsg::TextChanged(text.clone())).unwrap();
-        //                         plugin_tx.send(PluginMessage::Input(text)).unwrap();
-        //                     }
-        //                     InputMessage::EmitEnter => {}
-        //                 }
-        //             }
-        //         }
-        //     });
-        // }
-
         let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-        plugin_worker::PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar.sidebar_sender,
+        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar.sidebar_sender,
                                                                clipboard,
                                                                &input_bar.input_broadcast);
 
         let plugin = AppPlugin::new();
-        plugin_worker::PluginWorker::<AppPlugin, AppResult>::launch(&sidebar.sidebar_sender,
+        PluginWorker::<AppPlugin, AppResult>::launch(&sidebar.sidebar_sender,
                                                                     plugin,
                                                                     &input_bar.input_broadcast);
 

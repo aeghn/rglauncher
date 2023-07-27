@@ -66,6 +66,5 @@ impl SidebarRow {
                 imp.content.set_child(Some(&e));
             }
         };
-        error!("set_sidebar");
     }
 }

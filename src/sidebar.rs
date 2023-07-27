@@ -22,7 +22,7 @@ use crate::sidebar_row::SidebarRow;
 
 pub enum SidebarMsg {
     TextChanged(String),
-    PluginResult(UserInput, Vec<Box<dyn PluginResult>>),
+    PluginResult(UserInput, Box<dyn PluginResult>),
 }
 
 #[derive(Clone)]
@@ -38,14 +38,13 @@ pub struct Sidebar {
     input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
     sidebar_receiver: Receiver<SidebarMsg>,
     pub sidebar_sender: Sender<SidebarMsg>,
-    pub selection_change_receiver: Receiver<BoxedAnyObject>,
     selection_change_sender: Sender<BoxedAnyObject>,
 }
 
 impl Sidebar {
-    pub fn new(input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>) -> Self {
+    pub fn new(input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
+               selection_change_sender: Sender<BoxedAnyObject>) -> Self {
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
-        let (selection_change_sender, selection_change_receiver) = unbounded();
 
         let list_store = gio::ListStore::new(BoxedAnyObject::static_type());
         let sorted_model = Sidebar::build_sorted_model(&list_store);
@@ -76,7 +75,6 @@ impl Sidebar {
             input_broadcast,
             sidebar_receiver,
             sidebar_sender,
-            selection_change_receiver,
             selection_change_sender,
         }
     }
@@ -116,9 +114,6 @@ impl Sidebar {
             }
         }
 
-    }
-
-    pub async fn loop_recv_input(&mut self) {
     }
 
     fn build_sorted_model(list_model: &impl IsA<gio::ListModel>) -> gtk::SortListModel {
