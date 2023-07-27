@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 use std::process::exit;
-use async_broadcast::{Receiver, Sender};
 
 use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
 use glib::{BoxedAnyObject};
@@ -48,9 +47,12 @@ impl Launcher {
             .build();
         main_box.append(&bottom_box);
         let (selection_change_sender, selection_change_receiver) = flume::unbounded();
+        let (sidebar_sender, sidebar_receiver) = flume::unbounded();
 
-        let mut sidebar = crate::sidebar::Sidebar::new(input_bar.input_broadcast.clone(),
-        selection_change_sender);
+        let mut sidebar = crate::sidebar::Sidebar::new(
+            input_bar.input_broadcast.clone(),
+            sidebar_receiver.clone(),
+            selection_change_sender.clone());
         let sidebar_window = &sidebar.scrolled_window;
         bottom_box.append(sidebar_window);
 
@@ -67,18 +69,18 @@ impl Launcher {
             preview_worker.loop_recv(selection_change_receiver.clone()).await;
         });
 
-        // Launcher::setup_keybindings(&window, &sidebar.selection_model,
-        //                        &sidebar.list_view, &input_bar.entry);
+        Launcher::setup_keybindings(&window, sidebar_sender.clone(),
+                                    &input_bar.entry);
 
         let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar.sidebar_sender,
+        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar_sender,
                                                                clipboard,
                                                                &input_bar.input_broadcast);
 
         let plugin = AppPlugin::new();
-        PluginWorker::<AppPlugin, AppResult>::launch(&sidebar.sidebar_sender,
-                                                                    plugin,
-                                                                    &input_bar.input_broadcast);
+        PluginWorker::<AppPlugin, AppResult>::launch(&sidebar_sender,
+                                                     plugin,
+                                                     &input_bar.input_broadcast);
 
         window.connect_destroy(|_| {
             exit(0);
@@ -91,67 +93,43 @@ impl Launcher {
     }
 
     fn setup_keybindings(window: &gtk::ApplicationWindow,
-                         selection_model: &gtk::SingleSelection,
-                         list_view: &gtk::ListView,
+                         sidebar_sender: flume::Sender<SidebarMsg>,
                          entry: &Entry) {
         let controller = gtk::EventControllerKey::new();
 
         controller.connect_key_pressed(clone!(@strong window,
-            @strong selection_model,
-            @strong entry,
-            @strong list_view => move |_, key, _keycode, _| {
-
-                match key {
-                    gdk::Key::Up => {
-                        let new_selection = if selection_model.selected() > 0 {
-                            selection_model.selected() - 1
-                        } else {
-                            0
-                        };
-                        selection_model.select_item(new_selection, true);
-                        list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
-
-                        Inhibit(false)
-                    }
-                    gdk::Key::Down => {
-                        let new_selection = if selection_model.n_items() > 0 {
-                            std::cmp::min(selection_model.n_items() - 1, selection_model.selected() + 1)
-                        } else {
-                            0
-                        };
-                        selection_model.select_item(new_selection, true);
-                        list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
-
-                        Inhibit(false)
-                    }
-                    gdk::Key::Escape => {
-                        window.destroy();
-                        Inhibit(false)
-                    }
-                    gdk::Key::Return => {
-                        let item = selection_model.selected_item();
-                        if let Some(boxed) = item {
-                            let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
-                            tt.on_enter();
-                            window.destroy();
-                        }
-
-                        Inhibit(false)
-                    }
-                    _ => {
-                        if !(key.is_lower() && key.is_upper()) {
-                            if let Some(key_name) = key.name() {
-                                let buffer = entry.buffer();
-
-                                let content = buffer.text();
-                                buffer.insert_text((content.len()) as u16, key_name);
-                            }
-                        }
-
-                        Inhibit(false)
-                    }
+            @strong entry=> move |_, key, _keycode, _| {
+            match key {
+                gdk::Key::Up => {
+                    sidebar_sender.send(SidebarMsg::PreviousItem);
+                    Inhibit(false)
                 }
-            }));
+                gdk::Key::Down => {
+                    sidebar_sender.send(SidebarMsg::NextItem);
+                    Inhibit(false)
+                }
+                gdk::Key::Escape => {
+                    window.destroy();
+                    Inhibit(false)
+                }
+                gdk::Key::Return => {
+                    sidebar_sender.send(SidebarMsg::Enter);
+                    Inhibit(false)
+                }
+                _ => {
+                    if !(key.is_lower() && key.is_upper()) {
+                        if let Some(key_name) = key.name() {
+                            let buffer = entry.buffer();
+
+                            let content = buffer.text();
+                            buffer.insert_text((content.len()) as u16, key_name);
+                        }
+                    }
+
+                    Inhibit(false)
+                }
+            }
+        }));
         window.add_controller(controller);
     }
 }

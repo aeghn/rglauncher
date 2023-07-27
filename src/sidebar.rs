@@ -5,10 +5,13 @@ use flume::{Receiver, Sender, unbounded};
 use futures::StreamExt;
 use futures::select;
 use gio::{glib, prelude::{Cast, StaticType, CastNone}};
-use glib::{BoxedAnyObject, idle_add, IsA, StrV};
+use gio::traits::ListModelExt;
+use glib::{BoxedAnyObject, idle_add, IsA, StrV, ToVariant};
+use glib::signal::Inhibit;
 
 
 use gtk::{Image, Label, prelude::{FrameExt}};
+use gtk::prelude::SelectionModelExt;
 use gtk::ResponseType::No;
 
 
@@ -23,6 +26,10 @@ use crate::sidebar_row::SidebarRow;
 pub enum SidebarMsg {
     TextChanged(String),
     PluginResult(UserInput, Box<dyn PluginResult>),
+    NextItem,
+    PreviousItem,
+    HeadItem,
+    Enter
 }
 
 #[derive(Clone)]
@@ -37,14 +44,13 @@ pub struct Sidebar {
 
     input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
     sidebar_receiver: Receiver<SidebarMsg>,
-    pub sidebar_sender: Sender<SidebarMsg>,
     selection_change_sender: Sender<BoxedAnyObject>,
 }
 
 impl Sidebar {
     pub fn new(input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
+               sidebar_receiver: Receiver<SidebarMsg>,
                selection_change_sender: Sender<BoxedAnyObject>) -> Self {
-        let (sidebar_sender, sidebar_receiver) = flume::unbounded();
 
         let list_store = gio::ListStore::new(BoxedAnyObject::static_type());
         let sorted_model = Sidebar::build_sorted_model(&list_store);
@@ -74,27 +80,61 @@ impl Sidebar {
             input: None,
             input_broadcast,
             sidebar_receiver,
-            sidebar_sender,
             selection_change_sender,
         }
     }
 
+    fn handle_msg(&mut self, msg: SidebarMsg) {
+        match msg {
+            SidebarMsg::PluginResult(ui_, pr_) => {
+                if let Some(ui) = &self.input {
+                    if ui_.input == ui.input {
+                        self.list_store.append(&BoxedAnyObject::new(pr_));
+                    }
+                }
+            }
+            SidebarMsg::NextItem => {
+                let new_selection = if self.selection_model.n_items() > 0 {
+                    std::cmp::min(self.selection_model.n_items() - 1, self.selection_model.selected() + 1)
+                } else {
+                    0
+                };
+                self.selection_model.select_item(new_selection, true);
+                self.list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
+            }
+            SidebarMsg::PreviousItem => {
+                let new_selection = if self.selection_model.selected() > 0 {
+                    self.selection_model.selected() - 1
+                } else {
+                    0
+                };
+                self.selection_model.select_item(new_selection, true);
+                self.list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
+            }
+            SidebarMsg::HeadItem => {
+                let new_selection = 0;
+                self.selection_model.select_item(new_selection, true);
+                self.list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
+            }
+            SidebarMsg::Enter => {
+                let item = self.selection_model.selected_item();
+                if let Some(boxed) = item {
+                    let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
+                    tt.on_enter();
+                }
+            }
+            _ => {}
+        }
+    }
+
     pub async fn loop_recv(&mut self) {
-        let sidebar_receiver = &self.sidebar_receiver;
+        let sidebar_receiver = self.sidebar_receiver.clone();
         let mut input_receiver = self.input_broadcast.clone();
         loop {
             select! {
                 sidebar_msg = sidebar_receiver.recv_async() => {
-                    match sidebar_msg {
-                        Ok(SidebarMsg::PluginResult(ui_, pr_)) => {
-                            if let Some(ui) = &self.input {
-                                if ui_.input == ui.input {
-                                    self.list_store.append(&BoxedAnyObject::new(pr_));
-
-                                }
-                            }
-                        }
-                        _ => {}
+                    if let Ok(msg) = sidebar_msg {
+                        self.handle_msg(msg);
                     }
                 }
                 input_msg = input_receiver.next() => {

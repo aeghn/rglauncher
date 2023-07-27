@@ -54,7 +54,7 @@ impl Plugin<ClipPluginResult> for ClipboardPlugin {
 
         if let Some(_conn) = &self.conn {
             let stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \
-            where content0 like '%{}%' order by INSERT_TIME desc limit 1000", user_input.input.as_str()).as_str());
+            where content0 like '%{}%' order by INSERT_TIME desc limit 100000", user_input.input.as_str()).as_str());
             if let Ok(mut _stmt) =stmt {
                 let iter = _stmt.query_map([], |row| {
                     Ok(ClipPluginResult {
