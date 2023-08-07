@@ -2,9 +2,10 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
 use gio::AppInfo;
-use glib::Cast;
+use glib::{Cast, StrV};
 use gtk::prelude::{GridExt, WidgetExt};
-use gtk::Widget;
+use gtk::{Align, Widget};
+use gtk::Align::Center;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
@@ -48,8 +49,13 @@ impl PluginResult for AppResult {
     }
 
     fn preview(&self) -> gtk::Grid {
-        let preview = gtk::Grid::new();
-        preview.add_css_class(&"centercld");
+        let preview = gtk::Grid::builder()
+            .vexpand(true)
+            .hexpand(true)
+            .valign(Center)
+            .halign(Center)
+            .css_classes(StrV::from(["centercld"]))
+            .build();
 
         let image = if let Some(icon) = self.app_info.icon() {
             icon
@@ -60,14 +66,19 @@ impl PluginResult for AppResult {
         image.set_pixel_size(256);
         preview.attach(&image, 0, 0, 1, 1);
 
-        let name = gtk::Label::new(Some(self.app_info.name().as_str()));
-        name.add_css_class("font32");
-        name.set_wrap(true);
+        let name = gtk::Label::builder()
+            .label(self.app_info.name().as_str())
+            .css_classes(StrV::from(["font32"]))
+            .wrap(true)
+            .build();
+
         preview.attach(&name, 0, 1, 1, 1);
 
         if let Some(gdesc) = self.app_info.description() {
-            let desc = gtk::Label::new(Some(gdesc.as_str()));
-            desc.set_wrap(true);
+            let desc = gtk::Label::builder()
+                .label(gdesc)
+                .wrap(true)
+                .build();
             preview.attach(&desc, 0, 2, 1, 1);
         }
 
