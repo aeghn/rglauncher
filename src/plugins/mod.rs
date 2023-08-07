@@ -1,7 +1,6 @@
 pub mod app;
-pub mod windows;
 pub mod clipboard;
-
+pub mod windows;
 
 use crate::shared::UserInput;
 

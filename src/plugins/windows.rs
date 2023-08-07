@@ -1,20 +1,19 @@
 use std::process::Command;
 
-use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use gio::Icon;
 use glib::Cast;
 use gtk::{Label, Widget};
 
 use gtk::pango::WrapMode::WordChar;
 use gtk::prelude::{GridExt, WidgetExt};
-use tracing::{error};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 
 pub struct HyprWindows {
-    windows: Vec<HyprWindowResult>
+    windows: Vec<HyprWindowResult>,
 }
 
 struct Workspace {
@@ -49,12 +48,8 @@ impl HyprWindows {
         // let json : serde_json::Value =
 
         let json = match serde_json::from_str::<serde_json::Value>(out.as_str()) {
-            Ok(x) => {
-                x
-            }
-            Err(_) => {
-                serde_json::Value::Null
-            }
+            Ok(x) => x,
+            Err(_) => serde_json::Value::Null,
         };
 
         if let Some(array) = json.as_array() {
@@ -70,16 +65,20 @@ impl HyprWindows {
                     pid: e.get("pid").unwrap().as_i64().unwrap(),
                     xwayland: e.get("xwayland").unwrap().as_bool().unwrap(),
                     monitor: e.get("monitor").unwrap().as_i64().unwrap(),
-                    workspace: e.get("workspace").unwrap().get("name").unwrap()
-                        .as_str().unwrap().to_string(),
-                    score: 0
+                    workspace: e
+                        .get("workspace")
+                        .unwrap()
+                        .get("name")
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .to_string(),
+                    score: 0,
                 })
             }
         }
 
-        HyprWindows {
-            windows: vec
-        }
+        HyprWindows { windows: vec }
     }
 }
 
@@ -96,7 +95,7 @@ impl Clone for HyprWindowResult {
             xwayland: self.xwayland.clone(),
             monitor: self.monitor.clone(),
             workspace: self.workspace.clone(),
-            score: 0
+            score: 0,
         }
     }
 }
@@ -109,7 +108,7 @@ impl Plugin<HyprWindowResult> for HyprWindows {
         let mut result: Vec<HyprWindowResult> = vec![];
 
         for window in &self.windows {
-            let mut score : i32= 0;
+            let mut score: i32 = 0;
             let mut mstr = window.class.to_string();
             mstr += window.title.as_str();
             mstr += window.workspace.as_str();
@@ -139,7 +138,9 @@ impl PluginResult for HyprWindowResult {
         if let Some(icon) = &self.icon {
             Some(icon.clone())
         } else {
-            Some(gio::Icon::from(gio::ThemedIcon::from_names(&[&"gnome-windows"])))
+            Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
+                &"gnome-windows",
+            ])))
         }
     }
 
@@ -151,10 +152,16 @@ impl PluginResult for HyprWindowResult {
     }
 
     fn sidebar_content(&self) -> Option<Widget> {
-        let str : String = format!("{}  {} {}",
-                                   if self.monitor == 0 {"".to_string()} else {format!(" {}", self.monitor)},
-                                   self.workspace.clone(),
-                                   if self.xwayland {"XWayland"} else {""});
+        let str: String = format!(
+            "{}  {} {}",
+            if self.monitor == 0 {
+                "".to_string()
+            } else {
+                format!(" {}", self.monitor)
+            },
+            self.workspace.clone(),
+            if self.xwayland { "XWayland" } else { "" }
+        );
         let label = Label::new(Some(str.as_str()));
         label.set_wrap(true);
         Some(label.upcast())
@@ -190,7 +197,7 @@ impl PluginResult for HyprWindowResult {
 
     fn on_enter(&self) {
         // dispatch focuswindow address:
-        let msg = Command::new("hyprctl")
+        let _msg = Command::new("hyprctl")
             .arg("dispatch")
             .arg("focuswindow")
             .arg("address:".to_owned() + self.address.as_str())

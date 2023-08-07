@@ -1,18 +1,19 @@
-use std::sync::Arc;
 use async_broadcast::{Receiver, Sender};
 use futures::executor::block_on;
-use futures::future::err;
-use glib::{GString, StrV};
-use gtk::{self, traits::{WidgetExt, StyleContextExt}};
+use std::sync::Arc;
+
+use glib::StrV;
 use gtk::prelude::EntryExt;
 use gtk::traits::EditableExt;
-use tracing::error;
-use crate::sidebar::SidebarMsg;
+use gtk::{
+    self,
+    traits::{StyleContextExt, WidgetExt},
+};
 
 #[derive(Clone, Debug)]
 pub enum InputMessage {
     TextChanged(String),
-    EmitSubmit(String)
+    EmitSubmit(String),
 }
 
 pub struct InputBar {
@@ -32,27 +33,32 @@ impl InputBar {
             .xalign(0.5)
             .build();
 
-
         let tc_tx = input_sender.clone();
         entry.connect_changed(move |e| {
             let text = e.text().to_string();
             block_on(async {
-                tc_tx.broadcast(Arc::new(InputMessage::TextChanged(text))).await
-            }).expect("TODO: panic message");
+                tc_tx
+                    .broadcast(Arc::new(InputMessage::TextChanged(text)))
+                    .await
+            })
+            .expect("TODO: panic message");
         });
 
         let tc_tx = input_sender.clone();
         entry.connect_activate(move |e| {
             let text = e.text().to_string();
-            block_on(async { tc_tx.broadcast(Arc::new(InputMessage::EmitSubmit(text))).await }).expect("TODO: panic message");
+            block_on(async {
+                tc_tx
+                    .broadcast(Arc::new(InputMessage::EmitSubmit(text)))
+                    .await
+            })
+            .expect("TODO: panic message");
         });
 
         InputBar {
             entry,
             input_broadcast,
-            input_sender
+            input_sender,
         }
     }
-
 }
-

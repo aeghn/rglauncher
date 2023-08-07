@@ -1,12 +1,13 @@
 use glib::GString;
 
-use gtk::Label;
-use gtk::pango::WrapMode::WordChar;
 use crate::util::string_utils;
+use gtk::pango::WrapMode::WordChar;
+use gtk::Label;
 
 pub fn get_wrapped_label(text: &str, xalign: f32) -> Label {
     let label_builder = Label::builder();
-    label_builder.label(GString::from(text))
+    label_builder
+        .label(GString::from(text))
         .wrap(true)
         .wrap_mode(WordChar)
         .hexpand(true)

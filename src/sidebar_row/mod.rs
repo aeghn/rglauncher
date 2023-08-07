@@ -1,14 +1,11 @@
 mod imp;
 
-use futures::future::err;
 use gio::Icon;
 
+use gtk::pango::WrapMode;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib, Widget};
-use gtk::pango::WrapMode;
-use tracing::error;
-
 
 use crate::plugins::PluginResult;
 
