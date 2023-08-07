@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="SidebarRow" parent="GtkBox">
+  <template class="SidebarRow" parent="GtkGrid">
     <property name="orientation">horizontal</property>
     <property name="spacing">12</property>
     <child>

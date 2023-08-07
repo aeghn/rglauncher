@@ -143,11 +143,11 @@ impl Launcher {
             @strong entry=> move |_, key, _keycode, _| {
             match key {
                 gdk::Key::Up => {
-                    sidebar_sender.send(SidebarMsg::PreviousItem);
+                    sidebar_sender.send(SidebarMsg::PreviousItem).unwrap();
                     glib::Propagation::Proceed
                 }
                 gdk::Key::Down => {
-                    sidebar_sender.send(SidebarMsg::NextItem);
+                    sidebar_sender.send(SidebarMsg::NextItem).unwrap();
                     glib::Propagation::Proceed
                 }
                 gdk::Key::Escape => {
@@ -155,7 +155,7 @@ impl Launcher {
                     glib::Propagation::Proceed
                 }
                 gdk::Key::Return => {
-                    sidebar_sender.send(SidebarMsg::Enter);
+                    sidebar_sender.send(SidebarMsg::Enter).unwrap();
 
                     glib::Propagation::Proceed
                 }
