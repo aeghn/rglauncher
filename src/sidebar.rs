@@ -12,10 +12,8 @@ use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 use std::sync::Arc;
 
-use gtk::prelude::FrameExt;
-use gtk::prelude::SelectionModelExt;
 
-use gtk::traits::WidgetExt;
+use gtk::traits::{SelectionModelExt, WidgetExt};
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
@@ -166,7 +164,6 @@ impl Sidebar {
                                 InputMessage::EmitSubmit(_) => {
                                     self.handle_msg(SidebarMsg::Enter);
                                 }
-                                _ => {}
                             }
                         }
                         _ => {}

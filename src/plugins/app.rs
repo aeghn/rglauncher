@@ -16,15 +16,6 @@ pub struct AppResult {
     score: i32,
 }
 
-impl AppResult {
-    pub fn new() -> Self {
-        Self {
-            app_info: AppInfo::all().get(0).unwrap().clone(),
-            score: 0,
-        }
-    }
-}
-
 unsafe impl Send for AppResult {}
 
 impl PluginResult for AppResult {

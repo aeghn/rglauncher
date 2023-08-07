@@ -2,7 +2,6 @@ use flume::Receiver;
 use glib::{BoxedAnyObject, StrV};
 
 use crate::plugins::PluginResult;
-use gtk::prelude::WidgetExt;
 use gtk::PolicyType::Never;
 
 #[derive(Clone)]

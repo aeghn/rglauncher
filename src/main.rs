@@ -12,7 +12,6 @@ mod sidebar_row;
 mod util;
 
 use tracing::*;
-use tracing_subscriber::prelude::*;
 
 use gtk::gdk::*;
 use gtk::prelude::*;
