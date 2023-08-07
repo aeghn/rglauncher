@@ -11,6 +11,7 @@ use gtk::prelude::{GridExt, WidgetExt};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
+use crate::util::widget_utils;
 
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,
@@ -151,7 +152,7 @@ impl PluginResult for HyprWindowResult {
         Some(title)
     }
 
-    fn sidebar_content(&self) -> Option<Widget> {
+    fn sidebar_content(&self) -> Option<String> {
         let str: String = format!(
             "{}  {} {}",
             if self.monitor == 0 {
@@ -162,9 +163,8 @@ impl PluginResult for HyprWindowResult {
             self.workspace.clone(),
             if self.xwayland { "XWayland" } else { "" }
         );
-        let label = Label::new(Some(str.as_str()));
-        label.set_wrap(true);
-        Some(label.upcast())
+
+        Some(str)
     }
 
     fn preview(&self) -> gtk::Grid {
@@ -189,7 +189,7 @@ impl PluginResult for HyprWindowResult {
         preview.attach(&name, 1, 1, 1, 1);
 
         if let Some(content) = self.sidebar_content() {
-            preview.attach(&content, 1, 2, 1, 1);
+            preview.attach(&widget_utils::get_wrapped_label(content.as_str(), 0.5), 1, 2, 1, 1);
         }
 
         preview

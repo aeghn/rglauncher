@@ -11,7 +11,7 @@ use crate::plugins::PluginResult;
 
 glib::wrapper! {
     pub struct SidebarRow(ObjectSubclass<imp::SidebarRow>)
-        @extends gtk::Widget, gtk::Box;
+        @extends gtk::Widget, gtk::Grid;
 }
 
 impl Default for SidebarRow {
@@ -48,25 +48,19 @@ impl SidebarRow {
         match plugin_result.sidebar_label() {
             None => {}
             Some(e) => {
-                imp.content.set_label(Some(e.as_str()));
-                if let Some(label) = imp.content.label_widget().and_downcast::<gtk::Label>() {
-                    label.set_wrap(true);
-                    label.set_wrap_mode(WrapMode::WordChar);
-                }
+                imp.title.set_label(e.as_str());
             }
         };
 
         match plugin_result.sidebar_content() {
             None => {}
             Some(e) => {
-                e.set_hexpand(true);
-                imp.content.set_child(Some(&e));
+                imp.content.set_label(e.as_str());
             }
         };
     }
 
     pub fn unbind_all(&self) {
         let imp = self.imp();
-        imp.content.set_child(Widget::NONE);
     }
 }

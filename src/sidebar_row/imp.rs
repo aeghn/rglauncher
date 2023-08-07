@@ -9,14 +9,16 @@ pub struct SidebarRow {
     #[template_child]
     pub image: TemplateChild<gtk::Image>,
     #[template_child]
-    pub content: TemplateChild<gtk::Frame>,
+    pub title: TemplateChild<gtk::Label>,
+    #[template_child]
+    pub content: TemplateChild<gtk::Label>,
 }
 
 #[glib::object_subclass]
 impl ObjectSubclass for SidebarRow {
     const NAME: &'static str = "SidebarRow";
     type Type = super::SidebarRow;
-    type ParentType = gtk::Box;
+    type ParentType = gtk::Grid;
 
     fn class_init(klass: &mut Self::Class) {
         klass.bind_template();
@@ -29,4 +31,4 @@ impl ObjectSubclass for SidebarRow {
 
 impl ObjectImpl for SidebarRow {}
 impl WidgetImpl for SidebarRow {}
-impl BoxImpl for SidebarRow {}
+impl GridImpl for SidebarRow {}

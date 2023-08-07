@@ -86,9 +86,8 @@ impl PluginResult for ClipPluginResult {
         Some(self.insert_time.to_string())
     }
 
-    fn sidebar_content(&self) -> Option<Widget> {
-        let label = widget_utils::limit_length_label(self.content.as_str(), 60, 0.0);
-        Some(label.upcast())
+    fn sidebar_content(&self) -> Option<String> {
+        Some(crate::util::string_utils::truncate(self.content.as_str(), 200).to_string())
     }
 
     fn preview(&self) -> Grid {
