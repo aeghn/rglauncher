@@ -1,26 +1,25 @@
 use std::borrow::Borrow;
-use std::ops::Deref;
-use std::process::exit;
-use std::sync::Arc;
-use flume::{Receiver, Sender, unbounded};
-use futures::StreamExt;
+
+use flume::{Receiver, Sender};
 use futures::select;
-use gio::{glib, prelude::{Cast, StaticType, CastNone}};
-use gio::traits::{ApplicationExt, ListModelExt};
-use glib::{BoxedAnyObject, idle_add, idle_add_once, IsA, StrV, ToVariant};
+use futures::StreamExt;
+use gio::traits::ListModelExt;
+use gio::{
+    glib,
+    prelude::{Cast, CastNone},
+};
+use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
+use std::sync::Arc;
 
-use gtk::{Application, Image, Label, prelude::{FrameExt}};
+use gtk::prelude::FrameExt;
 use gtk::prelude::SelectionModelExt;
-use gtk::ResponseType::No;
 
+use gtk::traits::WidgetExt;
 
-use gtk::traits::{GridExt, WidgetExt};
-use tracing::error;
-
-use crate::{plugins::{PluginResult}};
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
+use crate::plugins::PluginResult;
 use crate::shared::UserInput;
 use crate::sidebar_row::SidebarRow;
 
@@ -30,7 +29,7 @@ pub enum SidebarMsg {
     NextItem,
     PreviousItem,
     HeadItem,
-    Enter
+    Enter,
 }
 
 #[derive(Clone)]
@@ -50,14 +49,16 @@ pub struct Sidebar {
 }
 
 impl Sidebar {
-    pub fn new(input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
-               sidebar_receiver: Receiver<SidebarMsg>,
-               selection_change_sender: Sender<BoxedAnyObject>,
-               app_msg_sender: flume::Sender<AppMsg>) -> Self {
-
+    pub fn new(
+        input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
+        sidebar_receiver: Receiver<SidebarMsg>,
+        selection_change_sender: Sender<BoxedAnyObject>,
+        app_msg_sender: flume::Sender<AppMsg>,
+    ) -> Self {
         let list_store = gio::ListStore::new::<BoxedAnyObject>();
         let sorted_model = Sidebar::build_sorted_model(&list_store);
-        let selection_model = Sidebar::build_selection_model(&sorted_model, &selection_change_sender);
+        let selection_model =
+            Sidebar::build_selection_model(&sorted_model, &selection_change_sender);
         let factory = Sidebar::build_signal_list_item_factory();
 
         let list_view = gtk::ListView::builder()
@@ -84,7 +85,7 @@ impl Sidebar {
             input_broadcast,
             sidebar_receiver,
             selection_change_sender,
-            app_msg_sender
+            app_msg_sender,
         }
     }
 
@@ -99,12 +100,17 @@ impl Sidebar {
             }
             SidebarMsg::NextItem => {
                 let new_selection = if self.selection_model.n_items() > 0 {
-                    std::cmp::min(self.selection_model.n_items() - 1, self.selection_model.selected() + 1)
+                    std::cmp::min(
+                        self.selection_model.n_items() - 1,
+                        self.selection_model.selected() + 1,
+                    )
                 } else {
                     0
                 };
                 self.selection_model.select_item(new_selection, true);
-                self.list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
+                self.list_view
+                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
+                    .unwrap();
             }
             SidebarMsg::PreviousItem => {
                 let new_selection = if self.selection_model.selected() > 0 {
@@ -113,17 +119,24 @@ impl Sidebar {
                     0
                 };
                 self.selection_model.select_item(new_selection, true);
-                self.list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
+                self.list_view
+                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
+                    .unwrap();
             }
             SidebarMsg::HeadItem => {
                 let new_selection = 0;
                 self.selection_model.select_item(new_selection, true);
-                self.list_view.activate_action("list.scroll-to-item", Some(&new_selection.to_variant())).unwrap();
+                self.list_view
+                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
+                    .unwrap();
             }
             SidebarMsg::Enter => {
                 let item = self.selection_model.selected_item();
                 if let Some(boxed) = item {
-                    let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
+                    let tt = boxed
+                        .downcast_ref::<BoxedAnyObject>()
+                        .unwrap()
+                        .borrow::<Box<dyn PluginResult>>();
                     tt.on_enter();
                 }
                 self.app_msg_sender.send(AppMsg::Exit).expect("should send");
@@ -161,17 +174,23 @@ impl Sidebar {
                 }
             }
         }
-
     }
 
     fn build_sorted_model(list_model: &impl IsA<gio::ListModel>) -> gtk::SortListModel {
         let sorter = gtk::CustomSorter::new(move |item1, item2| {
-            let plugin_result1 =
-                item1.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
-            let plugin_result2 =
-                item2.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
+            let plugin_result1 = item1
+                .downcast_ref::<BoxedAnyObject>()
+                .unwrap()
+                .borrow::<Box<dyn PluginResult>>();
+            let plugin_result2 = item2
+                .downcast_ref::<BoxedAnyObject>()
+                .unwrap()
+                .borrow::<Box<dyn PluginResult>>();
 
-            plugin_result2.get_score().cmp(&plugin_result1.get_score()).into()
+            plugin_result2
+                .get_score()
+                .cmp(&plugin_result1.get_score())
+                .into()
         });
 
         gtk::SortListModel::builder()
@@ -206,7 +225,7 @@ impl Sidebar {
         });
 
         factory.connect_unbind(move |_factory, item| {
-            let list_item = item.downcast_ref::<gtk::ListItem>().unwrap();
+            let _list_item = item.downcast_ref::<gtk::ListItem>().unwrap();
 
             let child = item.child().and_downcast::<SidebarRow>().unwrap();
             child.unbind_all();
@@ -215,20 +234,19 @@ impl Sidebar {
         factory
     }
 
-    fn build_selection_model(list_model: &impl IsA<gio::ListModel>,
-                             selection_change_sender: &Sender<BoxedAnyObject>)
-                             -> gtk::SingleSelection {
-        let selection_model = gtk::SingleSelection::builder()
-            .model(list_model)
-            .build();
+    fn build_selection_model(
+        list_model: &impl IsA<gio::ListModel>,
+        selection_change_sender: &Sender<BoxedAnyObject>,
+    ) -> gtk::SingleSelection {
+        let selection_model = gtk::SingleSelection::builder().model(list_model).build();
 
         let selection_change_sender = selection_change_sender.clone();
         selection_model.connect_selected_item_notify(move |selection| {
             let item = selection.selected_item();
             if let Some(boxed) = item {
-                let plugin_result_box = boxed.downcast::<BoxedAnyObject>()
-                    .unwrap();
-                selection_change_sender.send(plugin_result_box.clone())
+                let plugin_result_box = boxed.downcast::<BoxedAnyObject>().unwrap();
+                selection_change_sender
+                    .send(plugin_result_box.clone())
                     .expect("Unable to send to preview");
             }
         });

@@ -1,24 +1,18 @@
 // #![no_main]
 
-mod launcher;
+mod constant;
 mod inputbar;
+mod launcher;
+pub mod plugin_worker;
+mod plugins;
+mod preview;
 mod shared;
 mod sidebar;
-mod plugins;
-mod constant;
-mod util;
-pub mod plugin_worker;
-mod preview;
 mod sidebar_row;
+mod util;
 
-
-use std::{env, ptr};
-use std::ffi::{c_char, c_int};
-use std::thread::sleep;
-use std::time::Duration;
 use tracing::*;
 use tracing_subscriber::prelude::*;
-
 
 use gtk::gdk::*;
 use gtk::prelude::*;
@@ -32,9 +26,7 @@ fn main() {
         .with_timer(tracing_subscriber::fmt::time::time())
         .init();
 
-    let app = Application::builder()
-        .application_id(APP_ID)
-        .build();
+    let app = Application::builder().application_id(APP_ID).build();
 
     app.connect_startup(|_| load_css());
 
@@ -52,7 +44,7 @@ fn load_css() {
     style_context_add_provider_for_display(
         &Display::default().expect("Could not connect to a display."),
         &provider,
-        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
     info!("finished loading css info.");

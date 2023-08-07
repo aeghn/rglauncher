@@ -1,17 +1,15 @@
-
-use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
-use gio::{AppInfo};
+use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
+use gio::AppInfo;
 use glib::Cast;
-use gtk::{Widget};
 use gtk::prelude::{GridExt, WidgetExt};
+use gtk::Widget;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 
-pub struct AppPlugin {
-}
+pub struct AppPlugin {}
 
 pub struct AppResult {
     app_info: AppInfo,
@@ -38,7 +36,9 @@ impl PluginResult for AppResult {
         if let Some(icon) = self.app_info.icon() {
             Some(icon)
         } else {
-            Some(gio::Icon::from(gio::ThemedIcon::from_names(&[&"gnome-windows"])))
+            Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
+                &"gnome-windows",
+            ])))
         }
     }
 
@@ -52,7 +52,8 @@ impl PluginResult for AppResult {
             match self.app_info.description() {
                 Some(x) => x.to_string(),
                 None => "".to_string(),
-            }.as_str()
+            }
+            .as_str(),
         ));
         label.set_wrap_mode(gtk::pango::WrapMode::Word);
         label.set_wrap(true);
@@ -72,7 +73,6 @@ impl PluginResult for AppResult {
         image.set_pixel_size(256);
         preview.attach(&image, 0, 0, 1, 1);
 
-
         let name = gtk::Label::new(Some(self.app_info.name().as_str()));
         name.add_css_class("font32");
         name.set_wrap(true);
@@ -88,16 +88,15 @@ impl PluginResult for AppResult {
     }
 
     fn on_enter(&self) {
-        self.app_info.launch(&[], gio::AppLaunchContext::NONE).expect("unable to start app");
+        self.app_info
+            .launch(&[], gio::AppLaunchContext::NONE)
+            .expect("unable to start app");
     }
 }
 
-
 impl AppPlugin {
     pub fn new() -> Self {
-        AppPlugin{
-
-        }
+        AppPlugin {}
     }
 }
 
@@ -111,15 +110,20 @@ impl Plugin<AppResult> for AppPlugin {
                 return;
             }
 
-            let mut score : i32= 0;
+            let mut score: i32 = 0;
             if user_input.input.is_empty() {
                 score = 100;
-            } else if let Some(_s) = matcher.fuzzy_match(app_info.name().as_str(), user_input.input.as_str()) {
+            } else if let Some(_s) =
+                matcher.fuzzy_match(app_info.name().as_str(), user_input.input.as_str())
+            {
                 score = _s as i32;
             }
 
             if score > 0 {
-                result.push(AppResult{app_info: app_info.clone(), score});
+                result.push(AppResult {
+                    app_info: app_info.clone(),
+                    score,
+                });
             }
         });
 

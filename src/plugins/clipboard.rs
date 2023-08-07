@@ -1,23 +1,20 @@
-use glib::ffi::GStrv;
 use sourceview5;
 
 use gio::Icon;
-use glib::{Cast, GString};
+use glib::Cast;
 
 use gtk::prelude::DisplayExt;
-use gtk::{Grid, Label, Widget, TextBuffer};
-use gtk::pango::WrapMode::WordChar;
-use gtk::traits::GridExt;
+use gtk::{Grid, Widget};
+
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
-use rusqlite::{Connection};
-use tracing::error;
+use gtk::traits::GridExt;
+use rusqlite::Connection;
 
 use crate::util::widget_utils;
 
-
 pub struct ClipboardPlugin {
-    conn: Option<Connection>
+    conn: Option<Connection>,
 }
 
 #[derive(Debug)]
@@ -26,25 +23,21 @@ pub struct ClipPluginResult {
     content: String,
     score: i32,
     mime: String,
-    insert_time: String
+    insert_time: String,
 }
 
 impl ClipboardPlugin {
     pub fn new(path: &str) -> Self {
         if !std::path::Path::new(path).exists() {
-            return ClipboardPlugin { conn: None }
+            return ClipboardPlugin { conn: None };
         }
 
         let conn = match Connection::open(path) {
-            Ok(e) => {
-                Some(e)
-            }
-            Err(_) => {
-                None
-            }
+            Ok(e) => Some(e),
+            Err(_) => None,
         };
 
-        return ClipboardPlugin { conn }
+        return ClipboardPlugin { conn };
     }
 }
 
@@ -57,14 +50,14 @@ impl Plugin<ClipPluginResult> for ClipboardPlugin {
         if let Some(_conn) = &self.conn {
             let stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \
                                               where content0 like '%{}%' order by INSERT_TIME desc limit 300", user_input.input.as_str()).as_str());
-            if let Ok(mut _stmt) =stmt {
+            if let Ok(mut _stmt) = stmt {
                 let iter = _stmt.query_map([], |row| {
                     Ok(ClipPluginResult {
                         id: row.get(0).unwrap(),
                         content: row.get(1).unwrap(),
                         score: 0,
                         mime: row.get(2).unwrap(),
-                        insert_time: row.get(3).unwrap()
+                        insert_time: row.get(3).unwrap(),
                     })
                 });
                 if let Ok(_iter) = iter {
@@ -84,7 +77,9 @@ impl PluginResult for ClipPluginResult {
     }
 
     fn sidebar_icon(&self) -> Option<Icon> {
-        Some(gio::Icon::from(gio::ThemedIcon::from_names(&[&"xclipboard"])))
+        Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
+            &"xclipboard",
+        ])))
     }
 
     fn sidebar_label(&self) -> Option<String> {
@@ -97,20 +92,17 @@ impl PluginResult for ClipPluginResult {
     }
 
     fn preview(&self) -> Grid {
-        let preview = gtk::Grid::builder()
-            .vexpand(true)
-            .hexpand(true)
-            .build();
+        let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
         let time = gtk::Label::builder()
             .label(self.insert_time.to_string())
             .build();
-        
+
         preview.attach(&time, 0, 0, 1, 1);
-        
+
         let buffer = sourceview5::Buffer::builder()
             .text(self.content.to_string())
             .build();
-        
+
         let label = sourceview5::View::builder()
             .monospace(true)
             .show_line_numbers(true)

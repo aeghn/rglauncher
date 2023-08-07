@@ -1,10 +1,9 @@
-use std::cell::Ref;
 use flume::Receiver;
-use glib::{BoxedAnyObject, Cast, StrV};
-use gtk::Align::Center;
-use gtk::PolicyType::Never;
-use gtk::prelude::WidgetExt;
+use glib::{BoxedAnyObject, StrV};
+
 use crate::plugins::PluginResult;
+use gtk::prelude::WidgetExt;
+use gtk::PolicyType::Never;
 
 #[derive(Clone)]
 pub struct Preview {
@@ -18,9 +17,7 @@ impl Preview {
             .css_classes(StrV::from(["preview"]))
             .build();
 
-        Preview {
-            preview_window,
-        }
+        Preview { preview_window }
     }
 
     pub async fn loop_recv(&self, receiver: Receiver<BoxedAnyObject>) {

@@ -1,35 +1,33 @@
-use std::borrow::Borrow;
-use std::process::exit;
-use flume::RecvError;
-use futures::future::err;
-
 use glib::{clone, MainContext};
-use glib::{BoxedAnyObject};
+
 use gio::prelude::*;
-use gtk::{self, Application, ApplicationWindow, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
-use gtk::prelude::*;
 use gtk::gdk;
-use gtk::PolicyType::Never;
+use gtk::prelude::*;
+use gtk::{
+    self,
+    traits::{BoxExt, GtkWindowExt, WidgetExt},
+    ApplicationWindow, Entry,
+};
+
 use tracing::error;
 
-use crate::{plugin_worker, plugins::{PluginResult}};
-use crate::inputbar::{InputBar};
+use crate::inputbar::InputBar;
 use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
-use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
+use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
 use crate::preview::Preview;
 
-use crate::sidebar::{SidebarMsg};
+use crate::sidebar::SidebarMsg;
 
 pub struct Launcher {
     input_bar: InputBar,
     preview: Preview,
-    window: gtk::ApplicationWindow
+    window: gtk::ApplicationWindow,
 }
 
 pub enum AppMsg {
-    Exit
+    Exit,
 }
 
 impl Launcher {
@@ -56,11 +54,12 @@ impl Launcher {
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
         let (app_msg_sender, app_msg_receiver) = flume::unbounded();
 
-        let mut sidebar = crate::sidebar::Sidebar::new(
+        let sidebar = crate::sidebar::Sidebar::new(
             input_bar.input_broadcast.clone(),
             sidebar_receiver.clone(),
             selection_change_sender.clone(),
-            app_msg_sender);
+            app_msg_sender,
+        );
         let sidebar_window = &sidebar.scrolled_window;
         bottom_box.append(sidebar_window);
 
@@ -74,11 +73,12 @@ impl Launcher {
 
         let preview_worker = preview.clone();
         MainContext::ref_thread_default().spawn_local(async move {
-            preview_worker.loop_recv(selection_change_receiver.clone()).await;
+            preview_worker
+                .loop_recv(selection_change_receiver.clone())
+                .await;
         });
 
-        Launcher::setup_keybindings(&window, sidebar_sender.clone(),
-                                    &input_bar.entry);
+        Launcher::setup_keybindings(&window, sidebar_sender.clone(), &input_bar.entry);
 
         {
             let window = window.clone();
@@ -88,18 +88,24 @@ impl Launcher {
         }
 
         let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar_sender,
-                                                               clipboard,
-                                                               &input_bar.input_broadcast);
+        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
+            &sidebar_sender,
+            clipboard,
+            &input_bar.input_broadcast,
+        );
 
         let plugin = AppPlugin::new();
-        PluginWorker::<AppPlugin, AppResult>::launch(&sidebar_sender,
-                                                     plugin,
-                                                     &input_bar.input_broadcast);
+        PluginWorker::<AppPlugin, AppResult>::launch(
+            &sidebar_sender,
+            plugin,
+            &input_bar.input_broadcast,
+        );
 
-        PluginWorker::<HyprWindows, HyprWindowResult>::launch(&sidebar_sender,
-                                                     HyprWindows::new(),
-                                                     &input_bar.input_broadcast);
+        PluginWorker::<HyprWindows, HyprWindowResult>::launch(
+            &sidebar_sender,
+            HyprWindows::new(),
+            &input_bar.input_broadcast,
+        );
 
         Launcher {
             window: window.clone(),
@@ -111,28 +117,26 @@ impl Launcher {
     async fn handle_app_msgs(app_msg_receiver: flume::Receiver<AppMsg>, window: ApplicationWindow) {
         loop {
             match app_msg_receiver.recv_async().await {
-                Ok(msg) => {
-                    match msg {
-                        AppMsg::Exit => {
-                            match window.application() {
-                                None => {
-                                    error!("unable to get this application.");
-                                }
-                                Some(app) => {
-                                    app.quit();
-                                }
-                            }
+                Ok(msg) => match msg {
+                    AppMsg::Exit => match window.application() {
+                        None => {
+                            error!("unable to get this application.");
                         }
-                    }
-                }
+                        Some(app) => {
+                            app.quit();
+                        }
+                    },
+                },
                 Err(_) => {}
             }
         }
     }
 
-    fn setup_keybindings(window: &gtk::ApplicationWindow,
-                         sidebar_sender: flume::Sender<SidebarMsg>,
-                         entry: &Entry) {
+    fn setup_keybindings(
+        window: &gtk::ApplicationWindow,
+        sidebar_sender: flume::Sender<SidebarMsg>,
+        entry: &Entry,
+    ) {
         let controller = gtk::EventControllerKey::new();
 
         controller.connect_key_pressed(clone!(@strong window,
