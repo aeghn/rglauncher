@@ -38,17 +38,13 @@ impl PluginResult for AppResult {
         Some(name)
     }
 
-    fn sidebar_content(&self) -> Option<Widget> {
-        let label = gtk::Label::new(Some(
+    fn sidebar_content(&self) -> Option<String> {
+        Some(
             match self.app_info.description() {
                 Some(x) => x.to_string(),
                 None => "".to_string(),
             }
-            .as_str(),
-        ));
-        label.set_wrap_mode(gtk::pango::WrapMode::Word);
-        label.set_wrap(true);
-        Some(label.upcast())
+        )
     }
 
     fn preview(&self) -> gtk::Grid {

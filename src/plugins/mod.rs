@@ -14,7 +14,7 @@ pub trait PluginResult: Send {
 
     fn sidebar_label(&self) -> Option<String>;
 
-    fn sidebar_content(&self) -> Option<gtk::Widget>;
+    fn sidebar_content(&self) -> Option<String>;
 
     fn preview(&self) -> gtk::Grid;
 
