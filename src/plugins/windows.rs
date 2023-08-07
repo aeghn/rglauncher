@@ -112,6 +112,7 @@ impl Plugin<HyprWindowResult> for HyprWindows {
             let mut score : i32= 0;
             let mut mstr = window.class.to_string();
             mstr += window.title.as_str();
+            mstr += window.workspace.as_str();
             if user_input.input.is_empty() {
                 score = 100;
             } else if let Some(_s) = matcher.fuzzy_match(mstr.as_str(), user_input.input.as_str()) {

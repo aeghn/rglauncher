@@ -1,13 +1,14 @@
 use std::borrow::Borrow;
 use std::process::exit;
+use flume::RecvError;
+use futures::future::err;
 
-use glib::{clone, MainContext, PRIORITY_DEFAULT_IDLE};
+use glib::{clone, MainContext};
 use glib::{BoxedAnyObject};
 use gio::prelude::*;
-use gtk::{self, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
+use gtk::{self, Application, ApplicationWindow, Entry, ScrolledWindow, traits::{WidgetExt, GtkWindowExt, BoxExt}};
 use gtk::prelude::*;
 use gtk::gdk;
-use gtk::Inhibit;
 use gtk::PolicyType::Never;
 use tracing::error;
 
@@ -16,6 +17,7 @@ use crate::inputbar::{InputBar};
 use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::clipboard::{ClipboardPlugin, ClipPluginResult};
+use crate::plugins::windows::{HyprWindowResult, HyprWindows};
 use crate::preview::Preview;
 
 use crate::sidebar::{SidebarMsg};
@@ -23,7 +25,11 @@ use crate::sidebar::{SidebarMsg};
 pub struct Launcher {
     input_bar: InputBar,
     preview: Preview,
+    window: gtk::ApplicationWindow
+}
 
+pub enum AppMsg {
+    Exit
 }
 
 impl Launcher {
@@ -48,11 +54,13 @@ impl Launcher {
         main_box.append(&bottom_box);
         let (selection_change_sender, selection_change_receiver) = flume::unbounded();
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
+        let (app_msg_sender, app_msg_receiver) = flume::unbounded();
 
         let mut sidebar = crate::sidebar::Sidebar::new(
             input_bar.input_broadcast.clone(),
             sidebar_receiver.clone(),
-            selection_change_sender.clone());
+            selection_change_sender.clone(),
+            app_msg_sender);
         let sidebar_window = &sidebar.scrolled_window;
         bottom_box.append(sidebar_window);
 
@@ -72,6 +80,13 @@ impl Launcher {
         Launcher::setup_keybindings(&window, sidebar_sender.clone(),
                                     &input_bar.entry);
 
+        {
+            let window = window.clone();
+            MainContext::ref_thread_default().spawn_local(async move {
+                Launcher::handle_app_msgs(app_msg_receiver, window).await;
+            });
+        }
+
         let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
         PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(&sidebar_sender,
                                                                clipboard,
@@ -82,13 +97,36 @@ impl Launcher {
                                                      plugin,
                                                      &input_bar.input_broadcast);
 
-        window.connect_destroy(|_| {
-            exit(0);
-        });
+        PluginWorker::<HyprWindows, HyprWindowResult>::launch(&sidebar_sender,
+                                                     HyprWindows::new(),
+                                                     &input_bar.input_broadcast);
 
         Launcher {
+            window: window.clone(),
             input_bar,
             preview,
+        }
+    }
+
+    async fn handle_app_msgs(app_msg_receiver: flume::Receiver<AppMsg>, window: ApplicationWindow) {
+        loop {
+            match app_msg_receiver.recv_async().await {
+                Ok(msg) => {
+                    match msg {
+                        AppMsg::Exit => {
+                            match window.application() {
+                                None => {
+                                    error!("unable to get this application.");
+                                }
+                                Some(app) => {
+                                    app.quit();
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(_) => {}
+            }
         }
     }
 
@@ -102,19 +140,20 @@ impl Launcher {
             match key {
                 gdk::Key::Up => {
                     sidebar_sender.send(SidebarMsg::PreviousItem);
-                    Inhibit(false)
+                    glib::Propagation::Proceed
                 }
                 gdk::Key::Down => {
                     sidebar_sender.send(SidebarMsg::NextItem);
-                    Inhibit(false)
+                    glib::Propagation::Proceed
                 }
                 gdk::Key::Escape => {
                     window.destroy();
-                    Inhibit(false)
+                    glib::Propagation::Proceed
                 }
                 gdk::Key::Return => {
                     sidebar_sender.send(SidebarMsg::Enter);
-                    Inhibit(false)
+
+                    glib::Propagation::Proceed
                 }
                 _ => {
                     if !(key.is_lower() && key.is_upper()) {
@@ -126,7 +165,7 @@ impl Launcher {
                         }
                     }
 
-                    Inhibit(false)
+                    glib::Propagation::Proceed
                 }
             }
         }));

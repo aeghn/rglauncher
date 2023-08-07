@@ -5,7 +5,7 @@ use gio::Icon;
 
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::{gio, glib};
+use gtk::{gio, glib, Widget};
 use gtk::pango::WrapMode;
 use tracing::error;
 
@@ -66,5 +66,10 @@ impl SidebarRow {
                 imp.content.set_child(Some(&e));
             }
         };
+    }
+
+    pub fn unbind_all(&self) {
+        let imp = self.imp();
+        imp.content.set_child(Widget::NONE);
     }
 }
