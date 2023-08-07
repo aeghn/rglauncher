@@ -1,16 +1,16 @@
 use std::borrow::Borrow;
 use std::ops::Deref;
+use std::process::exit;
 use std::sync::Arc;
 use flume::{Receiver, Sender, unbounded};
 use futures::StreamExt;
 use futures::select;
 use gio::{glib, prelude::{Cast, StaticType, CastNone}};
-use gio::traits::ListModelExt;
-use glib::{BoxedAnyObject, idle_add, IsA, StrV, ToVariant};
-use glib::signal::Inhibit;
+use gio::traits::{ApplicationExt, ListModelExt};
+use glib::{BoxedAnyObject, idle_add, idle_add_once, IsA, StrV, ToVariant};
+use gtk::prelude::ListItemExt;
 
-
-use gtk::{Image, Label, prelude::{FrameExt}};
+use gtk::{Application, Image, Label, prelude::{FrameExt}};
 use gtk::prelude::SelectionModelExt;
 use gtk::ResponseType::No;
 
@@ -20,6 +20,7 @@ use tracing::error;
 
 use crate::{plugins::{PluginResult}};
 use crate::inputbar::InputMessage;
+use crate::launcher::AppMsg;
 use crate::shared::UserInput;
 use crate::sidebar_row::SidebarRow;
 
@@ -45,14 +46,16 @@ pub struct Sidebar {
     input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
     sidebar_receiver: Receiver<SidebarMsg>,
     selection_change_sender: Sender<BoxedAnyObject>,
+    app_msg_sender: flume::Sender<AppMsg>,
 }
 
 impl Sidebar {
     pub fn new(input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
                sidebar_receiver: Receiver<SidebarMsg>,
-               selection_change_sender: Sender<BoxedAnyObject>) -> Self {
+               selection_change_sender: Sender<BoxedAnyObject>,
+               app_msg_sender: flume::Sender<AppMsg>) -> Self {
 
-        let list_store = gio::ListStore::new(BoxedAnyObject::static_type());
+        let list_store = gio::ListStore::new::<BoxedAnyObject>();
         let sorted_model = Sidebar::build_sorted_model(&list_store);
         let selection_model = Sidebar::build_selection_model(&sorted_model, &selection_change_sender);
         let factory = Sidebar::build_signal_list_item_factory();
@@ -81,6 +84,7 @@ impl Sidebar {
             input_broadcast,
             sidebar_receiver,
             selection_change_sender,
+            app_msg_sender
         }
     }
 
@@ -122,6 +126,7 @@ impl Sidebar {
                     let tt = boxed.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
                     tt.on_enter();
                 }
+                self.app_msg_sender.send(AppMsg::Exit).expect("should send");
             }
             _ => {}
         }
@@ -145,6 +150,9 @@ impl Sidebar {
                                     self.input.replace(UserInput::new(text.as_str()));
                                     self.list_store.remove_all();
                                 }
+                                InputMessage::EmitSubmit(_) => {
+                                    self.handle_msg(SidebarMsg::Enter);
+                                }
                                 _ => {}
                             }
                         }
@@ -163,7 +171,7 @@ impl Sidebar {
             let plugin_result2 =
                 item2.downcast_ref::<BoxedAnyObject>().unwrap().borrow::<Box<dyn PluginResult>>();
 
-            plugin_result1.get_score().cmp(&plugin_result2.get_score()).into()
+            plugin_result2.get_score().cmp(&plugin_result1.get_score()).into()
         });
 
         gtk::SortListModel::builder()
@@ -195,6 +203,13 @@ impl Sidebar {
 
             let child = item.child().and_downcast::<SidebarRow>().unwrap();
             Sidebar::arrange_sidebar_item(&child, plugin_result.as_ref())
+        });
+
+        factory.connect_unbind(move |_factory, item| {
+            let list_item = item.downcast_ref::<gtk::ListItem>().unwrap();
+
+            let child = item.child().and_downcast::<SidebarRow>().unwrap();
+            child.unbind_all();
         });
 
         factory

@@ -13,7 +13,8 @@ use futures::future::{Abortable, AbortHandle};
 use futures::StreamExt;
 use gio::{Cancellable, JoinHandle, Task};
 use gio::prelude::CancellableExt;
-use glib::{BoxedAnyObject, Continue, idle_add, MainContext, PRIORITY_DEFAULT, PRIORITY_DEFAULT_IDLE, PRIORITY_HIGH_IDLE, StaticType, ToValue, Type, Value};
+use glib::{BoxedAnyObject, ControlFlow, idle_add, MainContext, StaticType, ToValue, Type, Value};
+use glib::ControlFlow::Continue;
 use glib::ffi::G_PRIORITY_HIGH_IDLE;
 use glib::value::{FromValue, ValueType};
 use gtk::ResponseType::No;
@@ -55,7 +56,7 @@ impl <P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, 
         let result_sender = result_sender.clone();
         let input_receiver = input_receiver.clone();
         MainContext::ref_thread_default().spawn_local_with_priority(
-            PRIORITY_DEFAULT,
+            glib::source::Priority::DEFAULT_IDLE,
             async move {
                 let mut plugin_worker =
                     PluginWorker::new(plugin, input_receiver, result_sender);
@@ -118,15 +119,15 @@ impl <P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, 
                                                 ui.clone(),
                                                 Box::new(vv) as Box<dyn PluginResult>))
                                                 .unwrap();
-                                            Continue(true)
+                                            ControlFlow::Continue
                                         } else {
                                             idle_worker.fetch_sub(1, Ordering::SeqCst);
-                                            Continue(false)
+                                            ControlFlow::Break
                                         }
                                     }
                                     _ => {
                                         idle_worker.fetch_sub(1, Ordering::SeqCst);
-                                        Continue(false)
+                                        ControlFlow::Break
                                     }
                                 }
                             });
