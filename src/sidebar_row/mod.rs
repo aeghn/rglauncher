@@ -28,9 +28,7 @@ impl SidebarRow {
     pub fn set_sidebar(&self, plugin_result: &dyn PluginResult) {
         let imp = self.imp();
 
-        let icon = plugin_result.sidebar_icon();
-
-        match icon {
+        match plugin_result.sidebar_icon() {
             None => {
                 let x1 = Icon::for_string("missing");
                 match x1 {
@@ -62,5 +60,8 @@ impl SidebarRow {
 
     pub fn unbind_all(&self) {
         let imp = self.imp();
+        imp.image.clear();
+        imp.content.set_label(&"");
+        imp.title.set_label(&"");
     }
 }

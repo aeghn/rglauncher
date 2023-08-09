@@ -1,3 +1,6 @@
+use std::borrow::Borrow;
+use std::ops::Deref;
+use std::sync::{Arc, RwLock};
 use sourceview5;
 
 use gio::Icon;
