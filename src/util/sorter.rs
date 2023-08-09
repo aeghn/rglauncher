@@ -16,5 +16,5 @@ pub fn norm_score(base: i32, ori: i64) -> i32 {
         return base;
     }
 
-    ori / i64::MAX * 1000
+    ori as i32
 }

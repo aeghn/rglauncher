@@ -34,7 +34,7 @@ pub enum SidebarMsg {
 pub struct Sidebar {
     pub scrolled_window: gtk::ScrolledWindow,
     list_view: gtk::ListView,
-    selection_model: gtk::SingleSelection,
+    selection_model: gtk::MultiSelection,
     sorted_model: gtk::SortListModel,
     list_store: gio::ListStore,
 
@@ -97,29 +97,29 @@ impl Sidebar {
                 }
             }
             SidebarMsg::NextItem => {
-                let new_selection = if self.selection_model.n_items() > 0 {
-                    std::cmp::min(
-                        self.selection_model.n_items() - 1,
-                        self.selection_model.selected() + 1,
-                    )
-                } else {
-                    0
-                };
-                self.selection_model.select_item(new_selection, true);
-                self.list_view
-                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
-                    .unwrap();
+                // let new_selection = if self.selection_model.n_items() > 0 {
+                //     std::cmp::min(
+                //         self.selection_model.n_items() - 1,
+                //         self.selection_model.selected() + 1,
+                //     )
+                // } else {
+                //     0
+                // };
+                // self.selection_model.select_item(new_selection, true);
+                // self.list_view
+                //     .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
+                //     .unwrap();
             }
             SidebarMsg::PreviousItem => {
-                let new_selection = if self.selection_model.selected() > 0 {
-                    self.selection_model.selected() - 1
-                } else {
-                    0
-                };
-                self.selection_model.select_item(new_selection, true);
-                self.list_view
-                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
-                    .unwrap();
+                // let new_selection = if self.selection_model.selected() > 0 {
+                //     self.selection_model.selected() - 1
+                // } else {
+                //     0
+                // };
+                // self.selection_model.select_item(new_selection, true);
+                // self.list_view
+                //     .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
+                //     .unwrap();
             }
             SidebarMsg::HeadItem => {
                 let new_selection = 0;
@@ -129,15 +129,15 @@ impl Sidebar {
                     .unwrap();
             }
             SidebarMsg::Enter => {
-                let item = self.selection_model.selected_item();
-                if let Some(boxed) = item {
-                    let tt = boxed
-                        .downcast_ref::<BoxedAnyObject>()
-                        .unwrap()
-                        .borrow::<Box<dyn PluginResult>>();
-                    tt.on_enter();
-                }
-                self.app_msg_sender.send(AppMsg::Exit).expect("should send");
+                // let item = self.selection_model.selected_item();
+                // if let Some(boxed) = item {
+                //     let tt = boxed
+                //         .downcast_ref::<BoxedAnyObject>()
+                //         .unwrap()
+                //         .borrow::<Box<dyn PluginResult>>();
+                //     tt.on_enter();
+                // }
+                // self.app_msg_sender.send(AppMsg::Exit).expect("should send");
             }
             _ => {}
         }
@@ -234,19 +234,20 @@ impl Sidebar {
     fn build_selection_model(
         list_model: &impl IsA<gio::ListModel>,
         selection_change_sender: &Sender<BoxedAnyObject>,
-    ) -> gtk::SingleSelection {
-        let selection_model = gtk::SingleSelection::builder().model(list_model).build();
+    ) -> gtk::MultiSelection {
+        // let selection_model = gtk::MultiSelection::builder().model(list_model).build();
+        let selection_model = gtk::MultiSelection::new(Some(list_model.clone()));
 
-        let selection_change_sender = selection_change_sender.clone();
-        selection_model.connect_selected_item_notify(move |selection| {
-            let item = selection.selected_item();
-            if let Some(boxed) = item {
-                let plugin_result_box = boxed.downcast::<BoxedAnyObject>().unwrap();
-                selection_change_sender
-                    .send(plugin_result_box.clone())
-                    .expect("Unable to send to preview");
-            }
-        });
+        // let selection_change_sender = selection_change_sender.clone();
+        // selection_model.connect_selected_item_notify(move |selection| {
+        //     let item = selection.selected_item();
+        //     if let Some(boxed) = item {
+        //         let plugin_result_box = boxed.downcast::<BoxedAnyObject>().unwrap();
+        //         selection_change_sender
+        //             .send(plugin_result_box.clone())
+        //             .expect("Unable to send to preview");
+        //     }
+        // });
 
         selection_model
     }

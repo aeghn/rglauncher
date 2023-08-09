@@ -1,6 +1,7 @@
 pub mod app;
 pub mod clipboard;
 pub mod windows;
+pub mod mdict;
 
 use crate::shared::UserInput;
 

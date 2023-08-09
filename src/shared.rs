@@ -10,3 +10,4 @@ impl UserInput {
         }
     }
 }
+

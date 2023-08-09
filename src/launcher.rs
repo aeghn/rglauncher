@@ -1,3 +1,4 @@
+use std::sync::{Arc, RwLock};
 use glib::{clone, MainContext};
 
 use gio::prelude::*;
@@ -24,6 +25,7 @@ pub struct Launcher {
     input_bar: InputBar,
     preview: Preview,
     window: gtk::ApplicationWindow,
+    db: Arc<RwLock<Option<rusqlite::Connection>>>
 }
 
 pub enum AppMsg {
@@ -111,6 +113,7 @@ impl Launcher {
             window: window.clone(),
             input_bar,
             preview,
+            db: Arc::new(RwLock::default()),
         }
     }
 

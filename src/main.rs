@@ -21,7 +21,7 @@ const APP_ID: &str = "org.codeberg.wangzh.rglauncher";
 
 fn main() {
     tracing_subscriber::fmt()
-        .with_max_level(Level::TRACE)
+        .with_max_level(Level::INFO)
         .with_timer(tracing_subscriber::fmt::time::time())
         .init();
 
@@ -64,6 +64,8 @@ fn activate(app: &Application) {
     let settings = Settings::default().unwrap();
     settings.set_gtk_icon_theme_name(Some(&"ePapirus"));
 
-    info!("Window show.");
-    window.show();
+    let mdict = crate::plugins::mdict::MDictPlugin::new("", vec![]);
+
+    mdict.save_into_db(vec!["/home/chin/.local/stardict/dic/cihai".to_string(), "/home/chin/.local/stardict/dic/ldoce".to_string()],
+                       "/tmp/mdict.db".to_string()).unwrap();
 }
