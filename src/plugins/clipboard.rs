@@ -1,20 +1,20 @@
 use sourceview5;
-use std::borrow::Borrow;
-use std::ops::Deref;
-use std::sync::{Arc, RwLock};
+
+
+
 
 use gio::Icon;
 use glib::Cast;
 
 use gtk::prelude::DisplayExt;
-use gtk::{Grid, Widget};
+use gtk::{Widget};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use gtk::traits::GridExt;
 use rusqlite::Connection;
 
-use crate::util::widget_utils;
+
 
 pub struct ClipboardPlugin {
     conn: Option<Connection>,

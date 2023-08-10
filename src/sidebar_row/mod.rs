@@ -2,10 +2,10 @@ mod imp;
 
 use gio::Icon;
 
-use gtk::pango::WrapMode;
+
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::{gio, glib, Widget};
+use gtk::{gio, glib};
 
 use crate::plugins::PluginResult;
 

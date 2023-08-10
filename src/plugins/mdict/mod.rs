@@ -1,27 +1,27 @@
 use crate::plugins::mdict::mdict::{
-    MDictIndex, MDictMode, MDictRecordBlockIndex, MDictRecordIndex,
+    MDictRecordBlockIndex, MDictRecordIndex,
 };
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use crate::util::string_utils;
 use futures::StreamExt;
 use gio::Icon;
-use glib::{Cast, StrV};
-use gtk::traits::{GridExt, StyleContextExt, WidgetExt};
-use gtk::AccessibleRole::Label;
-use gtk::{Align, Grid, Widget};
+use glib::{Cast};
+use gtk::traits::{StyleContextExt, WidgetExt};
+
+use gtk::{Widget};
 use regex::Regex;
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::fs::File;
-use std::path::Path;
-use std::process::id;
-use std::sync::Arc;
-use tracing::error;
+
+
+
+
 use webkit6::traits::WebViewExt;
 use webkit6::UserContentInjectedFrames::AllFrames;
 use webkit6::UserStyleLevel::User;
-use webkit6::{UserContentManager, UserStyleSheet, WebView};
+use webkit6::{UserStyleSheet, WebView};
 
 mod mdict;
 
@@ -57,7 +57,7 @@ impl MDictPlugin {
         for mpt in files {
             let file = File::open(mpt.as_str());
             match file {
-                Ok(f) => match std::path::PathBuf::from(mpt.as_str()).parent() {
+                Ok(_f) => match std::path::PathBuf::from(mpt.as_str()).parent() {
                     None => {}
                     Some(parent) => {
                         map.insert(mpt, parent.to_str().unwrap().to_string());
@@ -173,7 +173,7 @@ impl PluginResult for MDictPluginResult {
         }
 
         // Load HTML content
-        let mut html_content = self.html.replace("\0", " ");
+        let html_content = self.html.replace("\0", " ");
         webview.load_html(html_content.as_str(), None);
 
         webview.upcast()
