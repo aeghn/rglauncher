@@ -14,6 +14,8 @@ use rusqlite::Connection;
 use tracing::error;
 use webkit6::traits::WebViewExt;
 use webkit6::{UserContentManager, UserStyleSheet, WebView};
+use webkit6::UserContentInjectedFrames::AllFrames;
+use webkit6::UserStyleLevel::User;
 use crate::plugins::mdict::mdict::{MDictIndex, MDictMode, MDictRecordBlockIndex, MDictRecordIndex};
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
@@ -39,6 +41,7 @@ pub struct MDictPlugin {
 pub struct MDictPluginResult {
     word: String,
     html: String,
+    pub dict: String,
 }
 
 impl MDictPlugin {
@@ -66,16 +69,6 @@ impl MDictPlugin {
             }
         }
 
-        let webview = WebView::new();
-        webview.set_vexpand(true);
-        webview.set_hexpand(true);
-
-        let style_provider = gtk::CssProvider::new();
-        // style_provider.load_from_data(include_str!("../../../resources/dict.css"));
-
-        let context = webview.style_context();
-        context.add_provider(&style_provider, 1);
-
         MDictPlugin {
             conn,
             map: Default::default(),
@@ -83,8 +76,8 @@ impl MDictPlugin {
         }
     }
 
-    pub fn seek(&self, word: &str) -> Vec<(String, String)>{
-        let sql = "select word, explain, file_path from mdx_index where word = ?";
+    pub fn seek(&self, word: &str) -> Vec<(String, String, String)>{
+        let sql = "select word, explain, dict, file_path from mdx_index where word = ?";
         if self.conn.is_none() {
             return vec![];
         }
@@ -95,8 +88,9 @@ impl MDictPlugin {
                     let iter = e.query_map(&[word], |row| {
                         let word = row.get(0).unwrap();
                         let explaination = row.get(1).unwrap();
+                        let dict = row.get(2).unwrap();
 
-                        Ok((word, explaination))
+                        Ok((word, explaination, dict))
                     });
                     let mut vec = vec![];
                     if let Ok(_iter) = iter {
@@ -113,22 +107,22 @@ impl MDictPlugin {
         }
     }
 
-    fn cycle_seek(&self, word: &str) -> Vec<(String, String)> {
+    fn cycle_seek(&self, word: &str) -> Vec<(String, String, String)> {
         let w = word.trim();
         let seek_res = self.seek(w);
 
-        let mut res: Vec<(String, String)> = vec![];
-        for (word, explanation) in seek_res {
+        let mut res: Vec<(String, String, String)> = vec![];
+        for (word, explanation, dict) in seek_res {
             let explanation = self.re.replace_all(explanation.as_str(), "").to_string();
-            error!("{:?}", explanation);
             if explanation.starts_with("@@@LINK=") {
                 let w2 = explanation.replace("\r\n\0", "").replace("@@@LINK=", "");
                 let r = self.cycle_seek(w2.as_str());
                 res.extend(r);
             } else {
-                res.push((word, explanation))
+                res.push((word, explanation, dict))
             }
         }
+
 
         res
     }
@@ -137,9 +131,10 @@ impl MDictPlugin {
 impl Plugin<MDictPluginResult> for MDictPlugin {
     fn handle_input(&self, user_input: &UserInput) -> Vec<MDictPluginResult> {
         let res = self.cycle_seek(user_input.input.as_str());
-        res.into_iter().map(|(word, explanation)| {
+        res.into_iter().map(|(word, explanation, dict)| {
             MDictPluginResult{ word,
-                html: explanation.replace("\0", "")
+                html: explanation.replace("\0", ""),
+                dict
             }
         }).collect()
     }
@@ -161,37 +156,27 @@ impl PluginResult for MDictPluginResult {
     }
 
     fn sidebar_content(&self) -> Option<String> {
-        Some(string_utils::truncate(self.html.as_str(), 60).to_string())
+        Some(string_utils::truncate(self.dict.as_str(), 60).to_string())
     }
 
     fn preview(&self) -> Widget {
-        let webview = WebView::with();
+        let webview = WebView::new();
         webview.set_vexpand(true);
         webview.set_hexpand(true);
 
-        let style_provider = gtk::CssProvider::new();
-        style_provider.load_from_data(include_str!("../../../resources/dict.css"));
-
-        let context = webview.style_context();
-        context.add_provider(&style_provider, 1);
+        let context = webview.user_content_manager();
+        if let Some(ucm) = context {
+            ucm.remove_all_style_sheets();
+            let css = include_str!("../../../resources/dict.css");
+            let ss = UserStyleSheet::new(css, AllFrames, User, &[], &[]);
+            ucm.add_style_sheet(&ss);
+        }
 
         // Load HTML content
         let mut html_content = self.html.replace("\0", " ");
         webview.load_html(html_content.as_str(), None);
 
         webview.upcast()
-
-        // let grid = Grid::builder()
-        //     .hexpand(true)
-        //     .vexpand(true)
-        //     .valign(Align::Center)
-        //     .halign(Align::Center)
-        //     .css_classes(StrV::from(vec!["borr"]))
-        //     .build();
-        //
-        // grid.attach(&webview, 0, 0, 1, 1);
-        //
-        // grid.upcast()
     }
 
     fn on_enter(&self) {
