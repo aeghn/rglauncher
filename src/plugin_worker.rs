@@ -44,7 +44,9 @@ impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R
         result_sender: &Sender<SidebarMsg>,
         plugin_builder: F,
         input_receiver: &async_broadcast::Receiver<Arc<InputMessage>>,
-    ) where F: Fn() -> P + 'static {
+    ) where
+        F: Fn() -> P + 'static,
+    {
         let result_sender = result_sender.clone();
         let input_receiver = input_receiver.clone();
         MainContext::ref_thread_default().spawn_local_with_priority(

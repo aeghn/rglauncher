@@ -70,13 +70,13 @@ fn main() -> std::io::Result<()> {
 
 use bytes::{Buf, Bytes};
 use encoding_rs::{Encoding, UTF_16LE};
+use futures::{AsyncRead, AsyncSeek, AsyncSeekExt};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use regex::Regex;
 use ripemd128::{Digest, Ripemd128};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::io::{self, prelude::*, Error, ErrorKind};
-use futures::{AsyncRead, AsyncSeek, AsyncSeekExt};
 use tracing::{debug, info};
 
 // The `Encrypted` field of MDict file header.

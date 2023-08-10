@@ -10,7 +10,6 @@ pub const H_200: i32 = 2000;
 pub const H_100: i32 = 1000;
 pub const H_0: i32 = 0;
 
-
 pub fn norm_score(base: i32, ori: i64) -> i32 {
     if ori < 0 {
         return base;
