@@ -110,7 +110,7 @@ impl Launcher {
             &input_bar.input_broadcast,
         );
 
-        let mdict = MDictPlugin::new("/tmp/mdict.db", vec![]);
+        let mdict = MDictPlugin::new("/home/chin/.cache/rglauncher/mdict.db", vec![]);
         PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
             &sidebar_sender,
             mdict,

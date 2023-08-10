@@ -8,6 +8,7 @@ use gtk::{Label, Widget};
 
 use gtk::pango::WrapMode::WordChar;
 use gtk::prelude::{GridExt, WidgetExt};
+use tracing::error;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
@@ -56,16 +57,21 @@ impl HyprWindows {
         if let Some(array) = json.as_array() {
             for e in array {
                 let class = e.get("class").unwrap().as_str().unwrap();
+                let monitor = e.get("monitor").unwrap().as_i64().unwrap();
+                if monitor == -1 {
+                    continue;
+                }
+
                 vec.push(HyprWindowResult {
                     class: class.to_string(),
                     title: e.get("title").unwrap().as_str().unwrap().to_string(),
-                    icon: gio::Icon::for_string(class).ok(),
+                    icon: Self::get_icon(class),
                     address: e.get("address").unwrap().as_str().unwrap().to_string(),
                     mapped: e.get("mapped").unwrap().as_bool().unwrap(),
                     hidden: e.get("hidden").unwrap().as_bool().unwrap(),
                     pid: e.get("pid").unwrap().as_i64().unwrap(),
                     xwayland: e.get("xwayland").unwrap().as_bool().unwrap(),
-                    monitor: e.get("monitor").unwrap().as_i64().unwrap(),
+                    monitor: monitor,
                     workspace: e
                         .get("workspace")
                         .unwrap()
@@ -80,6 +86,15 @@ impl HyprWindows {
         }
 
         HyprWindows { windows: vec }
+    }
+
+    fn get_icon(class: &str) -> Option<gio::Icon> {
+        let mut c = class;
+        if class == "jetbrains-studio" {
+          c = "android-studio"
+        }
+
+        gio::Icon::for_string(c).ok()
     }
 }
 
@@ -136,9 +151,13 @@ impl PluginResult for HyprWindowResult {
     }
 
     fn sidebar_icon(&self) -> Option<Icon> {
+
+
         if let Some(icon) = &self.icon {
+            error!("icon have: {:?}", self.class);
             Some(icon.clone())
         } else {
+            error!("icon: {:?}", self.class);
             Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
                 &"gnome-windows",
             ])))
