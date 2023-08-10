@@ -4,8 +4,8 @@ use gio::prelude::AppInfoExt;
 use gio::AppInfo;
 use glib::{Cast, StrV};
 use gtk::prelude::{GridExt, WidgetExt};
-use gtk::{Align, Widget};
 use gtk::Align::Center;
+use gtk::{Align, Widget};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
@@ -40,12 +40,10 @@ impl PluginResult for AppResult {
     }
 
     fn sidebar_content(&self) -> Option<String> {
-        Some(
-            match self.app_info.description() {
-                Some(x) => x.to_string(),
-                None => "".to_string(),
-            }
-        )
+        Some(match self.app_info.description() {
+            Some(x) => x.to_string(),
+            None => "".to_string(),
+        })
     }
 
     fn preview(&self) -> gtk::Widget {
@@ -75,10 +73,7 @@ impl PluginResult for AppResult {
         preview.attach(&name, 0, 1, 1, 1);
 
         if let Some(gdesc) = self.app_info.description() {
-            let desc = gtk::Label::builder()
-                .label(gdesc)
-                .wrap(true)
-                .build();
+            let desc = gtk::Label::builder().label(gdesc).wrap(true).build();
             preview.attach(&desc, 0, 2, 1, 1);
         }
 

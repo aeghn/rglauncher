@@ -1,32 +1,34 @@
+use crate::plugins::mdict::mdict::{
+    MDictIndex, MDictMode, MDictRecordBlockIndex, MDictRecordIndex,
+};
+use crate::plugins::{Plugin, PluginResult};
+use crate::shared::UserInput;
+use crate::util::string_utils;
+use futures::StreamExt;
+use gio::Icon;
+use glib::{Cast, StrV};
+use gtk::traits::{GridExt, StyleContextExt, WidgetExt};
+use gtk::AccessibleRole::Label;
+use gtk::{Align, Grid, Widget};
+use regex::Regex;
+use rusqlite::Connection;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
 use std::process::id;
 use std::sync::Arc;
-use futures::StreamExt;
-use gio::Icon;
-use glib::{Cast, StrV};
-use gtk::AccessibleRole::Label;
-use gtk::{Align, Grid, Widget};
-use gtk::traits::{GridExt, StyleContextExt, WidgetExt};
-use regex::Regex;
-use rusqlite::Connection;
 use tracing::error;
 use webkit6::traits::WebViewExt;
-use webkit6::{UserContentManager, UserStyleSheet, WebView};
 use webkit6::UserContentInjectedFrames::AllFrames;
 use webkit6::UserStyleLevel::User;
-use crate::plugins::mdict::mdict::{MDictIndex, MDictMode, MDictRecordBlockIndex, MDictRecordIndex};
-use crate::plugins::{Plugin, PluginResult};
-use crate::shared::UserInput;
-use crate::util::string_utils;
+use webkit6::{UserContentManager, UserStyleSheet, WebView};
 
 mod mdict;
 
 pub struct Index {
     word: String,
     block: MDictRecordBlockIndex,
-    idx: MDictRecordIndex
+    idx: MDictRecordIndex,
 }
 
 type DirType = String;
@@ -45,8 +47,7 @@ pub struct MDictPluginResult {
 }
 
 impl MDictPlugin {
-    pub fn new(db_path: &str,
-               files: Vec<MdxPathType>) -> Self {
+    pub fn new(db_path: &str, files: Vec<MdxPathType>) -> Self {
         let conn = match Connection::open(db_path) {
             Ok(e) => Some(e),
             Err(_) => None,
@@ -56,15 +57,12 @@ impl MDictPlugin {
         for mpt in files {
             let file = File::open(mpt.as_str());
             match file {
-                Ok(f) => {
-                    match std::path::PathBuf::from(mpt.as_str()).parent() {
-                        None => {}
-                        Some(parent) => {
-                            map.insert(mpt, parent.to_str().unwrap().to_string());
-                        }
+                Ok(f) => match std::path::PathBuf::from(mpt.as_str()).parent() {
+                    None => {}
+                    Some(parent) => {
+                        map.insert(mpt, parent.to_str().unwrap().to_string());
                     }
-
-                }
+                },
                 Err(_) => {}
             }
         }
@@ -76,7 +74,7 @@ impl MDictPlugin {
         }
     }
 
-    pub fn seek(&self, word: &str) -> Vec<(String, String, String)>{
+    pub fn seek(&self, word: &str) -> Vec<(String, String, String)> {
         let sql = "select word, explain, dict, file_path from mdx_index where word = ?";
         if self.conn.is_none() {
             return vec![];
@@ -100,7 +98,9 @@ impl MDictPlugin {
                     }
                     vec
                 }
-                Err(_) => { vec![] }
+                Err(_) => {
+                    vec![]
+                }
             }
         } else {
             vec![]
@@ -123,7 +123,6 @@ impl MDictPlugin {
             }
         }
 
-
         res
     }
 }
@@ -131,18 +130,19 @@ impl MDictPlugin {
 impl Plugin<MDictPluginResult> for MDictPlugin {
     fn handle_input(&self, user_input: &UserInput) -> Vec<MDictPluginResult> {
         let res = self.cycle_seek(user_input.input.as_str());
-        res.into_iter().map(|(word, explanation, dict)| {
-            MDictPluginResult{ word,
+        res.into_iter()
+            .map(|(word, explanation, dict)| MDictPluginResult {
+                word,
                 html: explanation.replace("\0", ""),
-                dict
-            }
-        }).collect()
+                dict,
+            })
+            .collect()
     }
 }
 
 impl PluginResult for MDictPluginResult {
     fn get_score(&self) -> i32 {
-        return 100
+        return 100;
     }
 
     fn sidebar_icon(&self) -> Option<Icon> {

@@ -1,6 +1,6 @@
-use std::sync::{Arc, RwLock};
 use flume::{Receiver, Sender};
-use glib::{BoxedAnyObject, clone, MainContext};
+use glib::{clone, BoxedAnyObject, MainContext};
+use std::sync::{Arc, RwLock};
 
 use gio::prelude::*;
 use gtk::gdk;
@@ -36,7 +36,6 @@ pub struct Launcher {
 pub enum AppMsg {
     Exit,
 }
-
 
 impl Launcher {
     pub fn new(window: &gtk::ApplicationWindow) -> Self {
@@ -79,8 +78,6 @@ impl Launcher {
         let preview = Preview::new();
         bottom_box.append(&preview.preview_window.clone());
 
-
-
         Launcher {
             window: window.clone(),
             input_bar,
@@ -88,7 +85,7 @@ impl Launcher {
             db: Arc::new(RwLock::default()),
             selection_change_receiver,
             sidebar_sender,
-            app_msg_receiver
+            app_msg_receiver,
         }
     }
 
@@ -96,12 +93,14 @@ impl Launcher {
         let preview_worker = self.preview.clone();
         let scr = self.selection_change_receiver.clone();
         MainContext::ref_thread_default().spawn_local(async move {
-            preview_worker
-                .loop_recv(scr)
-                .await;
+            preview_worker.loop_recv(scr).await;
         });
 
-        Launcher::setup_keybindings(&self.window, self.sidebar_sender.clone(), &self.input_bar.entry);
+        Launcher::setup_keybindings(
+            &self.window,
+            self.sidebar_sender.clone(),
+            &self.input_bar.entry,
+        );
 
         {
             let window = self.window.clone();

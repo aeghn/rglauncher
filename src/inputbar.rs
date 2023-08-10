@@ -3,9 +3,9 @@ use futures::executor::block_on;
 use std::sync::Arc;
 
 use glib::StrV;
+use gtk;
 use gtk::prelude::EntryExt;
 use gtk::traits::EditableExt;
-use gtk;
 
 #[derive(Clone, Debug)]
 pub enum InputMessage {

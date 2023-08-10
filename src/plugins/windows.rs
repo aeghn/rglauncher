@@ -91,7 +91,7 @@ impl HyprWindows {
     fn get_icon(class: &str) -> Option<gio::Icon> {
         let mut c = class;
         if class == "jetbrains-studio" {
-          c = "android-studio"
+            c = "android-studio"
         }
 
         gio::Icon::for_string(c).ok()
@@ -204,7 +204,13 @@ impl PluginResult for HyprWindowResult {
         preview.attach(&name, 1, 1, 1, 1);
 
         if let Some(content) = self.sidebar_content() {
-            preview.attach(&widget_utils::get_wrapped_label(content.as_str(), 0.5), 1, 2, 1, 1);
+            preview.attach(
+                &widget_utils::get_wrapped_label(content.as_str(), 0.5),
+                1,
+                2,
+                1,
+                1,
+            );
         }
 
         preview.upcast()
