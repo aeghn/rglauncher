@@ -70,7 +70,7 @@ fn main() -> std::io::Result<()> {
 
 use bytes::{Buf, Bytes};
 use encoding_rs::{Encoding, UTF_16LE};
-use futures::{AsyncRead, AsyncSeek, AsyncSeekExt};
+use futures::{AsyncSeekExt};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use regex::Regex;
 use ripemd128::{Digest, Ripemd128};

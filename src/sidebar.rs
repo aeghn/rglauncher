@@ -10,11 +10,11 @@ use gio::{
 };
 use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+
+use std::sync::{Arc};
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
-use lazy_static::lazy_static;
+
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;

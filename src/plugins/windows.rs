@@ -4,11 +4,11 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::Icon;
 use glib::Cast;
-use gtk::{Label, Widget};
+
 
 use gtk::pango::WrapMode::WordChar;
 use gtk::prelude::{GridExt, WidgetExt};
-use tracing::error;
+
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;

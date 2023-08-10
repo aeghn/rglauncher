@@ -5,7 +5,7 @@ use gio::AppInfo;
 use glib::{Cast, StrV};
 use gtk::prelude::{GridExt, WidgetExt};
 use gtk::Align::Center;
-use gtk::{Align, Widget};
+
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
