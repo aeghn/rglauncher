@@ -1,5 +1,6 @@
 use std::sync::{Arc, RwLock};
-use glib::{clone, MainContext};
+use flume::{Receiver, Sender};
+use glib::{BoxedAnyObject, clone, MainContext};
 
 use gio::prelude::*;
 use gtk::gdk;
@@ -26,12 +27,16 @@ pub struct Launcher {
     input_bar: InputBar,
     preview: Preview,
     window: gtk::ApplicationWindow,
-    db: Arc<RwLock<Option<rusqlite::Connection>>>
+    db: Arc<RwLock<Option<rusqlite::Connection>>>,
+    selection_change_receiver: Receiver<BoxedAnyObject>,
+    sidebar_sender: Sender<SidebarMsg>,
+    app_msg_receiver: Receiver<AppMsg>,
 }
 
 pub enum AppMsg {
     Exit,
 }
+
 
 impl Launcher {
     pub fn new(window: &gtk::ApplicationWindow) -> Self {
@@ -74,55 +79,61 @@ impl Launcher {
         let preview = Preview::new();
         bottom_box.append(&preview.preview_window.clone());
 
-        let preview_worker = preview.clone();
-        MainContext::ref_thread_default().spawn_local(async move {
-            preview_worker
-                .loop_recv(selection_change_receiver.clone())
-                .await;
-        });
 
-        Launcher::setup_keybindings(&window, sidebar_sender.clone(), &input_bar.entry);
-
-        {
-            let window = window.clone();
-            MainContext::ref_thread_default().spawn_local(async move {
-                Launcher::handle_app_msgs(app_msg_receiver, window).await;
-            });
-        }
-
-        let clipboard = ClipboardPlugin::new(crate::constant::STORE_DB);
-        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
-            &sidebar_sender,
-            clipboard,
-            &input_bar.input_broadcast,
-        );
-
-        let plugin = AppPlugin::new();
-        PluginWorker::<AppPlugin, AppResult>::launch(
-            &sidebar_sender,
-            plugin,
-            &input_bar.input_broadcast,
-        );
-
-        PluginWorker::<HyprWindows, HyprWindowResult>::launch(
-            &sidebar_sender,
-            HyprWindows::new(),
-            &input_bar.input_broadcast,
-        );
-
-        let mdict = MDictPlugin::new("/home/chin/.cache/rglauncher/mdict.db", vec![]);
-        PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
-            &sidebar_sender,
-            mdict,
-            &input_bar.input_broadcast,
-        );
 
         Launcher {
             window: window.clone(),
             input_bar,
             preview,
             db: Arc::new(RwLock::default()),
+            selection_change_receiver,
+            sidebar_sender,
+            app_msg_receiver
         }
+    }
+
+    pub fn post_actions(&self) {
+        let preview_worker = self.preview.clone();
+        let scr = self.selection_change_receiver.clone();
+        MainContext::ref_thread_default().spawn_local(async move {
+            preview_worker
+                .loop_recv(scr)
+                .await;
+        });
+
+        Launcher::setup_keybindings(&self.window, self.sidebar_sender.clone(), &self.input_bar.entry);
+
+        {
+            let window = self.window.clone();
+            let amr = self.app_msg_receiver.clone();
+            MainContext::ref_thread_default().spawn_local(async move {
+                Launcher::handle_app_msgs(amr, window).await;
+            });
+        }
+
+        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
+            &self.sidebar_sender,
+            || ClipboardPlugin::new(crate::constant::STORE_DB),
+            &self.input_bar.input_broadcast,
+        );
+
+        PluginWorker::<AppPlugin, AppResult>::launch(
+            &self.sidebar_sender,
+            || AppPlugin::new(),
+            &self.input_bar.input_broadcast,
+        );
+
+        PluginWorker::<HyprWindows, HyprWindowResult>::launch(
+            &self.sidebar_sender,
+            || HyprWindows::new(),
+            &self.input_bar.input_broadcast,
+        );
+
+        PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
+            &self.sidebar_sender,
+            || MDictPlugin::new("/home/chin/.cache/rglauncher/mdict.db", vec![]),
+            &self.input_bar.input_broadcast,
+        );
     }
 
     async fn handle_app_msgs(app_msg_receiver: flume::Receiver<AppMsg>, window: ApplicationWindow) {

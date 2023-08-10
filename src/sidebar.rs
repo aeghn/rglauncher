@@ -10,10 +10,12 @@ use gio::{
 };
 use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
+use lazy_static::lazy_static;
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
@@ -45,6 +47,7 @@ pub struct Sidebar {
     selection_change_sender: Sender<BoxedAnyObject>,
     app_msg_sender: flume::Sender<AppMsg>,
 }
+
 
 impl Sidebar {
     pub fn new(

@@ -40,16 +40,17 @@ impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R
         }
     }
 
-    pub fn launch(
+    pub fn launch<F>(
         result_sender: &Sender<SidebarMsg>,
-        plugin: impl Plugin<R> + 'static + Send,
+        plugin_builder: F,
         input_receiver: &async_broadcast::Receiver<Arc<InputMessage>>,
-    ) {
+    ) where F: Fn() -> P + 'static {
         let result_sender = result_sender.clone();
         let input_receiver = input_receiver.clone();
         MainContext::ref_thread_default().spawn_local_with_priority(
             glib::source::Priority::DEFAULT_IDLE,
             async move {
+                let plugin = plugin_builder();
                 let mut plugin_worker = PluginWorker::new(plugin, input_receiver, result_sender);
                 plugin_worker.loop_recv().await;
             },

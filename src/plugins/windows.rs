@@ -151,13 +151,9 @@ impl PluginResult for HyprWindowResult {
     }
 
     fn sidebar_icon(&self) -> Option<Icon> {
-
-
         if let Some(icon) = &self.icon {
-            error!("icon have: {:?}", self.class);
             Some(icon.clone())
         } else {
-            error!("icon: {:?}", self.class);
             Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
                 &"gnome-windows",
             ])))

@@ -24,6 +24,7 @@ fn main() {
         .with_max_level(Level::INFO)
         .with_timer(tracing_subscriber::fmt::time::time())
         .init();
+    info!("start.");
 
     let app = Application::builder().application_id(APP_ID).build();
 
@@ -58,13 +59,13 @@ fn activate(app: &Application) {
         .resizable(false)
         .title("Launcher")
         .build();
+    error!("show window1");
+    let launcher = launcher::Launcher::new(&window);
+    error!("show window2");
+    // let settings = Settings::default().unwrap();
+    // settings.set_gtk_icon_theme_name(Some(&"ePapirus"));
 
-    let _launcher = launcher::Launcher::new(&window);
-
-    let settings = Settings::default().unwrap();
-    settings.set_gtk_icon_theme_name(Some(&"ePapirus"));
-
+    error!("show window");
     window.show();
-
-
+    launcher.post_actions();
 }
