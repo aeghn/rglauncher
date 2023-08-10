@@ -16,6 +16,7 @@ use crate::inputbar::InputBar;
 use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
+use crate::plugins::mdict::{MDictPlugin, MDictPluginResult};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
 use crate::preview::Preview;
 
@@ -106,6 +107,13 @@ impl Launcher {
         PluginWorker::<HyprWindows, HyprWindowResult>::launch(
             &sidebar_sender,
             HyprWindows::new(),
+            &input_bar.input_broadcast,
+        );
+
+        let mdict = MDictPlugin::new("/tmp/mdict.db", vec![]);
+        PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
+            &sidebar_sender,
+            mdict,
             &input_bar.input_broadcast,
         );
 

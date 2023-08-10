@@ -26,7 +26,7 @@ sourceview5 = "0.7.1"
 gtk = { version = "0.7", package = "gtk4", futures = ["v4_10"]}
 gio = "0.18"
 glib = "0.18"
-webkit2gtk = "1.1.0"
+webkit6 = "0.2"
 
 encoding_rs = "0.8"
 bytes = "0.5"

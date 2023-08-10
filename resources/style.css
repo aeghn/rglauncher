@@ -38,3 +38,8 @@ word-wrap: normal;
   justify-content: center;
   align-items: center;
 }
+
+.borr {
+ border: solid 1px #aa0000;
+
+}

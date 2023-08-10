@@ -167,7 +167,7 @@ impl PluginResult for HyprWindowResult {
         Some(str)
     }
 
-    fn preview(&self) -> gtk::Grid {
+    fn preview(&self) -> gtk::Widget {
         let preview = gtk::Grid::new();
 
         preview.set_hexpand(true);
@@ -192,7 +192,7 @@ impl PluginResult for HyprWindowResult {
             preview.attach(&widget_utils::get_wrapped_label(content.as_str(), 0.5), 1, 2, 1, 1);
         }
 
-        preview
+        preview.upcast()
     }
 
     fn on_enter(&self) {

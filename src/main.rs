@@ -64,8 +64,7 @@ fn activate(app: &Application) {
     let settings = Settings::default().unwrap();
     settings.set_gtk_icon_theme_name(Some(&"ePapirus"));
 
-    let mdict = crate::plugins::mdict::MDictPlugin::new("", vec![]);
+    window.show();
 
-    mdict.save_into_db(vec!["/home/chin/.local/stardict/dic/cihai".to_string(), "/home/chin/.local/stardict/dic/ldoce".to_string()],
-                       "/tmp/mdict.db".to_string()).unwrap();
+
 }
