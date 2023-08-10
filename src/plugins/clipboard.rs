@@ -93,7 +93,7 @@ impl PluginResult for ClipPluginResult {
         Some(crate::util::string_utils::truncate(self.content.as_str(), 200).to_string())
     }
 
-    fn preview(&self) -> Grid {
+    fn preview(&self) -> Widget {
         let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
         let time = gtk::Label::builder()
             .label(self.insert_time.to_string())
@@ -116,7 +116,7 @@ impl PluginResult for ClipPluginResult {
             .build();
         preview.attach(&label, 0, 1, 1, 1);
 
-        preview
+        preview.upcast()
     }
 
     fn on_enter(&self) {

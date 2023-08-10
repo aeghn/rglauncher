@@ -3,6 +3,7 @@ use glib::{BoxedAnyObject, StrV};
 
 use crate::plugins::PluginResult;
 use gtk::PolicyType::Never;
+use gtk::prelude::WidgetExt;
 
 #[derive(Clone)]
 pub struct Preview {
@@ -24,6 +25,8 @@ impl Preview {
             if let Ok(bao) = receiver.recv_async().await {
                 let preview = bao.borrow::<Box<dyn PluginResult>>();
                 let child = preview.preview();
+                self.preview_window.set_vexpand(true);
+                self.preview_window.set_hexpand(true);
                 self.preview_window.set_child(Some(&child));
             }
         }

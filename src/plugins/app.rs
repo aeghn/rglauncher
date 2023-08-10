@@ -48,7 +48,7 @@ impl PluginResult for AppResult {
         )
     }
 
-    fn preview(&self) -> gtk::Grid {
+    fn preview(&self) -> gtk::Widget {
         let preview = gtk::Grid::builder()
             .vexpand(true)
             .hexpand(true)
@@ -82,7 +82,7 @@ impl PluginResult for AppResult {
             preview.attach(&desc, 0, 2, 1, 1);
         }
 
-        preview
+        preview.upcast()
     }
 
     fn on_enter(&self) {
