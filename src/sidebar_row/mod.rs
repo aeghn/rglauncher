@@ -9,6 +9,8 @@ use gtk::{gio, glib, Widget};
 
 use crate::plugins::PluginResult;
 
+
+
 glib::wrapper! {
     pub struct SidebarRow(ObjectSubclass<imp::SidebarRow>)
         @extends gtk::Widget, gtk::Grid;
