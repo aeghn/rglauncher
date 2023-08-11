@@ -79,10 +79,8 @@ impl PluginResult for ClipPluginResult {
         self.score
     }
 
-    fn sidebar_icon(&self) -> Option<Icon> {
-        Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
-            &"xclipboard",
-        ])))
+    fn sidebar_icon_name(&self) -> String {
+        "xclipboard".to_string()
     }
 
     fn sidebar_label(&self) -> Option<String> {

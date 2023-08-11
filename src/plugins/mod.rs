@@ -11,7 +11,7 @@ pub trait PluginResult: Send {
      */
     fn get_score(&self) -> i32;
 
-    fn sidebar_icon(&self) -> Option<gio::Icon>;
+    fn sidebar_icon_name(&self) -> String;
 
     fn sidebar_label(&self) -> Option<String>;
 

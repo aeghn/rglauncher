@@ -6,6 +6,7 @@ use gio::Icon;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
+use crate::icon_cache;
 
 use crate::plugins::PluginResult;
 
@@ -28,20 +29,7 @@ impl SidebarRow {
     pub fn set_sidebar(&self, plugin_result: &dyn PluginResult) {
         let imp = self.imp();
 
-        match plugin_result.sidebar_icon() {
-            None => {
-                let x1 = Icon::for_string("missing");
-                match x1 {
-                    Ok(x) => {
-                        imp.image.set_from_gicon(&x);
-                    }
-                    Err(_) => {}
-                }
-            }
-            Some(x) => {
-                imp.image.set_from_gicon(&x);
-            }
-        };
+        imp.image.set_from_gicon(&icon_cache::get_icon(plugin_result.sidebar_icon_name().as_str()));
 
         match plugin_result.sidebar_label() {
             None => {}

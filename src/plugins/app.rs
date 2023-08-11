@@ -24,14 +24,8 @@ impl PluginResult for AppResult {
         self.score
     }
 
-    fn sidebar_icon(&self) -> Option<gio::Icon> {
-        if let Some(icon) = self.app_info.icon() {
-            Some(icon)
-        } else {
-            Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
-                &"gnome-windows",
-            ])))
-        }
+    fn sidebar_icon_name(&self) -> String {
+        self.app_info.name().to_string()
     }
 
     fn sidebar_label(&self) -> Option<String> {
