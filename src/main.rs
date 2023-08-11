@@ -10,6 +10,7 @@ mod shared;
 mod sidebar;
 mod sidebar_row;
 mod util;
+mod icon_cache;
 
 use tracing::*;
 

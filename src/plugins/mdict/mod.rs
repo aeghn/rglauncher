@@ -145,10 +145,8 @@ impl PluginResult for MDictPluginResult {
         return 100;
     }
 
-    fn sidebar_icon(&self) -> Option<Icon> {
-        Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
-            &"dictionary",
-        ])))
+    fn sidebar_icon_name(&self) -> String {
+        "dictionary".to_string()
     }
 
     fn sidebar_label(&self) -> Option<String> {

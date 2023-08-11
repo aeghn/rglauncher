@@ -8,6 +8,7 @@ use glib::Cast;
 
 use gtk::pango::WrapMode::WordChar;
 use gtk::prelude::{GridExt, WidgetExt};
+use crate::icon_cache;
 
 
 use crate::plugins::{Plugin, PluginResult};
@@ -26,7 +27,7 @@ struct Workspace {
 pub struct HyprWindowResult {
     pub class: String,
     pub title: String,
-    pub icon: Option<gio::Icon>,
+    pub icon_name: String,
     pub address: String,
     pub mapped: bool,
     pub hidden: bool,
@@ -65,7 +66,7 @@ impl HyprWindows {
                 vec.push(HyprWindowResult {
                     class: class.to_string(),
                     title: e.get("title").unwrap().as_str().unwrap().to_string(),
-                    icon: Self::get_icon(class),
+                    icon_name: Self::get_icon_name(class),
                     address: e.get("address").unwrap().as_str().unwrap().to_string(),
                     mapped: e.get("mapped").unwrap().as_bool().unwrap(),
                     hidden: e.get("hidden").unwrap().as_bool().unwrap(),
@@ -88,13 +89,13 @@ impl HyprWindows {
         HyprWindows { windows: vec }
     }
 
-    fn get_icon(class: &str) -> Option<gio::Icon> {
+    fn get_icon_name(class: &str) -> String {
         let mut c = class;
         if class == "jetbrains-studio" {
-            c = "android-studio"
+            "android-studio".to_string()
+        } else {
+            c.to_string()
         }
-
-        gio::Icon::for_string(c).ok()
     }
 }
 
@@ -103,7 +104,7 @@ impl Clone for HyprWindowResult {
         HyprWindowResult {
             class: self.class.clone(),
             title: self.title.clone(),
-            icon: self.icon.clone(),
+            icon_name: self.icon_name.to_string(),
             address: self.address.clone(),
             mapped: self.mapped.clone(),
             hidden: self.hidden.clone(),
@@ -150,14 +151,8 @@ impl PluginResult for HyprWindowResult {
         return self.score;
     }
 
-    fn sidebar_icon(&self) -> Option<Icon> {
-        if let Some(icon) = &self.icon {
-            Some(icon.clone())
-        } else {
-            Some(gio::Icon::from(gio::ThemedIcon::from_names(&[
-                &"gnome-windows",
-            ])))
-        }
+    fn sidebar_icon_name(&self) -> String {
+        return self.icon_name.to_string()
     }
 
     fn sidebar_label(&self) -> Option<String> {
@@ -192,7 +187,7 @@ impl PluginResult for HyprWindowResult {
         image.set_pixel_size(256);
         preview.attach(&image, 0, 0, 2, 1);
 
-        let image = self.sidebar_icon().unwrap();
+        let image = icon_cache::get_icon(self.sidebar_icon_name().as_str());
         let image = gtk::Image::from_gicon(&image);
         image.set_pixel_size(64);
         preview.attach(&image, 0, 1, 1, 2);
