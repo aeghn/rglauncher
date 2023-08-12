@@ -29,7 +29,7 @@ impl SidebarRow {
     pub fn set_sidebar(&self, plugin_result: &dyn PluginResult) {
         let imp = self.imp();
 
-        imp.image.set_from_gicon(&icon_cache::get_icon(plugin_result.sidebar_icon_name().as_str()));
+        imp.image.set_from_gicon(icon_cache::get_icon(plugin_result.sidebar_icon_name().as_str()).get());
 
         match plugin_result.sidebar_label() {
             None => {}
@@ -49,7 +49,5 @@ impl SidebarRow {
     pub fn unbind_all(&self) {
         let imp = self.imp();
         imp.image.clear();
-        imp.content.set_label(&"");
-        imp.title.set_label(&"");
     }
 }

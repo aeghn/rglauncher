@@ -14,8 +14,7 @@ use regex::Regex;
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::fs::File;
-
-
+use tracing::error;
 
 
 use webkit6::traits::WebViewExt;
@@ -24,12 +23,6 @@ use webkit6::UserStyleLevel::User;
 use webkit6::{UserStyleSheet, WebView};
 
 mod mdict;
-
-pub struct Index {
-    word: String,
-    block: MDictRecordBlockIndex,
-    idx: MDictRecordIndex,
-}
 
 type DirType = String;
 type MdxPathType = String;
@@ -70,7 +63,7 @@ impl MDictPlugin {
         MDictPlugin {
             conn,
             map: Default::default(),
-            re: Regex::new(r#"<link.*?/>|<script.*?/script>"#).unwrap(),
+            re: Regex::new(r#"<link.*?>|<script.*?/script>"#).unwrap(),
         }
     }
 
@@ -113,7 +106,8 @@ impl MDictPlugin {
 
         let mut res: Vec<(String, String, String)> = vec![];
         for (word, explanation, dict) in seek_res {
-            let explanation = self.re.replace_all(explanation.as_str(), "").to_string();
+            error!("dict {:?}", explanation);
+            // let explanation = self.re.replace_all(explanation.as_str(), "").to_string();
             if explanation.starts_with("@@@LINK=") {
                 let w2 = explanation.replace("\r\n\0", "").replace("@@@LINK=", "");
                 let r = self.cycle_seek(w2.as_str());
