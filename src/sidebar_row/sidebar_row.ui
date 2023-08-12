@@ -28,7 +28,6 @@
             <property name="can-focus">False</property>
             <property name="can-target">False</property>
             <property name="focus-on-click">False</property>
-            <property name="justify">left</property>
             <property name="natural-wrap-mode">word</property>
             <property name="wrap">True</property>
             <property name="wrap-mode">word-char</property>
@@ -42,10 +41,10 @@
         </child>
     <child>
       <object class="GtkLabel" id="content">
+        <property name="hexpand">True</property>        
         <property name="can-focus">False</property>
         <property name="can-target">False</property>
         <property name="focus-on-click">False</property>
-        <property name="justify">left</property>
         <property name="natural-wrap-mode">word</property>
         <property name="wrap">True</property>
         <property name="wrap-mode">word-char</property>

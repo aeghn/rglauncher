@@ -22,11 +22,12 @@ pub struct ClipboardPlugin {
 
 #[derive(Debug)]
 pub struct ClipPluginResult {
-    id: u64,
     content: String,
     score: i32,
     mime: String,
     insert_time: String,
+    update_time: String,
+    count: i64,
 }
 
 impl ClipboardPlugin {
@@ -51,16 +52,17 @@ impl Plugin<ClipPluginResult> for ClipboardPlugin {
         let mut vec: Vec<ClipPluginResult> = vec![];
 
         if let Some(_conn) = &self.conn {
-            let stmt = _conn.prepare(format!("SELECT id, content0, mimes, insert_time from clipboard \
-                                              where content0 like '%{}%' order by INSERT_TIME desc limit 300", user_input.input.as_str()).as_str());
+            let stmt = _conn.prepare(format!("SELECT content0, mimes, insert_time, update_time, count from clipboard \
+                                              where content0 like '%{}%' order by UPDATE_TIME desc limit 300", user_input.input.as_str()).as_str());
             if let Ok(mut _stmt) = stmt {
                 let iter = _stmt.query_map([], |row| {
                     Ok(ClipPluginResult {
-                        id: row.get(0).unwrap(),
-                        content: row.get(1).unwrap(),
+                        content: row.get(0).unwrap(),
                         score: 0,
-                        mime: row.get(2).unwrap(),
-                        insert_time: row.get(3).unwrap(),
+                        mime: row.get(1).unwrap(),
+                        insert_time: row.get(2).unwrap(),
+                        update_time: row.get(3).unwrap(),
+                        count: row.get(4).unwrap(),
                     })
                 });
                 if let Ok(_iter) = iter {
