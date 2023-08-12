@@ -27,7 +27,7 @@ use crate::sidebar::SidebarMsg;
 pub struct Launcher {
     input_bar: InputBar,
     preview: Preview,
-    window: gtk::ApplicationWindow,
+    window: ApplicationWindow,
     db: Arc<RwLock<Option<rusqlite::Connection>>>,
     selection_change_receiver: Receiver<BoxedAnyObject>,
     sidebar_sender: Sender<SidebarMsg>,
@@ -39,11 +39,11 @@ pub enum AppMsg {
 }
 
 impl Launcher {
-    pub fn new(window: &gtk::ApplicationWindow) -> Self {
+    pub fn new(window: &ApplicationWindow) -> Self {
         Launcher::build_window(window)
     }
 
-    pub fn build_window(window: &gtk::ApplicationWindow) -> Self {
+    pub fn build_window(window: &ApplicationWindow) -> Self {
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();
@@ -136,7 +136,7 @@ impl Launcher {
 
             PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
                 &sidebar_sender,
-                || MDictPlugin::new("/home/chin/.cache/rglauncher/mdict.db", vec![]),
+                || MDictPlugin::new(crate::constant::DICT_DB, vec![]),
                 &input_broadcast,
             );
     }

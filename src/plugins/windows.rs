@@ -117,8 +117,6 @@ impl Clone for HyprWindowResult {
     }
 }
 
-unsafe impl Send for HyprWindowResult {}
-
 impl Plugin<HyprWindowResult> for HyprWindows {
     fn handle_input(&self, user_input: &UserInput) -> Vec<HyprWindowResult> {
         let matcher = SkimMatcherV2::default();
@@ -187,8 +185,7 @@ impl PluginResult for HyprWindowResult {
         image.set_pixel_size(256);
         preview.attach(&image, 0, 0, 2, 1);
 
-        let image = icon_cache::get_icon(self.sidebar_icon_name().as_str());
-        let image = gtk::Image::from_gicon(&image);
+        let image = gtk::Image::from_gicon(icon_cache::get_icon(self.sidebar_icon_name().as_str()).get());
         image.set_pixel_size(64);
         preview.attach(&image, 0, 1, 1, 2);
 

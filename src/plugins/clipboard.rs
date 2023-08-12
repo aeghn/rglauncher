@@ -45,8 +45,6 @@ impl ClipboardPlugin {
     }
 }
 
-unsafe impl Send for ClipPluginResult {}
-
 impl Plugin<ClipPluginResult> for ClipboardPlugin {
     fn handle_input(&self, user_input: &UserInput) -> Vec<ClipPluginResult> {
         let mut vec: Vec<ClipPluginResult> = vec![];

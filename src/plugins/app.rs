@@ -1,23 +1,34 @@
+use std::sync::Arc;
+use fragile::Fragile;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
 use gio::AppInfo;
-use glib::{Cast, StrV};
+use glib::{Cast, GString, StrV};
+use glib::subclass::types::FromObject;
 use gtk::prelude::{GridExt, WidgetExt};
 use gtk::Align::Center;
-
+use lazy_static::lazy_static;
+use std::option::Option::None;
+use crate::icon_cache;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 
+lazy_static!{
+    static ref PREVIEW: Arc<Option<Fragile<gtk::Grid>>> = Arc::new(None);
+}
+
 pub struct AppPlugin {}
 
 pub struct AppResult {
-    app_info: AppInfo,
+    icon_name: String,
+    app_name: String,
+    app_desc: String,
+    executable: String,
     score: i32,
+    pub id: String,
 }
-
-unsafe impl Send for AppResult {}
 
 impl PluginResult for AppResult {
     fn get_score(&self) -> i32 {
@@ -25,19 +36,15 @@ impl PluginResult for AppResult {
     }
 
     fn sidebar_icon_name(&self) -> String {
-        self.app_info.name().to_string()
+        self.app_name.clone()
     }
 
     fn sidebar_label(&self) -> Option<String> {
-        let name = self.app_info.name().to_string();
-        Some(name)
+        Some(self.app_name.clone())
     }
 
     fn sidebar_content(&self) -> Option<String> {
-        Some(match self.app_info.description() {
-            Some(x) => x.to_string(),
-            None => "".to_string(),
-        })
+        Some(self.app_desc.clone())
     }
 
     fn preview(&self) -> gtk::Widget {
@@ -49,35 +56,32 @@ impl PluginResult for AppResult {
             .css_classes(StrV::from(["centercld"]))
             .build();
 
-        let image = if let Some(icon) = self.app_info.icon() {
-            icon
-        } else {
-            gio::Icon::from(gio::ThemedIcon::from_names(&[&"gnome-windows"]))
-        };
-        let image = gtk::Image::from_gicon(&image);
+        let image = gtk::Image::from_gicon(icon_cache::get_icon(self.app_name.as_str()).get());
         image.set_pixel_size(256);
         preview.attach(&image, 0, 0, 1, 1);
 
         let name = gtk::Label::builder()
-            .label(self.app_info.name().as_str())
+            .label(self.app_name.as_str())
             .css_classes(StrV::from(["font32"]))
             .wrap(true)
             .build();
 
         preview.attach(&name, 0, 1, 1, 1);
 
-        if let Some(gdesc) = self.app_info.description() {
-            let desc = gtk::Label::builder().label(gdesc).wrap(true).build();
-            preview.attach(&desc, 0, 2, 1, 1);
-        }
+        let desc = gtk::Label::builder().label(self.app_desc.as_str()).wrap(true).build();
+        preview.attach(&desc, 0, 2, 1, 1);
 
         preview.upcast()
     }
 
     fn on_enter(&self) {
-        self.app_info
-            .launch(&[], gio::AppLaunchContext::NONE)
-            .expect("unable to start app");
+        AppInfo::all().iter().for_each(|app_info| {
+            if app_info.id().unwrap().to_string() == self.id {
+                app_info
+                    .launch(&[], gio::AppLaunchContext::NONE)
+                    .expect("unable to start app");
+            }
+        });
     }
 }
 
@@ -108,8 +112,15 @@ impl Plugin<AppResult> for AppPlugin {
 
             if score > 0 {
                 result.push(AppResult {
-                    app_info: app_info.clone(),
+                    id: app_info.id().unwrap().to_string(),
+                    icon_name: app_info.name().to_string(),
+                    app_name: app_info.name().to_string(),
+                    app_desc: match app_info.description() {
+                        None => {"".to_string()}
+                        Some(des) => {des.to_string()}
+                    },
                     score,
+                    executable: app_info.executable().to_str().unwrap().to_string(),
                 });
             }
         });
