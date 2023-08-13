@@ -1,5 +1,4 @@
 use fragile::Fragile;
-use sourceview5;
 use std::sync::Mutex;
 
 
@@ -16,7 +15,6 @@ use gtk::Label;
 use gtk::WrapMode::WordChar;
 use lazy_static::lazy_static;
 use rusqlite::Connection;
-use sourceview5::Buffer;
 
 lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, TextBuffer)>>> =
