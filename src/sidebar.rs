@@ -11,10 +11,9 @@ use gio::{
 use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
-
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;

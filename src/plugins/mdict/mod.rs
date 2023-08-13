@@ -1,24 +1,21 @@
-use std::borrow::Borrow;
-use crate::plugins::mdict::mdict::{
-    MDictRecordBlockIndex, MDictRecordIndex,
-};
+
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use crate::util::string_utils;
 use futures::StreamExt;
-use gio::Icon;
-use glib::{Cast};
+
+use glib::Cast;
 use gtk::traits::{StyleContextExt, WidgetExt};
 
-use gtk::{Widget};
+
+use fragile::Fragile;
+use gtk::Widget;
+use lazy_static::lazy_static;
 use regex::Regex;
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::fs::File;
-use std::sync::{LockResult, Mutex};
-use fragile::Fragile;
-use lazy_static::lazy_static;
-use tracing::error;
+use std::sync::{Mutex};
 
 
 use webkit6::traits::WebViewExt;
@@ -31,7 +28,7 @@ mod mdict;
 type DirType = String;
 type MdxPathType = String;
 
-lazy_static!{
+lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<webkit6::WebView>>> = Mutex::new(None);
 }
 
@@ -130,7 +127,7 @@ impl MDictPlugin {
 impl Plugin<MDictPluginResult> for MDictPlugin {
     fn handle_input(&self, user_input: &UserInput) -> Vec<MDictPluginResult> {
         if user_input.input.is_empty() {
-            return vec![]
+            return vec![];
         }
 
         let res = self.cycle_seek(user_input.input.as_str());
@@ -166,7 +163,7 @@ impl PluginResult for MDictPluginResult {
 
         let wv = guard
             .get_or_insert_with(|| {
-                let mut webview = WebView::new();
+                let webview = WebView::new();
                 webview.set_vexpand(true);
                 webview.set_hexpand(true);
 

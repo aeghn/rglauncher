@@ -1,25 +1,25 @@
-use std::process::Command;
 use fragile::Fragile;
+use std::process::Command;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
-use gio::Icon;
-use glib::Cast;
-use gtk::{Align, Image};
 
-use std::sync::Mutex;
-use gtk::Align::Center;
+use glib::Cast;
+use gtk::{Image};
+
+
 use gtk::pango::WrapMode::{Word, WordChar};
 use gtk::prelude::{GridExt, WidgetExt};
-use lazy_static::lazy_static;
-use crate::icon_cache;
+use gtk::Align::Center;
 use gtk::Grid;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
-use crate::util::widget_utils;
+
 use gtk::Label;
-use sourceview5::Buffer;
+
 
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,
@@ -44,7 +44,7 @@ pub struct HyprWindowResult {
     pub score: i32,
 }
 
-lazy_static!{
+lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<(Grid, Image, Label, Label)>>> = Mutex::new(None);
 }
 
@@ -100,7 +100,7 @@ impl HyprWindows {
     }
 
     fn get_icon_name(class: &str) -> String {
-        let mut c = class;
+        let c = class;
         if class == "jetbrains-studio" {
             "android-studio".to_string()
         } else {
@@ -160,7 +160,7 @@ impl PluginResult for HyprWindowResult {
     }
 
     fn sidebar_icon_name(&self) -> String {
-        return self.icon_name.to_string()
+        return self.icon_name.to_string();
     }
 
     fn sidebar_label(&self) -> Option<String> {
@@ -203,9 +203,7 @@ impl PluginResult for HyprWindowResult {
                     .build();
                 preview.attach(&image, 0, 0, 2, 1);
 
-                let image2 = gtk::Image::builder()
-                    .pixel_size(64)
-                    .build();
+                let image2 = gtk::Image::builder().pixel_size(64).build();
                 preview.attach(&image2, 0, 1, 1, 2);
 
                 let name = gtk::Label::builder()
@@ -222,10 +220,10 @@ impl PluginResult for HyprWindowResult {
                     .build();
                 preview.attach(&label, 1, 2, 1, 1);
 
-
                 Fragile::new((preview, image2, name, label))
-            }).get();
-        let (preview, image, title, content) = wv;
+            })
+            .get();
+        let (preview, _image, title, _content) = wv;
         if let Some(label) = self.sidebar_label() {
             title.set_text(label.as_str());
         }

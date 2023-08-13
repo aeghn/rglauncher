@@ -1,24 +1,25 @@
-use std::sync::Arc;
+use crate::icon_cache;
+use crate::plugins::{Plugin, PluginResult};
+use crate::shared::UserInput;
 use fragile::Fragile;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
 use gio::AppInfo;
-use glib::{Cast, GString, StrV};
-use glib::subclass::types::FromObject;
+
+use glib::{Cast, StrV};
 use gtk::prelude::{GridExt, WidgetExt};
 use gtk::Align::Center;
+use gtk::Grid;
+use gtk::{Image, Label, Widget};
 use lazy_static::lazy_static;
 use std::option::Option::None;
-use gtk::{Image, Label, Widget};
-use crate::icon_cache;
-use std::sync::Mutex;
-use crate::plugins::{Plugin, PluginResult};
-use crate::shared::UserInput;
-use gtk::Grid;
 
-lazy_static!{
-    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Image, Label, Label, Label)>>> = Mutex::new(None);
+use std::sync::Mutex;
+
+lazy_static! {
+    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Image, Label, Label, Label)>>> =
+        Mutex::new(None);
 }
 
 pub struct AppPlugin {}
@@ -62,8 +63,7 @@ impl PluginResult for AppResult {
                     .css_classes(StrV::from(["centercld"]))
                     .build();
 
-                let image = Image::builder()
-                    .pixel_size(256).build();
+                let image = Image::builder().pixel_size(256).build();
                 preview.attach(&image, 0, 0, 1, 1);
 
                 let name = gtk::Label::builder()
@@ -72,14 +72,10 @@ impl PluginResult for AppResult {
                     .build();
                 preview.attach(&name, 0, 1, 1, 1);
 
-                let exec = gtk::Label::builder()
-                    .wrap(true)
-                    .build();
+                let exec = gtk::Label::builder().wrap(true).build();
                 preview.attach(&name, 0, 2, 1, 1);
 
-                let desc = Label::builder()
-                    .wrap(true)
-                    .build();
+                let desc = Label::builder().wrap(true).build();
                 preview.attach(&desc, 0, 3, 1, 1);
 
                 Fragile::new((preview, image, name, exec, desc))
@@ -137,8 +133,8 @@ impl Plugin<AppResult> for AppPlugin {
                     icon_name: app_info.name().to_string(),
                     app_name: app_info.name().to_string(),
                     app_desc: match app_info.description() {
-                        None => {"".to_string()}
-                        Some(des) => {des.to_string()}
+                        None => "".to_string(),
+                        Some(des) => des.to_string(),
                     },
                     score,
                     executable: app_info.executable().to_str().unwrap().to_string(),

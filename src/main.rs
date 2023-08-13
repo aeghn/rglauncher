@@ -1,6 +1,7 @@
 // #![no_main]
 
 mod constant;
+mod icon_cache;
 mod inputbar;
 mod launcher;
 pub mod plugin_worker;
@@ -10,7 +11,6 @@ mod shared;
 mod sidebar;
 mod sidebar_row;
 mod util;
-mod icon_cache;
 
 use tracing::*;
 

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use flume::Receiver;
 use glib::{BoxedAnyObject, StrV};
+use std::collections::HashMap;
 
 use crate::plugins::PluginResult;
 use gtk::prelude::WidgetExt;
@@ -24,7 +24,7 @@ impl Preview {
     }
 
     pub async fn loop_recv(&self, receiver: Receiver<BoxedAnyObject>) {
-        let mut view_map: HashMap<&str, gtk::Widget> = HashMap::new();
+        let _view_map: HashMap<&str, gtk::Widget> = HashMap::new();
 
         loop {
             if let Ok(bao) = receiver.recv_async().await {
