@@ -1,7 +1,7 @@
 use flume::{Receiver, Sender};
 use glib::{clone, BoxedAnyObject, MainContext};
 use std::sync::{Arc, RwLock};
-use std::thread::Thread;
+
 
 use gio::prelude::*;
 use gtk::gdk;
@@ -110,35 +110,39 @@ impl Launcher {
                 Launcher::handle_app_msgs(amr, window).await;
             });
         }
-        Self::launch_plugins(self.sidebar_sender.clone(),
-                             self.input_bar.input_broadcast.clone())
+        Self::launch_plugins(
+            self.sidebar_sender.clone(),
+            self.input_bar.input_broadcast.clone(),
+        )
     }
 
-    fn launch_plugins(sidebar_sender: Sender<SidebarMsg>,
-                      input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>) {
-            PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
-                &sidebar_sender,
-                || ClipboardPlugin::new(crate::constant::STORE_DB),
-                &input_broadcast,
-            );
+    fn launch_plugins(
+        sidebar_sender: Sender<SidebarMsg>,
+        input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
+    ) {
+        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
+            &sidebar_sender,
+            || ClipboardPlugin::new(crate::constant::STORE_DB),
+            &input_broadcast,
+        );
 
-            PluginWorker::<AppPlugin, AppResult>::launch(
-                &sidebar_sender,
-                || AppPlugin::new(),
-                &input_broadcast,
-            );
+        PluginWorker::<AppPlugin, AppResult>::launch(
+            &sidebar_sender,
+            || AppPlugin::new(),
+            &input_broadcast,
+        );
 
-            PluginWorker::<HyprWindows, HyprWindowResult>::launch(
-                &sidebar_sender,
-                || HyprWindows::new(),
-                &input_broadcast,
-            );
+        PluginWorker::<HyprWindows, HyprWindowResult>::launch(
+            &sidebar_sender,
+            || HyprWindows::new(),
+            &input_broadcast,
+        );
 
-            PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
-                &sidebar_sender,
-                || MDictPlugin::new(crate::constant::DICT_DB, vec![]),
-                &input_broadcast,
-            );
+        PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
+            &sidebar_sender,
+            || MDictPlugin::new(crate::constant::DICT_DB, vec![]),
+            &input_broadcast,
+        );
     }
 
     async fn handle_app_msgs(app_msg_receiver: flume::Receiver<AppMsg>, window: ApplicationWindow) {

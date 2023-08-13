@@ -1,8 +1,8 @@
-use std::sync::Mutex;
 use fragile::Fragile;
 use sourceview5;
+use std::sync::Mutex;
 
-use gio::{bus_get, Icon};
+
 use glib::Cast;
 
 use gtk::prelude::{DisplayExt, TextBufferExt};
@@ -11,14 +11,15 @@ use gtk::{Align, Image, Widget};
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use gtk::traits::GridExt;
-use lazy_static::lazy_static;
-use rusqlite::Connection;
 use gtk::Grid;
 use gtk::Label;
+use lazy_static::lazy_static;
+use rusqlite::Connection;
 use sourceview5::Buffer;
 
-lazy_static!{
-    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, Buffer)>>> = Mutex::new(None);
+lazy_static! {
+    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, Buffer)>>> =
+        Mutex::new(None);
 }
 
 pub struct ClipboardPlugin {
@@ -109,23 +110,16 @@ impl PluginResult for ClipPluginResult {
                     .build();
                 preview.attach(&image, 0, 0, 1, 3);
 
-                let insert_time = gtk::Label::builder()
-                    .halign(Align::End)
-                    .build();
+                let insert_time = gtk::Label::builder().halign(Align::End).build();
                 preview.attach(&insert_time, 1, 0, 1, 1);
 
-                let update_time = gtk::Label::builder()
-                    .halign(Align::End)
-                    .build();
+                let update_time = gtk::Label::builder().halign(Align::End).build();
                 preview.attach(&update_time, 1, 1, 1, 1);
 
-                let count = gtk::Label::builder()
-                    .halign(Align::End)
-                    .build();
+                let count = gtk::Label::builder().halign(Align::End).build();
                 preview.attach(&count, 1, 2, 1, 1);
 
-                let buffer = sourceview5::Buffer::builder()
-                    .build();
+                let buffer = sourceview5::Buffer::builder().build();
 
                 let label = sourceview5::View::builder()
                     .monospace(true)
