@@ -1,20 +1,25 @@
+use std::sync::Mutex;
+use fragile::Fragile;
 use sourceview5;
 
-
-
-
-use gio::Icon;
+use gio::{bus_get, Icon};
 use glib::Cast;
 
-use gtk::prelude::DisplayExt;
-use gtk::{Widget};
+use gtk::prelude::{DisplayExt, TextBufferExt};
+use gtk::{Align, Image, Widget};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use gtk::traits::GridExt;
+use lazy_static::lazy_static;
 use rusqlite::Connection;
+use gtk::Grid;
+use gtk::Label;
+use sourceview5::Buffer;
 
-
+lazy_static!{
+    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, Buffer)>>> = Mutex::new(None);
+}
 
 pub struct ClipboardPlugin {
     conn: Option<Connection>,
@@ -92,29 +97,56 @@ impl PluginResult for ClipPluginResult {
     }
 
     fn preview(&self) -> Widget {
-        let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
-        let time = gtk::Label::builder()
-            .label(self.insert_time.to_string())
-            .build();
+        let mut guard = PREVIEW.lock().unwrap();
 
-        preview.attach(&time, 0, 0, 1, 1);
+        let wv = guard
+            .get_or_insert_with(|| {
+                let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
 
-        let buffer = sourceview5::Buffer::builder()
-            .text(self.content.to_string())
-            .build();
+                let image = Image::builder()
+                    .pixel_size(256)
+                    .icon_name("xclipboard")
+                    .build();
+                preview.attach(&image, 0, 0, 1, 3);
 
-        let label = sourceview5::View::builder()
-            .monospace(true)
-            .show_line_numbers(true)
-            .wrap_mode(gtk::WrapMode::WordChar)
-            .cursor_visible(false)
-            .buffer(&buffer)
-            .hexpand(true)
-            .vexpand(true)
-            .build();
-        preview.attach(&label, 0, 1, 1, 1);
+                let insert_time = gtk::Label::builder()
+                    .halign(Align::End)
+                    .build();
+                preview.attach(&insert_time, 1, 0, 1, 1);
 
-        preview.upcast()
+                let update_time = gtk::Label::builder()
+                    .halign(Align::End)
+                    .build();
+                preview.attach(&update_time, 1, 1, 1, 1);
+
+                let count = gtk::Label::builder()
+                    .halign(Align::End)
+                    .build();
+                preview.attach(&count, 1, 2, 1, 1);
+
+                let buffer = sourceview5::Buffer::builder()
+                    .build();
+
+                let label = sourceview5::View::builder()
+                    .monospace(true)
+                    .show_line_numbers(true)
+                    .wrap_mode(gtk::WrapMode::WordChar)
+                    .cursor_visible(false)
+                    .buffer(&buffer)
+                    .hexpand(true)
+                    .vexpand(true)
+                    .build();
+                preview.attach(&label, 0, 3, 2, 1);
+                Fragile::new((preview, insert_time, update_time, count, buffer))
+            })
+            .get();
+        let (preview, insert, update, count, buffer) = wv;
+        insert.set_label(self.insert_time.as_str());
+        update.set_label(self.update_time.as_str());
+        count.set_text(self.content.as_str());
+        buffer.set_text(self.content.as_str());
+
+        preview.clone().upcast()
     }
 
     fn on_enter(&self) {

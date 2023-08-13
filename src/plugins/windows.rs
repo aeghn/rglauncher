@@ -1,19 +1,25 @@
 use std::process::Command;
+use fragile::Fragile;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::Icon;
 use glib::Cast;
+use gtk::{Align, Image};
 
-
-use gtk::pango::WrapMode::WordChar;
+use std::sync::Mutex;
+use gtk::Align::Center;
+use gtk::pango::WrapMode::{Word, WordChar};
 use gtk::prelude::{GridExt, WidgetExt};
+use lazy_static::lazy_static;
 use crate::icon_cache;
-
+use gtk::Grid;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use crate::util::widget_utils;
+use gtk::Label;
+use sourceview5::Buffer;
 
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,
@@ -36,6 +42,10 @@ pub struct HyprWindowResult {
     pub monitor: i64,
     pub workspace: String,
     pub score: i32,
+}
+
+lazy_static!{
+    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Image, Label, Label)>>> = Mutex::new(None);
 }
 
 impl HyprWindows {
@@ -176,36 +186,55 @@ impl PluginResult for HyprWindowResult {
     }
 
     fn preview(&self) -> gtk::Widget {
-        let preview = gtk::Grid::new();
+        let mut guard = PREVIEW.lock().unwrap();
 
-        preview.set_hexpand(true);
-        preview.set_vexpand(true);
+        let wv = guard
+            .get_or_insert_with(|| {
+                let preview = Grid::builder()
+                    .vexpand(true)
+                    .hexpand(true)
+                    .valign(Center)
+                    .halign(Center)
+                    .build();
 
-        let image = gtk::Image::from_icon_name("gnome-windows");
-        image.set_pixel_size(256);
-        preview.attach(&image, 0, 0, 2, 1);
+                let image = Image::builder()
+                    .icon_name("gnome-windows")
+                    .pixel_size(256)
+                    .build();
+                preview.attach(&image, 0, 0, 2, 1);
 
-        let image = gtk::Image::from_gicon(icon_cache::get_icon(self.sidebar_icon_name().as_str()).get());
-        image.set_pixel_size(64);
-        preview.attach(&image, 0, 1, 1, 2);
+                let image2 = gtk::Image::builder()
+                    .pixel_size(64)
+                    .build();
+                preview.attach(&image2, 0, 1, 1, 2);
 
-        let name = gtk::Label::new(Some(self.sidebar_label().unwrap().as_str()));
-        name.add_css_class("font16");
-        name.set_wrap(true);
-        name.set_wrap_mode(WordChar);
-        preview.attach(&name, 1, 1, 1, 1);
+                let name = gtk::Label::builder()
+                    .css_classes(["font16"])
+                    .wrap(true)
+                    .wrap_mode(WordChar)
+                    .build();
+                preview.attach(&name, 1, 1, 1, 1);
 
-        if let Some(content) = self.sidebar_content() {
-            preview.attach(
-                &widget_utils::get_wrapped_label(content.as_str(), 0.5),
-                1,
-                2,
-                1,
-                1,
-            );
+                let label = gtk::Label::builder()
+                    .wrap(true)
+                    .wrap_mode(Word)
+                    .hexpand(true)
+                    .build();
+                preview.attach(&label, 1, 2, 1, 1);
+
+
+                Fragile::new((preview, image2, name, label))
+            }).get();
+        let (preview, image, title, content) = wv;
+        if let Some(label) = self.sidebar_label() {
+            title.set_text(label.as_str());
         }
 
-        preview.upcast()
+        if let Some(content) = self.sidebar_content() {
+            title.set_text(content.as_str());
+        }
+
+        preview.clone().upcast()
     }
 
     fn on_enter(&self) {
