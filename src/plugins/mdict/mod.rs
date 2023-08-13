@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use crate::plugins::mdict::mdict::{
     MDictRecordBlockIndex, MDictRecordIndex,
 };
@@ -14,6 +15,9 @@ use regex::Regex;
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::fs::File;
+use std::sync::{LockResult, Mutex};
+use fragile::Fragile;
+use lazy_static::lazy_static;
 use tracing::error;
 
 
@@ -26,6 +30,10 @@ mod mdict;
 
 type DirType = String;
 type MdxPathType = String;
+
+lazy_static!{
+    static ref PREVIEW: Mutex<Option<Fragile<webkit6::WebView>>> = Mutex::new(None);
+}
 
 pub struct MDictPlugin {
     pub(crate) conn: Option<Connection>,
@@ -106,8 +114,6 @@ impl MDictPlugin {
 
         let mut res: Vec<(String, String, String)> = vec![];
         for (word, explanation, dict) in seek_res {
-            error!("dict {:?}", explanation);
-            // let explanation = self.re.replace_all(explanation.as_str(), "").to_string();
             if explanation.starts_with("@@@LINK=") {
                 let w2 = explanation.replace("\r\n\0", "").replace("@@@LINK=", "");
                 let r = self.cycle_seek(w2.as_str());
@@ -123,6 +129,10 @@ impl MDictPlugin {
 
 impl Plugin<MDictPluginResult> for MDictPlugin {
     fn handle_input(&self, user_input: &UserInput) -> Vec<MDictPluginResult> {
+        if user_input.input.is_empty() {
+            return vec![]
+        }
+
         let res = self.cycle_seek(user_input.input.as_str());
         res.into_iter()
             .map(|(word, explanation, dict)| MDictPluginResult {
@@ -152,23 +162,29 @@ impl PluginResult for MDictPluginResult {
     }
 
     fn preview(&self) -> Widget {
-        let webview = WebView::new();
-        webview.set_vexpand(true);
-        webview.set_hexpand(true);
+        let mut guard = PREVIEW.lock().unwrap();
 
-        let context = webview.user_content_manager();
-        if let Some(ucm) = context {
-            ucm.remove_all_style_sheets();
-            let css = include_str!("../../../resources/dict.css");
-            let ss = UserStyleSheet::new(css, AllFrames, User, &[], &[]);
-            ucm.add_style_sheet(&ss);
-        }
+        let wv = guard
+            .get_or_insert_with(|| {
+                let mut webview = WebView::new();
+                webview.set_vexpand(true);
+                webview.set_hexpand(true);
 
-        // Load HTML content
+                if let Some(ucm) = webview.user_content_manager() {
+                    ucm.remove_all_style_sheets();
+                    let css = include_str!("../../../resources/dict.css");
+                    let ss = UserStyleSheet::new(css, AllFrames, User, &[], &[]);
+                    ucm.add_style_sheet(&ss);
+                }
+
+                Fragile::new(webview)
+            })
+            .get();
+
         let html_content = self.html.replace("\0", " ");
-        webview.load_html(html_content.as_str(), None);
+        wv.load_html(html_content.as_str(), None);
 
-        webview.upcast()
+        wv.clone().upcast()
     }
 
     fn on_enter(&self) {

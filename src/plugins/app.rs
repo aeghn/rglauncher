@@ -10,13 +10,15 @@ use gtk::prelude::{GridExt, WidgetExt};
 use gtk::Align::Center;
 use lazy_static::lazy_static;
 use std::option::Option::None;
+use gtk::{Image, Label, Widget};
 use crate::icon_cache;
-
+use std::sync::Mutex;
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
+use gtk::Grid;
 
 lazy_static!{
-    static ref PREVIEW: Arc<Option<Fragile<gtk::Grid>>> = Arc::new(None);
+    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Image, Label, Label, Label)>>> = Mutex::new(None);
 }
 
 pub struct AppPlugin {}
@@ -47,31 +49,50 @@ impl PluginResult for AppResult {
         Some(self.app_desc.clone())
     }
 
-    fn preview(&self) -> gtk::Widget {
-        let preview = gtk::Grid::builder()
-            .vexpand(true)
-            .hexpand(true)
-            .valign(Center)
-            .halign(Center)
-            .css_classes(StrV::from(["centercld"]))
-            .build();
+    fn preview(&self) -> Widget {
+        let mut guard = PREVIEW.lock().unwrap();
 
-        let image = gtk::Image::from_gicon(icon_cache::get_icon(self.app_name.as_str()).get());
-        image.set_pixel_size(256);
-        preview.attach(&image, 0, 0, 1, 1);
+        let wv = guard
+            .get_or_insert_with(|| {
+                let preview = gtk::Grid::builder()
+                    .vexpand(true)
+                    .hexpand(true)
+                    .valign(Center)
+                    .halign(Center)
+                    .css_classes(StrV::from(["centercld"]))
+                    .build();
 
-        let name = gtk::Label::builder()
-            .label(self.app_name.as_str())
-            .css_classes(StrV::from(["font32"]))
-            .wrap(true)
-            .build();
+                let image = Image::builder()
+                    .pixel_size(256).build();
+                preview.attach(&image, 0, 0, 1, 1);
 
-        preview.attach(&name, 0, 1, 1, 1);
+                let name = gtk::Label::builder()
+                    .css_classes(StrV::from(["font32"]))
+                    .wrap(true)
+                    .build();
+                preview.attach(&name, 0, 1, 1, 1);
 
-        let desc = gtk::Label::builder().label(self.app_desc.as_str()).wrap(true).build();
-        preview.attach(&desc, 0, 2, 1, 1);
+                let exec = gtk::Label::builder()
+                    .wrap(true)
+                    .build();
+                preview.attach(&name, 0, 2, 1, 1);
 
-        preview.upcast()
+                let desc = Label::builder()
+                    .wrap(true)
+                    .build();
+                preview.attach(&desc, 0, 3, 1, 1);
+
+                Fragile::new((preview, image, name, exec, desc))
+            })
+            .get();
+
+        let (preview, image, name, exec, desc) = wv;
+        image.set_from_gicon(icon_cache::get_icon(self.app_name.as_str()).get());
+        name.set_label(self.app_name.as_str());
+        exec.set_label(self.executable.as_str());
+        desc.set_label(self.app_desc.as_str());
+
+        preview.clone().upcast()
     }
 
     fn on_enter(&self) {
