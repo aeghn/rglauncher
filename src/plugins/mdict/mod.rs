@@ -23,8 +23,6 @@ use webkit6::UserContentInjectedFrames::AllFrames;
 use webkit6::UserStyleLevel::User;
 use webkit6::{UserStyleSheet, WebView};
 
-mod mdict;
-
 type DirType = String;
 type MdxPathType = String;
 
