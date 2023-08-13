@@ -19,7 +19,6 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 tracing-tree = "0.2.2"
 rusqlite = { version = "0.29.0", features = ["bundled"] }
 futures = { version = "0.3.25"}
-sourceview5 = "0.7.1"
 gtk = { version = "0.7", package = "gtk4", futures = ["v4_10"]}
 gio = "0.18"
 glib = "0.18"
