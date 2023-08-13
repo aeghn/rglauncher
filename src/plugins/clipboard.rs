@@ -6,19 +6,20 @@ use std::sync::Mutex;
 use glib::Cast;
 
 use gtk::prelude::{DisplayExt, TextBufferExt};
-use gtk::{Align, Image, Widget};
+use gtk::{Align, Image, TextBuffer, TextView, Widget};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use gtk::traits::GridExt;
 use gtk::Grid;
 use gtk::Label;
+use gtk::WrapMode::WordChar;
 use lazy_static::lazy_static;
 use rusqlite::Connection;
 use sourceview5::Buffer;
 
 lazy_static! {
-    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, Buffer)>>> =
+    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, TextBuffer)>>> =
         Mutex::new(None);
 }
 
@@ -119,20 +120,18 @@ impl PluginResult for ClipPluginResult {
                 let count = gtk::Label::builder().halign(Align::End).build();
                 preview.attach(&count, 1, 2, 1, 1);
 
-                let buffer = sourceview5::Buffer::builder().build();
-
-                let label = sourceview5::View::builder()
-                    .monospace(true)
-                    .show_line_numbers(true)
-                    .wrap_mode(gtk::WrapMode::WordChar)
-                    .cursor_visible(false)
-                    .buffer(&buffer)
+                let text_buffer = TextBuffer::builder()
+                    .build();
+                let text_view = TextView::builder()
                     .hexpand(true)
                     .vexpand(true)
+                    .wrap_mode(WordChar)
+                    .buffer(&text_buffer)
                     .build();
-                preview.attach(&label, 0, 3, 2, 1);
 
-                Fragile::new((preview, insert_time, update_time, count, buffer))
+                preview.attach(&text_view, 0, 3, 2, 1);
+
+                Fragile::new((preview, insert_time, update_time, count, text_buffer))
             })
             .get();
         let (preview, insert, update, count, buffer) = wv;
