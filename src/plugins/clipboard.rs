@@ -105,7 +105,7 @@ impl PluginResult for ClipPluginResult {
                 let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
 
                 let image = Image::builder()
-                    .pixel_size(256)
+                    .pixel_size(48)
                     .icon_name("xclipboard")
                     .build();
                 preview.attach(&image, 0, 0, 1, 3);
@@ -131,13 +131,14 @@ impl PluginResult for ClipPluginResult {
                     .vexpand(true)
                     .build();
                 preview.attach(&label, 0, 3, 2, 1);
+
                 Fragile::new((preview, insert_time, update_time, count, buffer))
             })
             .get();
         let (preview, insert, update, count, buffer) = wv;
         insert.set_label(self.insert_time.as_str());
         update.set_label(self.update_time.as_str());
-        count.set_text(self.content.as_str());
+        count.set_text(self.count.to_string().as_str());
         buffer.set_text(self.content.as_str());
 
         preview.clone().upcast()
