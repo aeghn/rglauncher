@@ -3,7 +3,7 @@ use crate::shared::UserInput;
 use crate::util::string_utils;
 use futures::StreamExt;
 
-use glib::Cast;
+use glib::{Cast, GString};
 use gtk::traits::{StyleContextExt, WidgetExt};
 
 use fragile::Fragile;

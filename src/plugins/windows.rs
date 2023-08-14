@@ -9,7 +9,7 @@ use gtk::Image;
 
 use gtk::pango::WrapMode::{Word, WordChar};
 use gtk::prelude::{GridExt, WidgetExt};
-use gtk::Align::Center;
+use gtk::Align::{Center, Start};
 use gtk::Grid;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -18,6 +18,7 @@ use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 
 use gtk::Label;
+use crate::icon_cache;
 
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,
@@ -195,40 +196,44 @@ impl PluginResult for HyprWindowResult {
                     .halign(Center)
                     .build();
 
-                let image = Image::builder()
+                let big_pic = Image::builder()
                     .icon_name("gnome-windows")
                     .pixel_size(256)
                     .build();
-                preview.attach(&image, 0, 0, 2, 1);
 
-                let image2 = gtk::Image::builder().pixel_size(64).build();
-                preview.attach(&image2, 0, 1, 1, 2);
+                let little_pic = gtk::Image::builder()
+                    .pixel_size(64)
+                    .hexpand(true)
+                    .build();
 
-                let name = gtk::Label::builder()
+                preview.attach(&big_pic, 0, 0, 1, 1);
+                preview.attach(&little_pic, 0, 1, 1, 1);
+
+                let title = gtk::Label::builder()
                     .css_classes(["font16"])
                     .wrap(true)
                     .wrap_mode(WordChar)
                     .build();
-                preview.attach(&name, 1, 1, 1, 1);
+                preview.attach(&title, 0, 2, 1, 1);
 
-                let label = gtk::Label::builder()
+                let extra = gtk::Label::builder()
                     .wrap(true)
                     .wrap_mode(Word)
                     .hexpand(true)
                     .build();
-                preview.attach(&label, 1, 2, 1, 1);
+                preview.attach(&extra, 0, 3, 1, 1);
 
-                Fragile::new((preview, image2, name, label))
+                Fragile::new((preview, little_pic, title, extra))
             })
             .get();
-        let (preview, _image, title, _content) = wv;
-        if let Some(label) = self.sidebar_label() {
-            title.set_text(label.as_str());
+        let (preview, image, title, extra) = wv;
+        title.set_text(self.title.as_str());
+
+        if let Some(c) = self.sidebar_content() {
+            extra.set_text(c.as_str());
         }
 
-        if let Some(content) = self.sidebar_content() {
-            title.set_text(content.as_str());
-        }
+        image.set_from_gicon(icon_cache::get_icon(self.icon_name.as_str()).get());
 
         preview.clone().upcast()
     }

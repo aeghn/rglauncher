@@ -1,25 +1,24 @@
 .inputbar {
     margin: 20px 20px 20px 20px;
     border: none;
+    background: none;
 }
 
 .sidebar {
     min-width: 300px;
     max-width: 300px;
-    padding: 10px 10px 10px 10px;
+    border-radius: 5px;
+    margin: 10px 10px 10px 10px;
+    border: solid 1px #dedede;
+}
+
+.sidebar_view {
     border-radius: 5px;
 }
 
 .preview {
-    padding: 20px 20px 20px 20px;
-}
-
-frame {
-    border-style: none;
-}
-
-label {
-    word-wrap: normal;
+    margin: 10px 10px 10px 10px;
+    background: none;
 }
 
 .font32 {
@@ -30,7 +29,15 @@ label {
     font-size: 16px;
 }
 
+.border5 {
+    border-radius: 5px;
+}
+
 .centercld {
   justify-content: center;
   align-items: center;
+}
+
+.border_debug {
+   border: solid 1px #aa0000;
 }

@@ -63,6 +63,7 @@ impl Sidebar {
             .factory(&factory)
             .model(&selection_model)
             .can_focus(false)
+            .css_classes(StrV::from(vec!["sidebar_view"]))
             .build();
 
         let scrolled_window = gtk::ScrolledWindow::builder()
