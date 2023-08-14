@@ -56,7 +56,7 @@ impl Plugin<ClipPluginResult> for ClipboardPlugin {
 
         if let Some(_conn) = &self.conn {
             let stmt = _conn.prepare(format!("SELECT content0, mimes, insert_time, update_time, count from clipboard \
-                                              where content0 like '%{}%' order by UPDATE_TIME desc limit 300", user_input.input.as_str()).as_str());
+                                              where content0 like '%{}%' order by UPDATE_TIME asc limit 100", user_input.input.as_str()).as_str());
             if let Ok(mut _stmt) = stmt {
                 let iter = _stmt.query_map([], |row| {
                     Ok(ClipPluginResult {
@@ -106,17 +106,21 @@ impl PluginResult for ClipPluginResult {
                 let image = Image::builder()
                     .pixel_size(48)
                     .icon_name("xclipboard")
+                    .halign(Align::Center)
                     .build();
                 preview.attach(&image, 0, 0, 1, 3);
 
-                let insert_time = gtk::Label::builder().halign(Align::End).build();
-                preview.attach(&insert_time, 1, 0, 1, 1);
+                preview.attach(&gtk::Label::new(Some("Insert Time")), 1, 0, 1, 1);
+                let insert_time = gtk::Label::builder().halign(Align::Start).build();
+                preview.attach(&insert_time, 2, 0, 1, 1);
 
-                let update_time = gtk::Label::builder().halign(Align::End).build();
-                preview.attach(&update_time, 1, 1, 1, 1);
+                preview.attach(&gtk::Label::new(Some("Update Time")), 1, 1, 1, 1);
+                let update_time = gtk::Label::builder().halign(Align::Start).build();
+                preview.attach(&update_time, 2, 1, 1, 1);
 
-                let count = gtk::Label::builder().halign(Align::End).build();
-                preview.attach(&count, 1, 2, 1, 1);
+                preview.attach(&gtk::Label::new(Some("Insert Count")), 1, 2, 1, 1);
+                let count = gtk::Label::builder().halign(Align::Start).build();
+                preview.attach(&count, 2, 2, 1, 1);
 
                 let text_buffer = TextBuffer::builder()
                     .build();
@@ -127,7 +131,7 @@ impl PluginResult for ClipPluginResult {
                     .buffer(&text_buffer)
                     .build();
 
-                preview.attach(&text_view, 0, 3, 2, 1);
+                preview.attach(&text_view, 0, 3, 3, 1);
 
                 Fragile::new((preview, insert_time, update_time, count, text_buffer))
             })
