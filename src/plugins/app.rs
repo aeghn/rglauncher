@@ -56,7 +56,6 @@ impl PluginResult for AppResult {
 
         let wv = guard
             .get_or_insert_with(|| {
-                error!("build preview");
                 let preview = gtk::Grid::builder()
                     .vexpand(true)
                     .hexpand(true)
