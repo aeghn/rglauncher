@@ -1,7 +1,3 @@
-* {
-
-}
-
 .inputbar {
     margin: 20px 20px 20px 20px;
     border: none;
@@ -23,7 +19,7 @@ frame {
 }
 
 label {
-word-wrap: normal;
+    word-wrap: normal;
 }
 
 .font32 {
@@ -37,9 +33,4 @@ word-wrap: normal;
 .centercld {
   justify-content: center;
   align-items: center;
-}
-
-.borr {
- border: solid 1px #aa0000;
-
 }

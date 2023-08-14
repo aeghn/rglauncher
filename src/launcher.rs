@@ -2,7 +2,6 @@ use flume::{Receiver, Sender};
 use glib::{clone, BoxedAnyObject, MainContext};
 use std::sync::{Arc, RwLock};
 
-
 use gio::prelude::*;
 use gtk::gdk;
 use gtk::prelude::*;

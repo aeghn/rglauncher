@@ -16,6 +16,7 @@ use lazy_static::lazy_static;
 use std::option::Option::None;
 
 use std::sync::Mutex;
+use tracing::error;
 
 lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<(Grid, Image, Label, Label, Label)>>> =
@@ -55,6 +56,7 @@ impl PluginResult for AppResult {
 
         let wv = guard
             .get_or_insert_with(|| {
+                error!("build preview");
                 let preview = gtk::Grid::builder()
                     .vexpand(true)
                     .hexpand(true)

@@ -1,4 +1,3 @@
-
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 use crate::util::string_utils;
@@ -7,7 +6,6 @@ use futures::StreamExt;
 use glib::Cast;
 use gtk::traits::{StyleContextExt, WidgetExt};
 
-
 use fragile::Fragile;
 use gtk::Widget;
 use lazy_static::lazy_static;
@@ -15,8 +13,7 @@ use regex::Regex;
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::fs::File;
-use std::sync::{Mutex};
-
+use std::sync::Mutex;
 
 use webkit6::traits::WebViewExt;
 use webkit6::UserContentInjectedFrames::AllFrames;
