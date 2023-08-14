@@ -1,11 +1,9 @@
 mod imp;
 
-
-
 use crate::icon_cache;
+use gtk::glib;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::{glib};
 
 use crate::plugins::PluginResult;
 

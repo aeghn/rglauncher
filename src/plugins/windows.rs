@@ -5,8 +5,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 
 use glib::Cast;
-use gtk::{Image};
-
+use gtk::Image;
 
 use gtk::pango::WrapMode::{Word, WordChar};
 use gtk::prelude::{GridExt, WidgetExt};
@@ -19,7 +18,6 @@ use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
 
 use gtk::Label;
-
 
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,

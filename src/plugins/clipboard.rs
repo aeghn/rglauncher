@@ -1,7 +1,6 @@
 use fragile::Fragile;
 use std::sync::Mutex;
 
-
 use glib::Cast;
 
 use gtk::prelude::{DisplayExt, TextBufferExt};
@@ -17,7 +16,7 @@ use lazy_static::lazy_static;
 use rusqlite::Connection;
 
 lazy_static! {
-    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, TextBuffer)>>> =
+    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, Label, TextBuffer)>>> =
         Mutex::new(None);
 }
 
@@ -122,8 +121,11 @@ impl PluginResult for ClipPluginResult {
                 let count = gtk::Label::builder().halign(Align::Start).build();
                 preview.attach(&count, 2, 2, 1, 1);
 
-                let text_buffer = TextBuffer::builder()
-                    .build();
+                preview.attach(&gtk::Label::new(Some("Mime")), 1, 3, 1, 1);
+                let mime = gtk::Label::builder().halign(Align::Start).build();
+                preview.attach(&mime, 2, 3, 1, 1);
+
+                let text_buffer = TextBuffer::builder().build();
                 let text_view = TextView::builder()
                     .hexpand(true)
                     .vexpand(true)
@@ -133,14 +135,15 @@ impl PluginResult for ClipPluginResult {
 
                 preview.attach(&text_view, 0, 3, 3, 1);
 
-                Fragile::new((preview, insert_time, update_time, count, text_buffer))
+                Fragile::new((preview, insert_time, update_time, count, mime, text_buffer))
             })
             .get();
-        let (preview, insert, update, count, buffer) = wv;
+        let (preview, insert, update, count, mime, buffer) = wv;
         insert.set_label(self.insert_time.as_str());
         update.set_label(self.update_time.as_str());
         count.set_text(self.count.to_string().as_str());
         buffer.set_text(self.content.as_str());
+        mime.set_text(self.mime.as_str());
 
         preview.clone().upcast()
     }
