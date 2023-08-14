@@ -1,14 +1,16 @@
 use fragile::Fragile;
 use std::sync::Mutex;
+use chrono::{DateTime, NaiveDate, Utc};
 
 use glib::Cast;
 
 use gtk::prelude::{DisplayExt, TextBufferExt};
 use gtk::{Align, Image, TextBuffer, TextView, Widget};
+use gtk::Align::End;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::shared::UserInput;
-use gtk::traits::GridExt;
+use gtk::traits::{GridExt, WidgetExt};
 use gtk::Grid;
 use gtk::Label;
 use gtk::WrapMode::WordChar;
@@ -29,8 +31,8 @@ pub struct ClipPluginResult {
     content: String,
     score: i32,
     mime: String,
-    insert_time: String,
-    update_time: String,
+    insert_time: DateTime<Utc>,
+    update_time: DateTime<Utc>,
     count: i64,
 }
 
@@ -105,23 +107,25 @@ impl PluginResult for ClipPluginResult {
                 let image = Image::builder()
                     .pixel_size(48)
                     .icon_name("xclipboard")
-                    .halign(Align::Center)
+                    .halign(Align::End)
                     .build();
-                preview.attach(&image, 0, 0, 1, 3);
+                preview.attach(&image, 0, 0, 1, 4);
 
-                preview.attach(&gtk::Label::new(Some("Insert Time")), 1, 0, 1, 1);
+                let f = |e| {gtk::Label::builder().label(e).halign(End).build()};
+
+                preview.attach(&f("Insert Time: "), 1, 0, 1, 1);
                 let insert_time = gtk::Label::builder().halign(Align::Start).build();
                 preview.attach(&insert_time, 2, 0, 1, 1);
 
-                preview.attach(&gtk::Label::new(Some("Update Time")), 1, 1, 1, 1);
+                preview.attach(&f("Update Time: "), 1, 1, 1, 1);
                 let update_time = gtk::Label::builder().halign(Align::Start).build();
                 preview.attach(&update_time, 2, 1, 1, 1);
 
-                preview.attach(&gtk::Label::new(Some("Insert Count")), 1, 2, 1, 1);
+                preview.attach(&f("Insert Count: "), 1, 2, 1, 1);
                 let count = gtk::Label::builder().halign(Align::Start).build();
                 preview.attach(&count, 2, 2, 1, 1);
 
-                preview.attach(&gtk::Label::new(Some("Mime")), 1, 3, 1, 1);
+                preview.attach(&f("Mime: "), 1, 3, 1, 1);
                 let mime = gtk::Label::builder().halign(Align::Start).build();
                 preview.attach(&mime, 2, 3, 1, 1);
 
@@ -130,17 +134,21 @@ impl PluginResult for ClipPluginResult {
                     .hexpand(true)
                     .vexpand(true)
                     .wrap_mode(WordChar)
+                    .margin_start(20)
+                    .margin_end(20)
+                    .margin_top(20)
+                    .margin_bottom(20)
                     .buffer(&text_buffer)
                     .build();
 
-                preview.attach(&text_view, 0, 3, 3, 1);
+                preview.attach(&text_view, 0, 4, 3, 1);
 
                 Fragile::new((preview, insert_time, update_time, count, mime, text_buffer))
             })
             .get();
         let (preview, insert, update, count, mime, buffer) = wv;
-        insert.set_label(self.insert_time.as_str());
-        update.set_label(self.update_time.as_str());
+        insert.set_label(self.insert_time.to_string().as_str());
+        update.set_label(self.update_time.to_string().as_str());
         count.set_text(self.count.to_string().as_str());
         buffer.set_text(self.content.as_str());
         mime.set_text(self.mime.as_str());

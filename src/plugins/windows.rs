@@ -178,7 +178,7 @@ impl PluginResult for HyprWindowResult {
                 format!(" {}", self.monitor)
             },
             self.workspace.clone(),
-            if self.xwayland { "XWayland" } else { "" }
+            if self.xwayland { "X" } else { "" }
         );
 
         Some(str)
