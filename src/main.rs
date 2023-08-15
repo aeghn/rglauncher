@@ -59,6 +59,7 @@ fn activate(app: &Application) {
         .application(app)
         .resizable(false)
         .title("Launcher")
+        .decorated(false)
         .build();
     error!("show window1");
     let launcher = launcher::Launcher::new(&window);
