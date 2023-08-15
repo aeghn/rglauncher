@@ -1,5 +1,5 @@
 use flume::Receiver;
-use glib::{BoxedAnyObject, StrV};
+use glib::{BoxedAnyObject, Cast, clone, ControlFlow, StrV};
 use std::collections::HashMap;
 
 use crate::plugins::PluginResult;
@@ -24,13 +24,20 @@ impl Preview {
     }
 
     pub async fn loop_recv(&self, receiver: Receiver<BoxedAnyObject>) {
-        let _view_map: HashMap<&str, gtk::Widget> = HashMap::new();
-
+        let preview_window = self.preview_window.clone();
         loop {
             if let Ok(bao) = receiver.recv_async().await {
-                let preview = bao.borrow::<Box<dyn PluginResult>>();
-                let child = preview.preview();
-                self.preview_window.set_child(Some(&child));
+                glib::idle_add_local(clone!(@strong preview_window => move || {
+                    let down = bao.try_borrow::<Box<dyn PluginResult>>();
+                    if let Ok(pr) = down {
+                        let child = pr.preview();
+                        preview_window.set_child(Some(&child));
+                    } else {
+                        preview_window.set_child(None::<&gtk::Widget>);
+                    }
+                    ControlFlow::Break
+                }));
+
             }
         }
     }
