@@ -1,6 +1,6 @@
 use fragile::Fragile;
 use std::sync::Mutex;
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc, Local};
 
 use glib::Cast;
 
@@ -147,8 +147,10 @@ impl PluginResult for ClipPluginResult {
             })
             .get();
         let (preview, insert, update, count, mime, buffer) = wv;
-        insert.set_label(self.insert_time.to_string().as_str());
-        update.set_label(self.update_time.to_string().as_str());
+        let il: DateTime<Local> = DateTime::from(self.insert_time);
+        insert.set_label(il.to_string().as_str());
+        let il: DateTime<Local> = DateTime::from(self.update_time);
+        update.set_label(il.to_string().as_str());
         count.set_text(self.count.to_string().as_str());
         buffer.set_text(self.content.as_str());
         mime.set_text(self.mime.as_str());
