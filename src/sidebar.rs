@@ -163,7 +163,7 @@ impl Sidebar {
                                 InputMessage::TextChanged(text) => {
                                     self.input.replace(UserInput::new(text.as_str()));
                                     self.list_store.remove_all();
-                                    error!("{}", procinfo::pid::statm_self().unwrap().resident)
+                                    // error!("{}", procinfo::pid::statm_self().unwrap().resident)
                                 }
                                 InputMessage::EmitSubmit(_) => {
                                     self.handle_msg(SidebarMsg::Enter);

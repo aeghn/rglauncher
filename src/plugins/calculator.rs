@@ -9,14 +9,13 @@ use crate::user_input::UserInput;
 use glib::{Cast, StrV};
 use gtk::prelude::{WidgetExt};
 use gtk::Align::Center;
-use gtk::Grid;
 use gtk::{Image, Label};
 use std::option::Option::None;
 
 use std::sync::Mutex;
 use tracing::error;
 lazy_static! {
-    static ref PREVIEW: Mutex<Option<Fragile<(Grid, TextBuffer, TextBuffer)>>> = Mutex::new(None);
+    static ref PREVIEW: Mutex<Option<Fragile<(gtk::Widget, TextBuffer, TextBuffer)>>> = Mutex::new(None);
 }
 
 pub struct Calculator {
@@ -83,14 +82,14 @@ impl PluginResult for CalcResult {
                 .build();
             preview.attach(&result_area, 0, 1, 1, 1);
 
-            Fragile::new((preview, formula_buffer, result_buffer))
+            Fragile::new((preview.upcast(), formula_buffer, result_buffer))
         }).get();
 
         let (preview, formula, result) = wv;
         formula.set_text(self.formula.as_str());
         result.set_text(self.result.as_str());
 
-        preview.clone().upcast()
+        preview.clone()
     }
 
     fn on_enter(&self) {

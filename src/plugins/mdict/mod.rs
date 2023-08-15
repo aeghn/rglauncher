@@ -173,7 +173,10 @@ impl PluginResult for MDictPluginResult {
             })
             .get();
 
-        let html_content = self.html.replace("\0", " ");
+        let html_content = self.html
+            .replace("\0", " ")
+            .replace("`1`", "")
+            .replace("`4`", "<br><br>");
         wv.load_html(html_content.as_str(), None);
 
         wv.clone().upcast()
