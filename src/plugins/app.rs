@@ -5,13 +5,8 @@ use fragile::Fragile;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
-use gio::AppInfo;
-
 use glib::{Cast, StrV};
-use gtk::prelude::{GridExt, WidgetExt};
-use gtk::Align::Center;
-use gtk::Grid;
-use gtk::{Image, Label, Widget};
+use gtk::prelude::{ButtonExt, GridExt, WidgetExt};
 use lazy_static::lazy_static;
 use std::option::Option::None;
 
@@ -19,7 +14,7 @@ use std::sync::Mutex;
 use tracing::error;
 
 lazy_static! {
-    static ref PREVIEW: Mutex<Option<Fragile<(Grid, Image, Label, Label, Label)>>> =
+    static ref PREVIEW: Mutex<Option<Fragile<(gtk::Widget, gtk::Image, gtk::Label, gtk::Label, gtk::Label)>>> =
         Mutex::new(None);
 }
 
@@ -51,7 +46,7 @@ impl PluginResult for AppResult {
         Some(self.app_desc.clone())
     }
 
-    fn preview(&self) -> Widget {
+    fn preview(&self) -> gtk::Widget {
         let mut guard = PREVIEW.lock().unwrap();
 
         let wv = guard
@@ -59,25 +54,23 @@ impl PluginResult for AppResult {
                 let preview = gtk::Grid::builder()
                     .vexpand(true)
                     .hexpand(true)
-                    .valign(Center)
-                    .halign(Center)
+                    .valign(gtk::Align::Center)
+                    .halign(gtk::Align::Center)
                     .build();
 
-                let image = Image::builder().pixel_size(256).build();
-                preview.attach(&image, 0, 0, 1, 1);
+                let icon = gtk::Image::builder().pixel_size(256).build();
+                preview.attach(&icon, 0, 0, 1, 1);
 
-                let name = gtk::Label::builder()
-                    .wrap(true)
-                    .build();
+                let name = gtk::Label::builder().css_classes(["font32"]).wrap(true).build();
                 preview.attach(&name, 0, 1, 1, 1);
 
+                let desc = gtk::Label::builder().wrap(true).build();
+                preview.attach(&desc, 0, 2, 1, 1);
+
                 let exec = gtk::Label::builder().wrap(true).build();
-                preview.attach(&name, 0, 2, 1, 1);
+                preview.attach(&exec, 0, 3, 1, 1);
 
-                let desc = Label::builder().wrap(true).build();
-                preview.attach(&desc, 0, 3, 1, 1);
-
-                Fragile::new((preview, image, name, exec, desc))
+                Fragile::new((preview.upcast(), icon, name, exec, desc))
             })
             .get();
 
@@ -87,11 +80,11 @@ impl PluginResult for AppResult {
         exec.set_label(self.executable.as_str());
         desc.set_label(self.app_desc.as_str());
 
-        preview.clone().upcast()
+        preview.clone()
     }
 
     fn on_enter(&self) {
-        AppInfo::all().iter().for_each(|app_info| {
+        gio::AppInfo::all().iter().for_each(|app_info| {
             if app_info.id().unwrap().to_string() == self.id {
                 app_info
                     .launch(&[], gio::AppLaunchContext::NONE)
@@ -112,7 +105,7 @@ impl Plugin<AppResult> for AppPlugin {
         let matcher = SkimMatcherV2::default();
         let mut result: Vec<AppResult> = vec![];
 
-        AppInfo::all().iter().for_each(|app_info| {
+        gio::AppInfo::all().iter().for_each(|app_info| {
             if !app_info.should_show() {
                 return;
             }
