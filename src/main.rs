@@ -7,7 +7,7 @@ mod launcher;
 pub mod plugin_worker;
 mod plugins;
 mod preview;
-mod shared;
+mod user_input;
 mod sidebar;
 mod sidebar_row;
 mod util;

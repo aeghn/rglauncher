@@ -4,7 +4,7 @@ pub mod mdict;
 pub mod windows;
 pub mod calculator;
 
-use crate::shared::UserInput;
+use crate::user_input::UserInput;
 
 pub trait PluginResult: Send {
     /*

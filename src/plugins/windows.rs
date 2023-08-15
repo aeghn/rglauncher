@@ -15,7 +15,7 @@ use lazy_static::lazy_static;
 use std::sync::Mutex;
 
 use crate::plugins::{Plugin, PluginResult};
-use crate::shared::UserInput;
+use crate::user_input::UserInput;
 
 use gtk::Label;
 use crate::icon_cache;
