@@ -26,7 +26,6 @@ impl InputBar {
 
         let entry = gtk::Entry::builder()
             .placeholder_text("Input Anything...")
-            .css_classes(StrV::from(vec!["inputbar"]))
             .xalign(0.5)
             .build();
 

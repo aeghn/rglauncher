@@ -61,14 +61,12 @@ impl PluginResult for AppResult {
                     .hexpand(true)
                     .valign(Center)
                     .halign(Center)
-                    .css_classes(StrV::from(["centercld"]))
                     .build();
 
                 let image = Image::builder().pixel_size(256).build();
                 preview.attach(&image, 0, 0, 1, 1);
 
                 let name = gtk::Label::builder()
-                    .css_classes(StrV::from(["font32"]))
                     .wrap(true)
                     .build();
                 preview.attach(&name, 0, 1, 1, 1);

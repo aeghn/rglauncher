@@ -180,6 +180,5 @@ impl PluginResult for MDictPluginResult {
     }
 
     fn on_enter(&self) {
-        todo!()
     }
 }

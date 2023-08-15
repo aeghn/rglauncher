@@ -2,6 +2,7 @@ pub mod app;
 pub mod clipboard;
 pub mod mdict;
 pub mod windows;
+pub mod calculator;
 
 use crate::shared::UserInput;
 

@@ -14,6 +14,7 @@ use gtk::prelude::ListItemExt;
 use std::sync::Arc;
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
+use tracing::error;
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
@@ -68,10 +69,10 @@ impl Sidebar {
 
         let scrolled_window = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never) // Disable horizontal scrolling
-            .css_classes(StrV::from(vec!["sidebar"]))
             .child(&list_view)
             .focusable(false)
             .can_focus(false)
+            .width_request(300)
             .build();
 
         Sidebar {
@@ -161,6 +162,7 @@ impl Sidebar {
                                 InputMessage::TextChanged(text) => {
                                     self.input.replace(UserInput::new(text.as_str()));
                                     self.list_store.remove_all();
+                                    error!("{}", procinfo::pid::statm_self().unwrap().resident)
                                 }
                                 InputMessage::EmitSubmit(_) => {
                                     self.handle_msg(SidebarMsg::Enter);

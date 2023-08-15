@@ -6,6 +6,7 @@
 
 .sidebar {
     min-width: 300px;
+    max-width: 300px;
     border-radius: 5px;
     margin: 10px 10px 10px 10px;
     border: solid 1px #dedede;
