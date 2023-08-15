@@ -12,10 +12,12 @@ use gtk::{
 };
 
 use tracing::error;
+use webkit6::prelude::WebsocketConnectionExtManual;
 
 use crate::inputbar::{InputBar, InputMessage};
 use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
+use crate::plugins::calculator::{CalcResult, Calculator};
 use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
 use crate::plugins::mdict::{MDictPlugin, MDictPluginResult};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
@@ -140,6 +142,12 @@ impl Launcher {
         PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
             &sidebar_sender,
             || MDictPlugin::new(crate::constant::DICT_DB, vec![]),
+            &input_broadcast,
+        );
+
+        PluginWorker::<Calculator, CalcResult>::launch(
+            &sidebar_sender,
+            || Calculator::new(),
             &input_broadcast,
         );
     }
