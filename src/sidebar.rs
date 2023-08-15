@@ -12,6 +12,7 @@ use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
 use std::sync::Arc;
+use gtk::ResponseType::No;
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
 use tracing::error;
@@ -19,7 +20,7 @@ use tracing::error;
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
 use crate::plugins::PluginResult;
-use crate::shared::UserInput;
+use crate::user_input::UserInput;
 use crate::sidebar_row::SidebarRow;
 
 pub enum SidebarMsg {
@@ -248,6 +249,10 @@ impl Sidebar {
                 let plugin_result_box = boxed.downcast::<BoxedAnyObject>().unwrap();
                 selection_change_sender
                     .send(plugin_result_box.clone())
+                    .expect("Unable to send to preview");
+            } else {
+                selection_change_sender
+                    .send(BoxedAnyObject::new(None::<gtk::Widget>))
                     .expect("Unable to send to preview");
             }
         });
