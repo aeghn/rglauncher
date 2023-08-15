@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 
-use flume::{Receiver, Sender};
 use futures::select;
 use futures::StreamExt;
 use gio::traits::ListModelExt;
@@ -43,16 +42,16 @@ pub struct Sidebar {
     input: Option<UserInput>,
 
     input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
-    sidebar_receiver: Receiver<SidebarMsg>,
-    selection_change_sender: Sender<BoxedAnyObject>,
+    sidebar_receiver: flume::Receiver<SidebarMsg>,
+    selection_change_sender: flume::Sender<BoxedAnyObject>,
     app_msg_sender: flume::Sender<AppMsg>,
 }
 
 impl Sidebar {
     pub fn new(
         input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
-        sidebar_receiver: Receiver<SidebarMsg>,
-        selection_change_sender: Sender<BoxedAnyObject>,
+        sidebar_receiver: flume::Receiver<SidebarMsg>,
+        selection_change_sender: flume::Sender<BoxedAnyObject>,
         app_msg_sender: flume::Sender<AppMsg>,
     ) -> Self {
         let list_store = gio::ListStore::new::<BoxedAnyObject>();
@@ -238,7 +237,7 @@ impl Sidebar {
 
     fn build_selection_model(
         list_model: &impl IsA<gio::ListModel>,
-        selection_change_sender: &Sender<BoxedAnyObject>,
+        selection_change_sender: &flume::Sender<BoxedAnyObject>,
     ) -> gtk::SingleSelection {
         let selection_model = gtk::SingleSelection::builder().model(list_model).build();
 
