@@ -11,7 +11,7 @@ use glib::{idle_add, ControlFlow, MainContext};
 use crate::inputbar::InputMessage;
 use crate::inputbar::InputMessage::TextChanged;
 use crate::plugins::{Plugin, PluginResult};
-use crate::shared::UserInput;
+use crate::user_input::UserInput;
 
 use crate::sidebar::SidebarMsg;
 

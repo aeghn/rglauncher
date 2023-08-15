@@ -1,5 +1,5 @@
 use crate::plugins::{Plugin, PluginResult};
-use crate::shared::UserInput;
+use crate::user_input::UserInput;
 use crate::util::string_utils;
 use futures::StreamExt;
 

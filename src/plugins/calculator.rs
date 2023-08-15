@@ -5,7 +5,7 @@ use gtk::WrapMode::WordChar;
 use lazy_static::lazy_static;
 use meval::Error;
 use crate::plugins::{Plugin, PluginResult};
-use crate::shared::UserInput;
+use crate::user_input::UserInput;
 use glib::{Cast, StrV};
 use gtk::prelude::{WidgetExt};
 use gtk::Align::Center;
