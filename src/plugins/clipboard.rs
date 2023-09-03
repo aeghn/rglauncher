@@ -1,6 +1,6 @@
 use fragile::Fragile;
 use std::sync::Mutex;
-use chrono::{DateTime, NaiveDate, Utc, Local};
+use chrono::{DateTime, Utc, Local};
 
 use glib::Cast;
 

@@ -19,7 +19,7 @@ use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::calculator::{CalcResult, Calculator};
 use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
-use crate::plugins::mdict::{MDictPlugin, MDictPluginResult};
+use crate::plugins::sqldict::{SqlDictPlugin, SqlDictPluginResult};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
 use crate::preview::Preview;
 
@@ -139,9 +139,9 @@ impl Launcher {
             &input_broadcast,
         );
 
-        PluginWorker::<MDictPlugin, MDictPluginResult>::launch(
+        PluginWorker::<SqlDictPlugin, SqlDictPluginResult>::launch(
             &sidebar_sender,
-            || MDictPlugin::new(crate::constant::DICT_DB, vec![]),
+            || SqlDictPlugin::new(crate::constant::DICT_DB, vec![]),
             &input_broadcast,
         );
 

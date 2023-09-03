@@ -3,7 +3,7 @@ use crate::user_input::UserInput;
 use crate::util::string_utils;
 use futures::StreamExt;
 
-use glib::{Cast, GString};
+use glib::{Cast};
 use gtk::traits::{StyleContextExt, WidgetExt};
 
 use fragile::Fragile;
@@ -27,19 +27,19 @@ lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<webkit6::WebView>>> = Mutex::new(None);
 }
 
-pub struct MDictPlugin {
+pub struct SqlDictPlugin {
     pub(crate) conn: Option<Connection>,
     map: HashMap<MdxPathType, DirType>,
     re: Regex,
 }
 
-pub struct MDictPluginResult {
+pub struct SqlDictPluginResult {
     word: String,
     html: String,
     pub dict: String,
 }
 
-impl MDictPlugin {
+impl SqlDictPlugin {
     pub fn new(db_path: &str, files: Vec<MdxPathType>) -> Self {
         let conn = match Connection::open(db_path) {
             Ok(e) => Some(e),
@@ -60,7 +60,7 @@ impl MDictPlugin {
             }
         }
 
-        MDictPlugin {
+        SqlDictPlugin {
             conn,
             map: Default::default(),
             re: Regex::new(r#"<link.*?>|<script.*?/script>"#).unwrap(),
@@ -119,15 +119,15 @@ impl MDictPlugin {
     }
 }
 
-impl Plugin<MDictPluginResult> for MDictPlugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<MDictPluginResult> {
+impl Plugin<SqlDictPluginResult> for SqlDictPlugin {
+    fn handle_input(&self, user_input: &UserInput) -> Vec<SqlDictPluginResult> {
         if user_input.input.is_empty() {
             return vec![];
         }
 
         let res = self.cycle_seek(user_input.input.as_str());
         res.into_iter()
-            .map(|(word, explanation, dict)| MDictPluginResult {
+            .map(|(word, explanation, dict)| SqlDictPluginResult {
                 word,
                 html: explanation.replace("\0", ""),
                 dict,
@@ -136,7 +136,7 @@ impl Plugin<MDictPluginResult> for MDictPlugin {
     }
 }
 
-impl PluginResult for MDictPluginResult {
+impl PluginResult for SqlDictPluginResult {
     fn get_score(&self) -> i32 {
         return 100;
     }
@@ -161,10 +161,11 @@ impl PluginResult for MDictPluginResult {
                 let webview = WebView::new();
                 webview.set_vexpand(true);
                 webview.set_hexpand(true);
+                webview.set_can_focus(false);
 
                 if let Some(ucm) = webview.user_content_manager() {
                     ucm.remove_all_style_sheets();
-                    let css = include_str!("../../../resources/dict.css");
+                    let css = include_str!("../../resources/dict.css");
                     let ss = UserStyleSheet::new(css, AllFrames, User, &[], &[]);
                     ucm.add_style_sheet(&ss);
                 }

@@ -9,7 +9,7 @@ use gtk::Image;
 
 use gtk::pango::WrapMode::{Word, WordChar};
 use gtk::prelude::{GridExt, WidgetExt};
-use gtk::Align::{Center, Start};
+use gtk::Align::{Center};
 use gtk::Grid;
 use lazy_static::lazy_static;
 use std::sync::Mutex;

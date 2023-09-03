@@ -3,17 +3,17 @@ use gtk::{TextBuffer, Widget};
 use gtk::prelude::{GridExt, TextBufferExt};
 use gtk::WrapMode::WordChar;
 use lazy_static::lazy_static;
-use meval::Error;
+
 use crate::plugins::{Plugin, PluginResult};
 use crate::user_input::UserInput;
-use glib::{Cast, StrV};
+use glib::{Cast};
 use gtk::prelude::{WidgetExt};
-use gtk::Align::Center;
-use gtk::{Image, Label};
+
+
 use std::option::Option::None;
 
 use std::sync::Mutex;
-use tracing::error;
+
 lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<(gtk::Widget, TextBuffer, TextBuffer)>>> = Mutex::new(None);
 }
