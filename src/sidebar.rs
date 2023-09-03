@@ -11,10 +11,10 @@ use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
 use std::sync::Arc;
-use gtk::ResponseType::No;
+
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
-use tracing::error;
+
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;

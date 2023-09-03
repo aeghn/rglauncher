@@ -1,6 +1,6 @@
 pub mod app;
 pub mod clipboard;
-pub mod mdict;
+pub mod sqldict;
 pub mod windows;
 pub mod calculator;
 

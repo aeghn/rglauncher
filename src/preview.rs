@@ -1,6 +1,6 @@
 use flume::Receiver;
-use glib::{BoxedAnyObject, Cast, clone, ControlFlow, StrV};
-use std::collections::HashMap;
+use glib::{BoxedAnyObject, clone, ControlFlow, StrV};
+
 
 use crate::plugins::PluginResult;
 use gtk::prelude::WidgetExt;

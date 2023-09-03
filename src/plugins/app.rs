@@ -5,13 +5,13 @@ use fragile::Fragile;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
-use glib::{Cast, StrV};
+use glib::{Cast};
 use gtk::prelude::{ButtonExt, GridExt, WidgetExt};
 use lazy_static::lazy_static;
 use std::option::Option::None;
 
 use std::sync::Mutex;
-use tracing::error;
+
 
 lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<(gtk::Widget, gtk::Image, gtk::Label, gtk::Label, gtk::Label)>>> =
@@ -24,7 +24,6 @@ pub struct AppResult {
     icon_name: String,
     app_name: String,
     app_desc: String,
-    executable: String,
     score: i32,
     pub id: String,
 }
@@ -77,7 +76,7 @@ impl PluginResult for AppResult {
         let (preview, image, name, exec, desc) = wv;
         image.set_from_gicon(icon_cache::get_icon(self.app_name.as_str()).get());
         name.set_label(self.app_name.as_str());
-        exec.set_label(self.executable.as_str());
+        exec.set_label("");
         desc.set_label(self.app_desc.as_str());
 
         preview.clone()
@@ -129,7 +128,6 @@ impl Plugin<AppResult> for AppPlugin {
                         Some(des) => des.to_string(),
                     },
                     score,
-                    executable: app_info.executable().to_str().unwrap().to_string(),
                 });
             }
         });
