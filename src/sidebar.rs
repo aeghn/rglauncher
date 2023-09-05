@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::ops::Deref;
 
 use futures::select;
 use futures::StreamExt;
@@ -11,9 +12,17 @@ use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::Ordering::SeqCst;
+use futures::future::err;
 
+lazy_static! {
+    static ref COUNT: AtomicUsize = AtomicUsize::new(0);
+}
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
+use lazy_static::lazy_static;
+use tracing::error;
 
 
 use crate::inputbar::InputMessage;
@@ -25,6 +34,7 @@ use crate::sidebar_row::SidebarRow;
 pub enum SidebarMsg {
     TextChanged(String),
     PluginResult(UserInput, Box<dyn PluginResult>),
+    PluginResults(UserInput, Vec<Box<dyn PluginResult>>),
     NextItem,
     PreviousItem,
     HeadItem,
@@ -96,6 +106,19 @@ impl Sidebar {
                 if let Some(ui) = &self.input {
                     if ui_.input == ui.input {
                         self.list_store.append(&BoxedAnyObject::new(pr_));
+                    }
+                }
+            }
+            SidebarMsg::PluginResults(ui_, prs) => {
+                if let Some(ui) = &self.input {
+                    if ui_.input == ui.input {
+                        let all = prs.into_iter()
+                            .into_iter()
+                            .map(|e| {BoxedAnyObject::new(e)})
+                            .collect::<Vec<BoxedAnyObject>>();
+                        let all = all.as_slice();
+
+                        self.list_store.splice(0, 0, all);
                     }
                 }
             }
@@ -220,7 +243,6 @@ impl Sidebar {
             let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             let plugin_result_box = item.item().and_downcast::<BoxedAnyObject>().unwrap();
             let plugin_result = plugin_result_box.borrow::<Box<dyn PluginResult>>();
-
             let child = item.child().and_downcast::<SidebarRow>().unwrap();
             Sidebar::arrange_sidebar_item(&child, plugin_result.as_ref())
         });

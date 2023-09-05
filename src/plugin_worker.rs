@@ -6,7 +6,7 @@ use flume::Sender;
 use futures::StreamExt;
 use gio::prelude::CancellableExt;
 use gio::Cancellable;
-use glib::{idle_add, ControlFlow, MainContext};
+use glib::{idle_add, ControlFlow, MainContext, BoxedAnyObject, idle_add_local, idle_add_local_once};
 
 use crate::inputbar::InputMessage;
 use crate::inputbar::InputMessage::TextChanged;
@@ -14,11 +14,10 @@ use crate::plugins::{Plugin, PluginResult};
 use crate::user_input::UserInput;
 
 use crate::sidebar::SidebarMsg;
+use crate::sidebar::SidebarMsg::PluginResults;
 
 pub struct PluginWorker<P: Plugin<R>, R: PluginResult> {
     plugin: Arc<Mutex<P>>,
-    idle_workers: Arc<AtomicU8>,
-    results: Arc<Mutex<Vec<R>>>,
     cancelable: Option<Cancellable>,
     receiver: async_broadcast::Receiver<Arc<InputMessage>>,
     result_sender: Sender<SidebarMsg>,
@@ -32,8 +31,6 @@ impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R
     ) -> Self {
         PluginWorker {
             plugin: Arc::new(Mutex::new(plugin)),
-            idle_workers: Arc::new(AtomicU8::new(0)),
-            results: Arc::new(Mutex::new(Vec::<R>::new())),
             cancelable: None,
             receiver: input_receiver,
             result_sender,
@@ -85,8 +82,10 @@ impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R
                             if cancelable_receiver.is_cancelled() {
                                 return None;
                             }
-
-                            Some(result)
+                            let converted_result: Vec<Box<dyn PluginResult>> =
+                                result.into_iter().map(|r| Box::new(r) as Box<dyn PluginResult>)
+                                    .collect();
+                            Some(converted_result)
                         } else {
                             None
                         };
@@ -95,38 +94,10 @@ impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R
                     });
 
                     if let Ok(Some(vec)) = jh.await {
-                        let result_arc = self.results.clone();
-                        {
-                            let mut op = result_arc.lock().unwrap();
-                            *op = vec;
-                        }
-
-                        let idle_worker = self.idle_workers.clone();
-                        if idle_worker.fetch_add(1, Ordering::SeqCst) > 1 {
-                            idle_worker.fetch_sub(1, Ordering::SeqCst);
-                        } else {
-                            let sender = self.result_sender.clone();
-                            idle_add(move || match result_arc.lock() {
-                                Ok(mut vec_guard) => {
-                                    if let Some(vv) = vec_guard.pop() {
-                                        sender
-                                            .send(SidebarMsg::PluginResult(
-                                                ui.clone(),
-                                                Box::new(vv) as Box<dyn PluginResult>,
-                                            ))
-                                            .unwrap();
-                                        ControlFlow::Continue
-                                    } else {
-                                        idle_worker.fetch_sub(1, Ordering::SeqCst);
-                                        ControlFlow::Break
-                                    }
-                                }
-                                _ => {
-                                    idle_worker.fetch_sub(1, Ordering::SeqCst);
-                                    ControlFlow::Break
-                                }
-                            });
-                        }
+                        let result_sender = self.result_sender.clone();
+                        idle_add_local_once(move || {
+                            result_sender.send(PluginResults(ui, vec)).unwrap();
+                        });
                     }
                 }
             }
