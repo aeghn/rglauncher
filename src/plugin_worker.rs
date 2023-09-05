@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -21,6 +22,7 @@ pub struct PluginWorker<P: Plugin<R>, R: PluginResult> {
     cancelable: Option<Cancellable>,
     receiver: async_broadcast::Receiver<Arc<InputMessage>>,
     result_sender: Sender<SidebarMsg>,
+    phantom_r: PhantomData<R>,
 }
 
 impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R> {
@@ -34,6 +36,7 @@ impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R
             cancelable: None,
             receiver: input_receiver,
             result_sender,
+            phantom_r: Default::default(),
         }
     }
 
