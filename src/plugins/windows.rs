@@ -8,8 +8,8 @@ use glib::Cast;
 use gtk::Image;
 
 use gtk::pango::WrapMode::{Word, WordChar};
-use gtk::prelude::{GridExt, WidgetExt};
-use gtk::Align::{Center};
+use gtk::prelude::GridExt;
+use gtk::Align::Center;
 use gtk::Grid;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -22,11 +22,6 @@ use crate::icon_cache;
 
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,
-}
-
-struct Workspace {
-    pub id: i64,
-    pub name: String,
 }
 
 pub struct HyprWindowResult {
