@@ -1,4 +1,6 @@
 use std::borrow::Borrow;
+use std::ops::Deref;
+use std::sync::{Mutex, RwLock};
 
 use futures::select;
 use futures::StreamExt;
@@ -7,7 +9,7 @@ use gio::{
     glib,
     prelude::{Cast, CastNone},
 };
-use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
+use glib::{BoxedAnyObject, IsA, PropertyGet, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
 use std::sync::Arc;
@@ -17,6 +19,7 @@ use futures::future::err;
 
 lazy_static! {
     static ref CHANGE_FOCUS: AtomicBool = AtomicBool::new(false);
+    static ref TRY_PREVIEW: RwLock<Option<String>> = RwLock::new(None);
 }
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
@@ -102,7 +105,7 @@ impl Sidebar {
                 if let Some(ui) = &self.input {
                     if ui_.input == ui.input {
                         self.list_store.append(&BoxedAnyObject::new(pr_));
-                        if !CHANGE_FOCUS.load(SeqCst) {
+                        if !CHANGE_FOCUS.load(SeqCst) && self.selection_model.selected() != 0{
                             self.srcoll_to_item(&0, false);
                         }
                     }
@@ -252,17 +255,52 @@ impl Sidebar {
         let selection_model = gtk::SingleSelection::builder().model(list_model).build();
 
         let selection_change_sender = selection_change_sender.clone();
+
+        let get_name = |prb: &BoxedAnyObject| {
+            if let Ok(pr) = prb.try_borrow::<Box<dyn PluginResult>>() {
+                if let Some(text) = pr.sidebar_label() {
+                    text
+                } else {
+                    "".to_string()
+                }
+            } else {
+                "".to_string()
+            }
+        };
+
         selection_model.connect_selected_item_notify(move |selection| {
             let item = selection.selected_item();
             if let Some(boxed) = item {
                 let plugin_result_box = boxed.downcast::<BoxedAnyObject>().unwrap();
-                selection_change_sender
-                    .send(plugin_result_box.clone())
-                    .expect("Unable to send to preview");
+                let last_name = get_name(&plugin_result_box);
+                {
+                    let mut guard = TRY_PREVIEW.write().unwrap();
+                    guard.replace(last_name);
+                }
+                let selection_change_sender = selection_change_sender.clone();
+                glib::timeout_add_local_once(std::time::Duration::from_millis(50), move || {
+                    if let Some(ln) = TRY_PREVIEW.read().unwrap().deref() {
+                        if ln == &get_name(&plugin_result_box) {
+                            selection_change_sender
+                                .send(plugin_result_box.clone())
+                                .expect("Unable to send to preview");
+                        };
+                    }
+                });
+
             } else {
-                selection_change_sender
-                    .send(BoxedAnyObject::new(None::<gtk::Widget>))
-                    .expect("Unable to send to preview");
+                {
+                    let mut guard = TRY_PREVIEW.write().unwrap();
+                    guard.take();
+                }
+                let selection_change_sender = selection_change_sender.clone();
+                glib::timeout_add_local_once(std::time::Duration::from_millis(50), move || {
+                    if let None = TRY_PREVIEW.read().unwrap().deref() {
+                        selection_change_sender
+                            .send(BoxedAnyObject::new(None::<gtk::Widget>))
+                            .expect("Unable to send to preview");
+                    }
+                });
             }
         });
 
