@@ -19,6 +19,7 @@ use crate::user_input::UserInput;
 
 use gtk::Label;
 use crate::icon_cache;
+use crate::util::score_utils;
 
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,
@@ -150,7 +151,7 @@ impl Plugin<HyprWindowResult> for HyprWindows {
 
 impl PluginResult for HyprWindowResult {
     fn get_score(&self) -> i32 {
-        return self.score;
+        return score_utils::high(self.score as i64);
     }
 
     fn sidebar_icon_name(&self) -> String {

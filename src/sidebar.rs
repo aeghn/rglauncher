@@ -12,17 +12,17 @@ use glib::{BoxedAnyObject, IsA, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::atomic::Ordering::SeqCst;
 use futures::future::err;
 
 lazy_static! {
-    static ref COUNT: AtomicUsize = AtomicUsize::new(0);
+    static ref CHANGE_FOCUS: AtomicBool = AtomicBool::new(false);
 }
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
 use lazy_static::lazy_static;
-use tracing::error;
+use tracing::{error, info};
 
 
 use crate::inputbar::InputMessage;
@@ -32,7 +32,6 @@ use crate::user_input::UserInput;
 use crate::sidebar_row::SidebarRow;
 
 pub enum SidebarMsg {
-    TextChanged(String),
     PluginResult(UserInput, Box<dyn PluginResult>),
     PluginResults(UserInput, Vec<Box<dyn PluginResult>>),
     NextItem,
@@ -106,8 +105,12 @@ impl Sidebar {
                 if let Some(ui) = &self.input {
                     if ui_.input == ui.input {
                         self.list_store.append(&BoxedAnyObject::new(pr_));
+                        if !CHANGE_FOCUS.load(SeqCst) {
+                            self.srcoll_to_item(&0, false);
+                        }
                     }
                 }
+
             }
             SidebarMsg::PluginResults(ui_, prs) => {
                 if let Some(ui) = &self.input {
@@ -119,6 +122,9 @@ impl Sidebar {
                         let all = all.as_slice();
 
                         self.list_store.splice(0, 0, all);
+                        if !CHANGE_FOCUS.load(SeqCst) {
+                            self.srcoll_to_item(&0, false);
+                        }
                     }
                 }
             }
@@ -131,10 +137,7 @@ impl Sidebar {
                 } else {
                     0
                 };
-                self.selection_model.select_item(new_selection, true);
-                self.list_view
-                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
-                    .unwrap();
+                self.srcoll_to_item(&new_selection, true);
             }
             SidebarMsg::PreviousItem => {
                 let new_selection = if self.selection_model.selected() > 0 {
@@ -142,17 +145,11 @@ impl Sidebar {
                 } else {
                     0
                 };
-                self.selection_model.select_item(new_selection, true);
-                self.list_view
-                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
-                    .unwrap();
+                self.srcoll_to_item(&new_selection, true);
             }
             SidebarMsg::HeadItem => {
                 let new_selection = 0;
-                self.selection_model.select_item(new_selection, true);
-                self.list_view
-                    .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
-                    .unwrap();
+                self.srcoll_to_item(&new_selection, true);
             }
             SidebarMsg::Enter => {
                 let item = self.selection_model.selected_item();
@@ -165,7 +162,16 @@ impl Sidebar {
                 }
                 self.app_msg_sender.send(AppMsg::Exit).expect("should send");
             }
-            _ => {}
+        }
+    }
+
+    fn srcoll_to_item(&mut self, new_selection: &u32, change_focus: bool) {
+        self.selection_model.select_item(new_selection.clone(), true);
+        self.list_view
+            .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
+            .unwrap();
+        if change_focus {
+            CHANGE_FOCUS.store(true, SeqCst);
         }
     }
 
@@ -186,7 +192,7 @@ impl Sidebar {
                                 InputMessage::TextChanged(text) => {
                                     self.input.replace(UserInput::new(text.as_str()));
                                     self.list_store.remove_all();
-                                    // error!("{}", procinfo::pid::statm_self().unwrap().resident)
+                                    CHANGE_FOCUS.store(false, SeqCst);
                                 }
                                 InputMessage::EmitSubmit(_) => {
                                     self.handle_msg(SidebarMsg::Enter);

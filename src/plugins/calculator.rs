@@ -13,6 +13,7 @@ use gtk::prelude::{WidgetExt};
 use std::option::Option::None;
 
 use std::sync::Mutex;
+use crate::util::score_utils;
 
 lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<(gtk::Widget, TextBuffer, TextBuffer)>>> = Mutex::new(None);
@@ -35,7 +36,7 @@ pub struct CalcResult {
 
 impl PluginResult for CalcResult {
     fn get_score(&self) -> i32 {
-        1000
+        score_utils::highest()
     }
 
     fn sidebar_icon_name(&self) -> String {
