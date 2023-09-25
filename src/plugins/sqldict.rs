@@ -1,6 +1,6 @@
 use crate::plugins::{Plugin, PluginResult};
 use crate::user_input::UserInput;
-use crate::util::string_utils;
+use crate::util::{score_utils, string_utils};
 use futures::StreamExt;
 
 use glib::{Cast};
@@ -138,7 +138,7 @@ impl Plugin<SqlDictPluginResult> for SqlDictPlugin {
 
 impl PluginResult for SqlDictPluginResult {
     fn get_score(&self) -> i32 {
-        return 100;
+        return score_utils::middle(0);
     }
 
     fn sidebar_icon_name(&self) -> String {

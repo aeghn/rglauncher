@@ -11,6 +11,7 @@ use lazy_static::lazy_static;
 use std::option::Option::None;
 
 use std::sync::Mutex;
+use crate::util::score_utils;
 
 
 lazy_static! {
@@ -30,7 +31,7 @@ pub struct AppResult {
 
 impl PluginResult for AppResult {
     fn get_score(&self) -> i32 {
-        self.score
+        score_utils::high(self.score as i64)
     }
 
     fn sidebar_icon_name(&self) -> String {

@@ -16,6 +16,7 @@ use gtk::Label;
 use gtk::WrapMode::WordChar;
 use lazy_static::lazy_static;
 use rusqlite::Connection;
+use crate::util::score_utils;
 
 lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<(Grid, Label, Label, Label, Label, TextBuffer)>>> =
@@ -82,7 +83,7 @@ impl Plugin<ClipPluginResult> for ClipboardPlugin {
 
 impl PluginResult for ClipPluginResult {
     fn get_score(&self) -> i32 {
-        self.score
+        score_utils::middle(self.score as i64)
     }
 
     fn sidebar_icon_name(&self) -> String {
