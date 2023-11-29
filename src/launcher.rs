@@ -13,13 +13,14 @@ use gtk::{
 
 use tracing::error;
 use webkit6::prelude::WebsocketConnectionExtManual;
+use crate::arguments;
 
 use crate::inputbar::{InputBar, InputMessage};
 use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::calculator::{CalcResult, Calculator};
 use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
-use crate::plugins::sqldict::{DictPlugin, SqlDictPluginResult};
+use crate::plugins::dict::{DictPlugin, SqlDictPluginResult};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
 use crate::preview::Preview;
 
@@ -91,7 +92,7 @@ impl Launcher {
         }
     }
 
-    pub fn post_actions(&self) {
+    pub fn post_actions(&self, args: &arguments::Arguments) {
         let preview_worker = self.preview.clone();
         let scr = self.selection_change_receiver.clone();
         MainContext::ref_thread_default().spawn_local(async move {
@@ -114,16 +115,19 @@ impl Launcher {
         Self::launch_plugins(
             self.sidebar_sender.clone(),
             self.input_bar.input_broadcast.clone(),
+            args
         )
     }
 
     fn launch_plugins(
         sidebar_sender: Sender<SidebarMsg>,
         input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
+        args: &arguments::Arguments
     ) {
+        let clip_db = args.clip_db.clone();
         PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
             &sidebar_sender,
-            || ClipboardPlugin::new(crate::constant::STORE_DB),
+            move || ClipboardPlugin::new(clip_db.as_str()),
             &input_broadcast,
         );
 
@@ -139,9 +143,10 @@ impl Launcher {
             &input_broadcast,
         );
 
+        let dict_dir = args.dict_dir.clone();
         PluginWorker::<DictPlugin, SqlDictPluginResult>::launch(
             &sidebar_sender,
-            || DictPlugin::new(crate::constant::DICT_DB, vec![]),
+            move || DictPlugin::new(dict_dir.as_str(), vec![]),
             &input_broadcast,
         );
 
