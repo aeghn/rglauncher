@@ -1,5 +1,6 @@
 // #![no_main]
 
+mod arguments;
 mod constant;
 mod icon_cache;
 mod inputbar;
@@ -12,6 +13,7 @@ mod sidebar;
 mod sidebar_row;
 mod util;
 
+use clap::Parser;
 use tracing::*;
 
 use gtk::gdk::*;
@@ -25,16 +27,21 @@ fn main() {
         .with_max_level(Level::INFO)
         .with_timer(tracing_subscriber::fmt::time::time())
         .init();
-    info!("start.");
+
+
+    let arguments = arguments::Arguments::parse();
 
     let app = Application::builder().application_id(APP_ID).build();
 
     app.connect_startup(|_| load_css());
 
-    app.connect_activate(activate);
+    app.connect_activate(move |app| {
+        activate(app, &arguments)
+    });
 
     info!("Ready.");
-    app.run();
+    let empty: Vec<String> = vec![];
+    app.run_with_args(&empty);
 }
 
 fn load_css() {
@@ -51,7 +58,7 @@ fn load_css() {
     info!("finished loading css info.");
 }
 
-fn activate(app: &Application) {
+fn activate(app: &Application, args: &arguments::Arguments) {
     info!("Activate.");
     let window = gtk::ApplicationWindow::builder()
         .default_width(800)
@@ -69,5 +76,5 @@ fn activate(app: &Application) {
 
     error!("show window");
     window.show();
-    launcher.post_actions();
+    launcher.post_actions(args);
 }
