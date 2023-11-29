@@ -27,7 +27,7 @@ lazy_static! {
     static ref PREVIEW: Mutex<Option<Fragile<webkit6::WebView>>> = Mutex::new(None);
 }
 
-pub struct SqlDictPlugin {
+pub struct DictPlugin {
     pub(crate) conn: Option<Connection>,
     map: HashMap<MdxPathType, DirType>,
     re: Regex,
@@ -39,7 +39,7 @@ pub struct SqlDictPluginResult {
     pub dict: String,
 }
 
-impl SqlDictPlugin {
+impl DictPlugin {
     pub fn new(db_path: &str, files: Vec<MdxPathType>) -> Self {
         let conn = match Connection::open(db_path) {
             Ok(e) => Some(e),
@@ -60,7 +60,7 @@ impl SqlDictPlugin {
             }
         }
 
-        SqlDictPlugin {
+        DictPlugin {
             conn,
             map: Default::default(),
             re: Regex::new(r#"<link.*?>|<script.*?/script>"#).unwrap(),
@@ -119,7 +119,7 @@ impl SqlDictPlugin {
     }
 }
 
-impl Plugin<SqlDictPluginResult> for SqlDictPlugin {
+impl Plugin<SqlDictPluginResult> for DictPlugin {
     fn handle_input(&self, user_input: &UserInput) -> Vec<SqlDictPluginResult> {
         if user_input.input.is_empty() {
             return vec![];
