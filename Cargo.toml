@@ -27,3 +27,12 @@ fragile = "2.0.0"
 #procinfo = "0.4.2"
 meval = "0.2.0"
 clap = { version = "4.4.10", features = ["derive"] }
+bytes = '0.5'
+miniz_oxide = '0.4'
+encoding_rs = '0.8'
+ripemd128 = '0.1'
+anyhow = "1.0.75"
+adler = "1.0.2"
+html-escape = "0.2.13"
+minilzo = "0.2.0"
+patricia_tree = "0.6.3"

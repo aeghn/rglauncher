@@ -20,7 +20,7 @@ use crate::plugin_worker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::calculator::{CalcResult, Calculator};
 use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
-use crate::plugins::dict::{DictPlugin, SqlDictPluginResult};
+use crate::plugins::dict::{DictPlugin, DictPluginResult};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
 use crate::preview::Preview;
 
@@ -144,9 +144,9 @@ impl Launcher {
         );
 
         let dict_dir = args.dict_dir.clone();
-        PluginWorker::<DictPlugin, SqlDictPluginResult>::launch(
+        PluginWorker::<DictPlugin, DictPluginResult>::launch(
             &sidebar_sender,
-            move || DictPlugin::new(dict_dir.as_str(), vec![]),
+            move || DictPlugin::new(dict_dir.as_str()).unwrap(),
             &input_broadcast,
         );
 
