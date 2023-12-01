@@ -23,6 +23,7 @@ body, div, ul, li, h1, h2, h3, h4, h5, h6, p, form, input, label, blockquote, ta
     box-sizing: initial;
     -moz-box-sizing: initial;
     -webkit-box-sizing: initial;
+    font-family: "Zhuque Fangsong (technical preview)";
 }
 
 /* set automatically by script embedded in HTML */
@@ -123,8 +124,8 @@ body, div, ul, li, h1, h2, h3, h4, h5, h6, p, form, input, label, blockquote, ta
 
 /*
 .EXAMPLE .cn_txt{
-	display:block;
-	margin-bottom: 8px;
+    display:block;
+    margin-bottom: 8px;
 }
 */
 .Error .cn_txt {
@@ -160,7 +161,7 @@ a[title="Play Example"] {
 
 .EXAMPLE {
     position: relative;
-    /*  	margin-left: 40px; */
+    /*      margin-left: 40px; */
 }
 
 .english {
@@ -251,7 +252,7 @@ a[title="Play Example"] {
 [type=phrv],[type=phrase]{
     display: none;
 }
- */
+*/
 /* ---------------------------- hide Corpus &  Business Dictionary =========== */
 .bussdict, .corpus {
     display: none;
@@ -525,8 +526,8 @@ span.sensenum {
     margin-right: 3px;
     /*top: 2px;*/
     margin-bottom: 5px;
-    /* 	left: -21px; */
-    /* 	top: 3px; */
+    /*  left: -21px; */
+    /*  top: 3px; */
 }
 
 .Crossref.ldoce4img {
@@ -2474,14 +2475,14 @@ select.ui.dropdown {
 .ui.vertical.menu .dropdown.item>.dropdown.icon:before {
     content: "\f0da"
 }/*!
- * # Semantic UI 2.2.11 - Transition
- * http://github.com/semantic-org/semantic-ui/
- *
- *
- * Released under the MIT license
- * http://opensource.org/licenses/MIT
- *
- */
+  * # Semantic UI 2.2.11 - Transition
+  * http://github.com/semantic-org/semantic-ui/
+  *
+  *
+  * Released under the MIT license
+  * http://opensource.org/licenses/MIT
+  *
+  */
 .transition {
     -webkit-animation-iteration-count: 1;
     animation-iteration-count: 1;
@@ -4702,7 +4703,7 @@ div.header {
     padding: 1em 0em 1em 0.5em;
     width: 100%;
     -webkit-appearance: none;
- /*Safari*/
+    /*Safari*/
 }
 
 .search_input::-webkit-input-placeholder {
@@ -5049,7 +5050,8 @@ div.header {
 .content {
     position: relative;
     flex: 1 0 auto;
-    min-height: 500px;
+    /* min-height: 500px; */
+    
 }
 
 .message {
@@ -5654,9 +5656,9 @@ div.header {
     border-top: 1px dotted;
     border-bottom: 1px dotted;
     border-left: 0;
- /* EDGE */
+    /* EDGE */
     border-right: 0;
- /* EDGE */
+    /* EDGE */
     margin: 10px 0;
     border-image: radial-gradient(black, white);
     -webkit-border-image: radial-gradient(black, white);
@@ -5863,7 +5865,7 @@ div.header {
     }
 
     .assetlink .contentslot,
-  .Tail .contentslot {
+    .Tail .contentslot {
         margin-left: -10px;
     }
 }
@@ -5945,7 +5947,7 @@ div.header {
     }
 
     .content {
-        min-height: 200px;
+        /* min-height: 200px; */
         margin-bottom: 20px;
     }
 
@@ -6102,7 +6104,7 @@ div.header {
 
     .content {
         margin: 0 0 30px 0;
-        min-height: 500px;
+        /* min-height: 500px; */
     }
 
     .content img {
@@ -6708,8 +6710,8 @@ h1.topicpagetitle {
 }
 
 .ldoceEntry .EXPL .cross,
- .ldoceEntry .GramBox .EXPL .dont_say,
- .ldoceEntry .BADEXA {
+.ldoceEntry .GramBox .EXPL .dont_say,
+.ldoceEntry .BADEXA {
     color: red;
 }
 
@@ -8490,7 +8492,7 @@ div.menu {
 
 .juan_drop + input {
     display: none;
- /* hide the checkboxes */
+    /* hide the checkboxes */
 }
 
 .juan_drop + input + div {
@@ -8502,6 +8504,8 @@ div.menu {
     font-size: 20;
     display: inline;
     border-radius: 5px;
+
+    
 }
 
 .juan_drop::after {
@@ -8520,3 +8524,5 @@ div.menu {
 emphasis {
     font-weight: 700;
 }
+
+
