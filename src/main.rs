@@ -39,13 +39,11 @@ fn main() {
         activate(app, &arguments)
     });
 
-    info!("Ready.");
     let empty: Vec<String> = vec![];
     app.run_with_args(&empty);
 }
 
 fn load_css() {
-    info!("begin to load css info.");
     let provider = CssProvider::new();
     provider.load_from_data(include_str!("../resources/style.css"));
 
@@ -55,11 +53,9 @@ fn load_css() {
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
-    info!("finished loading css info.");
 }
 
 fn activate(app: &Application, args: &arguments::Arguments) {
-    info!("Activate.");
     let window = gtk::ApplicationWindow::builder()
         .default_width(800)
         .default_height(600)
@@ -68,13 +64,10 @@ fn activate(app: &Application, args: &arguments::Arguments) {
         .title("Launcher")
         .decorated(false)
         .build();
-    error!("show window1");
     let launcher = launcher::Launcher::new(&window);
-    error!("show window2");
     // let settings = Settings::default().unwrap();
     // settings.set_gtk_icon_theme_name(Some(&"ePapirus"));
 
-    error!("show window");
     window.show();
     launcher.post_actions(args);
 }
