@@ -17,8 +17,6 @@ use webkit6::{UserStyleSheet, WebView};
 
 use self::mdx_utils::MDictLookup;
 
-type DirType = String;
-
 mod mdx_utils;
 mod mdict;
 
