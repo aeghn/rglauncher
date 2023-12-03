@@ -1,19 +1,22 @@
 use flume::{Receiver, Sender};
 use glib::{clone, BoxedAnyObject, MainContext};
 use std::sync::{Arc, RwLock};
+use futures::io::Window;
 
 use gio::prelude::*;
-use gtk::gdk;
+use gtk::{Application, gdk};
 use gtk::prelude::*;
 use gtk::{
     self,
     traits::{BoxExt, GtkWindowExt, WidgetExt},
     ApplicationWindow, Entry,
 };
+use gtk::ResponseType::No;
 
 use tracing::error;
 use webkit6::prelude::WebsocketConnectionExtManual;
 use crate::arguments;
+use crate::arguments::Arguments;
 
 use crate::inputbar::{InputBar, InputMessage};
 use crate::plugin_worker::PluginWorker;
@@ -25,15 +28,25 @@ use crate::plugins::windows::{HyprWindowResult, HyprWindows};
 use crate::preview::Preview;
 
 use crate::sidebar::SidebarMsg;
+use crate::window::RGWindow;
 
+#[derive(Clone)]
 pub struct Launcher {
-    input_bar: InputBar,
-    preview: Preview,
-    window: ApplicationWindow,
-    db: Arc<RwLock<Option<rusqlite::Connection>>>,
+    app: Application,
+    app_args: Arguments,
+
+    app_msg_sender: Sender<AppMsg>,
+    app_msg_receiver: Receiver<AppMsg>,
+    input_sender: async_broadcast::Sender<Arc<InputMessage>>,
+    input_receiver: async_broadcast::Receiver<Arc<InputMessage>>,
+    selection_change_sender: Sender<BoxedAnyObject>,
     selection_change_receiver: Receiver<BoxedAnyObject>,
     sidebar_sender: Sender<SidebarMsg>,
-    app_msg_receiver: Receiver<AppMsg>,
+    sidebar_receiver: Receiver<SidebarMsg>,
+
+    db: Arc<RwLock<Option<rusqlite::Connection>>>,
+
+    pub window: Option<RGWindow>
 }
 
 pub enum AppMsg {
@@ -41,90 +54,38 @@ pub enum AppMsg {
 }
 
 impl Launcher {
-    pub fn new(window: &ApplicationWindow) -> Self {
-        Launcher::build_window(window)
-    }
+    pub fn new(application: Application, arguments: Arguments) -> Self {
+        let (mut input_sender, input_receiver) = async_broadcast::broadcast(1);
+        input_sender.set_overflow(true);
 
-    pub fn build_window(window: &ApplicationWindow) -> Self {
-        let main_box = gtk::Box::builder()
-            .orientation(gtk::Orientation::Vertical)
-            .build();
-
-        window.set_child(Some(&main_box));
-
-        let input_bar = InputBar::new();
-        main_box.append(&input_bar.entry);
-
-        let bottom_box = gtk::Box::builder()
-            .orientation(gtk::Orientation::Horizontal)
-            .vexpand(true)
-            .build();
-        main_box.append(&bottom_box);
         let (selection_change_sender, selection_change_receiver) = flume::unbounded();
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
         let (app_msg_sender, app_msg_receiver) = flume::unbounded();
 
-        let sidebar = crate::sidebar::Sidebar::new(
-            input_bar.input_broadcast.clone(),
-            sidebar_receiver.clone(),
-            selection_change_sender.clone(),
-            app_msg_sender,
-        );
-        let sidebar_window = &sidebar.scrolled_window;
-        bottom_box.append(sidebar_window);
-
-        let mut sidebar_worker = sidebar.clone();
-        MainContext::ref_thread_default().spawn_local(async move {
-            sidebar_worker.loop_recv().await;
-        });
-
-        let preview = Preview::new();
-        bottom_box.append(&preview.preview_window.clone());
-
         Launcher {
-            window: window.clone(),
-            input_bar,
-            preview,
-            db: Arc::new(RwLock::default()),
+            app: application,
+            app_args: arguments,
+
+            app_msg_sender,
+            app_msg_receiver,
+            input_sender,
+            input_receiver,
+            selection_change_sender,
             selection_change_receiver,
             sidebar_sender,
-            app_msg_receiver,
+            sidebar_receiver,
+
+            db: Arc::new(RwLock::default()),
+
+            window: None
         }
     }
 
-    pub fn post_actions(&self, args: &arguments::Arguments) {
-        let preview_worker = self.preview.clone();
-        let scr = self.selection_change_receiver.clone();
-        MainContext::ref_thread_default().spawn_local(async move {
-            preview_worker.loop_recv(scr).await;
-        });
+    pub fn launch_plugins(&self) {
+        let sidebar_sender = self.sidebar_sender.clone();
+        let input_broadcast = self.input_receiver.clone();
 
-        Launcher::setup_keybindings(
-            &self.window,
-            self.sidebar_sender.clone(),
-            &self.input_bar.entry,
-        );
-
-        {
-            let window = self.window.clone();
-            let amr = self.app_msg_receiver.clone();
-            MainContext::ref_thread_default().spawn_local(async move {
-                Launcher::handle_app_msgs(amr, window).await;
-            });
-        }
-        Self::launch_plugins(
-            self.sidebar_sender.clone(),
-            self.input_bar.input_broadcast.clone(),
-            args
-        )
-    }
-
-    fn launch_plugins(
-        sidebar_sender: Sender<SidebarMsg>,
-        input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
-        args: &arguments::Arguments
-    ) {
-        let clip_db = args.clip_db.clone();
+        let clip_db = self.app_args.clip_db.clone();
         PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
             &sidebar_sender,
             move || ClipboardPlugin::new(clip_db.as_str()),
@@ -143,7 +104,7 @@ impl Launcher {
             &input_broadcast,
         );
 
-        let dict_dir = args.dict_dir.clone();
+        let dict_dir = self.app_args.dict_dir.clone();
         PluginWorker::<DictPlugin, DictPluginResult>::launch(
             &sidebar_sender,
             move || DictPlugin::new(dict_dir.as_str()).unwrap(),
@@ -157,65 +118,19 @@ impl Launcher {
         );
     }
 
-    async fn handle_app_msgs(app_msg_receiver: flume::Receiver<AppMsg>, window: ApplicationWindow) {
-        loop {
-            match app_msg_receiver.recv_async().await {
-                Ok(msg) => match msg {
-                    AppMsg::Exit => match window.application() {
-                        None => {
-                            error!("unable to get this application.");
-                        }
-                        Some(app) => {
-                            app.quit();
-                        }
-                    },
-                },
-                Err(_) => {}
-            }
-        }
-    }
-
-    fn setup_keybindings(
-        window: &gtk::ApplicationWindow,
-        sidebar_sender: flume::Sender<SidebarMsg>,
-        entry: &Entry,
-    ) {
-        let controller = gtk::EventControllerKey::new();
-
-        controller.connect_key_pressed(clone!(@strong window,
-            @strong entry=> move |_, key, _keycode, _| {
-            match key {
-                gdk::Key::Up => {
-                    sidebar_sender.send(SidebarMsg::PreviousItem).unwrap();
-                    glib::Propagation::Proceed
-                }
-                gdk::Key::Down => {
-                    sidebar_sender.send(SidebarMsg::NextItem).unwrap();
-                    glib::Propagation::Proceed
-                }
-                gdk::Key::Escape => {
-                    window.destroy();
-                    glib::Propagation::Proceed
-                }
-                gdk::Key::Return => {
-                    sidebar_sender.send(SidebarMsg::Enter).unwrap();
-
-                    glib::Propagation::Proceed
-                }
-                _ => {
-                    if !(key.is_lower() && key.is_upper()) {
-                        if let Some(key_name) = key.name() {
-                            let buffer = entry.buffer();
-
-                            let content = buffer.text();
-                            buffer.insert_text((content.len()) as u16, key_name);
-                        }
-                    }
-
-                    glib::Propagation::Proceed
-                }
-            }
-        }));
-        window.add_controller(controller);
+    pub fn new_window(&mut self) -> RGWindow {
+        let window = RGWindow::new(
+            &self.app,
+            self.app_msg_sender.clone(),
+            self.app_msg_receiver.clone(),
+            self.input_sender.clone(),
+            self.input_receiver.clone(),
+            self.selection_change_sender.clone(),
+            self.selection_change_receiver.clone(),
+            self.sidebar_sender.clone(),
+            self.sidebar_receiver.clone(),
+        );
+        self.window.replace(window.clone());
+        return window
     }
 }
