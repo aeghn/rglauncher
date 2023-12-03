@@ -646,7 +646,7 @@ impl<R: Read + Seek> MDictIndex<R> {
                     Some((_, next_offset)) => *next_offset,
                     None => next_uncomp_offset,
                 };
-                let len = end.max(next_uncomp_offset) - o;
+                let len = end.max(next_comp_offset) - o;
                 let index = MDictRecordIndex {
                     block: bi as u32,
                     offset: offset as u32,
