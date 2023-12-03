@@ -1,8 +1,8 @@
 use clap::Parser;
-use crate::constant;
+use crate::constants;
 
-#[derive(Parser, Default, Debug)]
-#[command(author = constant::PROJECT_AUTHOR, version = constant::PROJECT_VERSION, about = constant::PROJECT_DESCRIPTION)]
+#[derive(Parser, Default, Debug, Clone)]
+#[command(author = constants::PROJECT_AUTHOR, version = constants::PROJECT_VERSION, about = constants::PROJECT_DESCRIPTION)]
 pub struct Arguments {
     #[clap(long, help = "Gtk Theme to Use")]
     pub theme: String,
