@@ -1,46 +1,40 @@
 // #![no_main]
 
 mod arguments;
-mod constant;
+mod constants;
 mod icon_cache;
 mod inputbar;
 mod launcher;
-pub mod plugin_worker;
+mod plugin_worker;
 mod plugins;
 mod preview;
 mod user_input;
 mod sidebar;
 mod sidebar_row;
 mod util;
+mod window;
 
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use clap::Parser;
+use gio::File;
+use gio::FileType::Directory;
 use tracing::*;
 
 use gtk::gdk::*;
 use gtk::prelude::*;
 use gtk::*;
 
+use std::os::unix::net::{UnixListener, UnixStream};
+use fragile::Fragile;
+use glib::MainContext;
+use crate::launcher::Launcher;
+use crate::window::RGWindow;
+
 const APP_ID: &str = "org.codeberg.wangzh.rglauncher";
 
 fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .with_timer(tracing_subscriber::fmt::time::time())
-        .init();
-
-
-    let arguments = arguments::Arguments::parse();
-
-    let app = Application::builder().application_id(APP_ID).build();
-
-    app.connect_startup(|_| load_css());
-
-    app.connect_activate(move |app| {
-        activate(app, &arguments)
-    });
-
-    let empty: Vec<String> = vec![];
-    app.run_with_args(&empty);
+    ensure_unix_socket().expect("unable to create socket");
 }
 
 fn load_css() {
@@ -55,19 +49,81 @@ fn load_css() {
 
 }
 
-fn activate(app: &Application, args: &arguments::Arguments) {
-    let window = gtk::ApplicationWindow::builder()
-        .default_width(800)
-        .default_height(600)
-        .application(app)
-        .resizable(false)
-        .title("Launcher")
-        .decorated(false)
-        .build();
-    let launcher = launcher::Launcher::new(&window);
-    // let settings = Settings::default().unwrap();
-    // settings.set_gtk_icon_theme_name(Some(&"ePapirus"));
+fn activate(launcher: Launcher) {
+    let window = launcher.clone().new_window();
 
-    window.show();
-    launcher.post_actions(args);
+    window.prepare();
+    window.show_window();
+}
+
+fn ensure_unix_socket() -> anyhow::Result<bool>{
+    match UnixStream::connect(constants::UNIX_SOCKET_PATH) {
+        Ok(mut stream) => {
+            stream.write_all("new_window".as_bytes())?;
+            Ok(true)
+        }
+        Err(_) => {
+            tracing_subscriber::fmt()
+                .with_max_level(Level::INFO)
+                .with_timer(tracing_subscriber::fmt::time::time())
+                .init();
+
+            let app = Application::builder().application_id(APP_ID).build();
+
+            let arguments = arguments::Arguments::parse();
+            let launcher = launcher::Launcher::new(app.clone(), arguments);
+            let launcher_wrapper = Fragile::new(launcher.clone());
+
+            app.connect_startup(|_| load_css());
+
+            {
+                let launcher = launcher.clone();
+                launcher.launch_plugins();
+                app.connect_activate(move |_| {
+                    activate(launcher.clone());
+                });
+            }
+
+            let empty: Vec<String> = vec![];
+            app.run_with_args(&empty);
+
+
+            std::thread::spawn(|| {
+                if !Path::new(constants::TMP_DIR).exists() {
+                    std::fs::create_dir(constants::TMP_DIR)?;
+                }
+
+                if Path::new(constants::UNIX_SOCKET_PATH).exists() {
+                    std::fs::remove_file(constants::UNIX_SOCKET_PATH)?;
+                }
+
+                let listener = UnixListener::bind(constants::UNIX_SOCKET_PATH)?;
+                loop {
+                    match listener.accept() {
+                        Ok((mut stream, _)) => {
+                            let mut response = String::new();
+                            stream.read_to_string(&mut response)?;
+
+                            if response == "new_window" {
+                                let launcher_wrapper = launcher_wrapper.clone();
+                                MainContext::ref_thread_default().invoke(move || {
+                                    // activate(launcher_wrapper.get().clone());
+                                    match launcher_wrapper.get().window.clone() {
+                                        None => {}
+                                        Some(win) => {
+                                            win.show_window();
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        Err(e) => {
+                            error!("Failed to accept connection: {}", e);
+                        }
+                    }
+                }
+            });
+            Ok(true)
+        }
+    }
 }
