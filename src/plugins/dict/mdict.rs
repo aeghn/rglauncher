@@ -188,7 +188,7 @@ impl MDictHeader {
         check_eq(calc_checksum, checksum, "MDict header checksum")?;
         // two 0x0 in the end of the content
         let attrs = Self::parse_header(&header_buf[0..size - 2])?;
-        tracing::info!("MDict header: {:#?}", attrs);
+        tracing::debug!("MDict header: {:#?}", attrs);
         let encoding = match mode {
             MDictMode::Mdx => Encoding::for_label(
                 attrs
@@ -200,7 +200,7 @@ impl MDictHeader {
             .unwrap_or(encoding_rs::UTF_16LE),
             MDictMode::Mdd => encoding_rs::UTF_16LE,
         };
-        tracing::info!("Using encoding: {}", encoding.name());
+        tracing::debug!("Using encoding: {}", encoding.name());
         let encryption_mode = match attrs.get("Encrypted") {
             Some(e) => e.as_str().try_into()?,
             None => MDictEncryptionMode::none(),
@@ -404,7 +404,7 @@ impl<R: Read + Seek> MDictIndex<R> {
         };
         let key_block_index_size = opt(self.read_int(&mut reader));
         let key_block_size = opt(self.read_int(&mut reader));
-        tracing::info!("number of entries: {:?}", entries_num);
+        tracing::debug!("number of entries: {:?}", entries_num);
         let now = std::time::Instant::now();
         let key_block_index_buf = match key_block_index_size {
             Some(size) => read_len(&mut self.file, size as usize)?,
@@ -447,11 +447,11 @@ impl<R: Read + Seek> MDictIndex<R> {
             key_block_size,
             "Size of keyword blocks",
         )?;
-        tracing::info!("Decode keywords block index in {:?}", now.elapsed());
+        tracing::debug!("Decode keywords block index in {:?}", now.elapsed());
         let now = std::time::Instant::now();
         let key_block = read_len(&mut self.file, key_block_size_calc as usize)?.into();
         let keys = self.read_key_block(key_block, key_block_index)?;
-        tracing::info!("Decode keywords blocks in {:?}", now.elapsed());
+        tracing::debug!("Decode keywords blocks in {:?}", now.elapsed());
         Ok(keys)
     }
 
@@ -475,7 +475,7 @@ impl<R: Read + Seek> MDictIndex<R> {
                 block.extend(next);
             }
         }
-        tracing::info!("Search end in {:?}", now.elapsed());
+        tracing::debug!("Search end in {:?}", now.elapsed());
         Ok(block)
     }
 
@@ -596,12 +596,12 @@ impl<R: Read + Seek> MDictIndex<R> {
         let header_buf = read_len(&mut self.file, header_size)?;
         let mut header = header_buf.as_slice();
         let num_blocks = self.read_int(&mut header);
-        tracing::info!("record block num: {}", num_blocks);
+        tracing::debug!("record block num: {}", num_blocks);
         let num_entries = self.read_int(&mut header) as usize;
         let block_index_size = self.read_int(&mut header);
-        tracing::info!("record block index size: {}", block_index_size);
+        tracing::debug!("record block index size: {}", block_index_size);
         let blocks_size = self.read_int(&mut header);
-        tracing::info!("record blocks size: {}", blocks_size);
+        tracing::debug!("record blocks size: {}", blocks_size);
         let block_index_size_calc = num_blocks
             * 2
             * match self.header.version() {
@@ -618,7 +618,7 @@ impl<R: Read + Seek> MDictIndex<R> {
         let block_index = self.read_record_block_info(block_index_bytes.into())?;
         let blocks_size_calc: u64 = block_index.iter().map(|(c, _)| *c).sum();
         check_eq(blocks_size_calc, blocks_size, "Size of record block")?;
-        tracing::info!("Decode record block index in {:?}", now.elapsed());
+        tracing::debug!("Decode record block index in {:?}", now.elapsed());
 
         let now = std::time::Instant::now();
         // collect pairs of (keywords, offset in uncompressed records), drop others
@@ -661,7 +661,7 @@ impl<R: Read + Seek> MDictIndex<R> {
             uncomp_offset = next_uncomp_offset;
             blocks.push(record_block);
         }
-        tracing::info!("Generate index of keyword to record in {:?}", now.elapsed());
+        tracing::debug!("Generate index of keyword to record in {:?}", now.elapsed());
         Ok((blocks, indexes))
     }
 
@@ -801,7 +801,7 @@ where
     let compressed = read_len(&mut reader, block.comp_size as usize)?;
     let comp_size = compressed.len();
     let mut uncompressed = uncompress(compressed.into())?;
-    tracing::info!(
+    tracing::debug!(
         "uncompress record block {} -> {}",
         comp_size,
         uncompressed.len()
