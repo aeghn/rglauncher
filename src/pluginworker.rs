@@ -12,7 +12,7 @@ use glib::{idle_add, ControlFlow, MainContext};
 use crate::inputbar::InputMessage;
 use crate::inputbar::InputMessage::TextChanged;
 use crate::plugins::{Plugin, PluginResult};
-use crate::user_input::UserInput;
+use crate::userinput::UserInput;
 
 use crate::sidebar::SidebarMsg;
 

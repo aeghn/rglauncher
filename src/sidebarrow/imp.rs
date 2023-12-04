@@ -4,7 +4,7 @@ use gtk::subclass::prelude::*;
 use gtk::CompositeTemplate;
 
 #[derive(Debug, Default, CompositeTemplate)]
-#[template(file = "sidebar_row.ui")]
+#[template(file = "sidebarrow.ui")]
 pub struct SidebarRow {
     #[template_child]
     pub image: TemplateChild<gtk::Image>,

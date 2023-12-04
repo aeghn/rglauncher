@@ -1,6 +1,6 @@
 use crate::icon_cache;
 use crate::plugins::{Plugin, PluginResult};
-use crate::user_input::UserInput;
+use crate::userinput::UserInput;
 use fragile::Fragile;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;

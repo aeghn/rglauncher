@@ -1,5 +1,5 @@
 use crate::plugins::{Plugin, PluginResult};
-use crate::user_input::UserInput;
+use crate::userinput::UserInput;
 use crate::util::{score_utils, string_utils};
 
 use glib::{Cast};
