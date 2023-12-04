@@ -48,7 +48,7 @@ impl MDictMemIndex {
                 "Expect a mdx file",
             ));
         }
-        tracing::info!("mdx: {}", mdx_file.to_string_lossy());
+        tracing::debug!("mdx: {}", mdx_file.to_string_lossy());
         let mut mdd_files = Vec::new();
         let mdd0 = mdx_file.with_extension("mdd");
         if mdd0.is_file() {
@@ -57,7 +57,7 @@ impl MDictMemIndex {
                 let ext = format!("{}.mdd", i);
                 let mddi = mdx_file.with_extension(ext);
                 if mddi.is_file() {
-                    tracing::info!("mdd: {}", mddi.to_string_lossy());
+                    tracing::debug!("mdd: {}", mddi.to_string_lossy());
                     mdd_files.push(mddi);
                 } else {
                     break;
@@ -71,7 +71,7 @@ impl MDictMemIndex {
         let (mdx_block, mdx_keys) = mdx.make_index()?;
         let now = std::time::Instant::now();
         let mdx_index = mdx_keys.into_iter().collect();
-        tracing::info!("Build Patricia Map for mdx in {:?}", now.elapsed());
+        tracing::debug!("Build Patricia Map for mdx in {:?}", now.elapsed());
         let mut mdd_index = PatriciaMap::new();
         let mut mdd_blocks = Vec::new();
         for (i, file) in mdd_files.iter().enumerate() {
@@ -89,7 +89,7 @@ impl MDictMemIndex {
                 (key, (i as u8, idx))
             }));
             mdd_blocks.push(mdd_block);
-            tracing::info!("Build Patricia Map for mdd {} in {:?}", i, now.elapsed());
+            tracing::debug!("Build Patricia Map for mdd {} in {:?}", i, now.elapsed());
         }
         Ok(MDictMemIndex {
             mdx_index,
