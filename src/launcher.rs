@@ -1,6 +1,7 @@
 use flume::{Receiver, Sender};
 use glib::{clone, BoxedAnyObject, MainContext};
 use std::sync::{Arc, RwLock};
+use std::thread::sleep;
 use futures::io::Window;
 
 use gio::prelude::*;
@@ -13,13 +14,13 @@ use gtk::{
 };
 use gtk::ResponseType::No;
 
-use tracing::error;
+use tracing::{error, info};
 use webkit6::prelude::WebsocketConnectionExtManual;
 use crate::arguments;
 use crate::arguments::Arguments;
 
 use crate::inputbar::{InputBar, InputMessage};
-use crate::plugin_worker::PluginWorker;
+use crate::pluginworker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::calculator::{CalcResult, Calculator};
 use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
@@ -45,22 +46,23 @@ pub struct Launcher {
     sidebar_receiver: Receiver<SidebarMsg>,
 
     db: Arc<RwLock<Option<rusqlite::Connection>>>,
-
-    pub window: Option<RGWindow>
 }
 
 pub enum AppMsg {
+    SelectSomething,
     Exit,
+    NewWindow,
 }
 
 impl Launcher {
-    pub fn new(application: Application, arguments: Arguments) -> Self {
+    pub fn new(application: Application, arguments: Arguments,
+               app_msg_sender: Sender<AppMsg>,
+               app_msg_receiver: Receiver<AppMsg>) -> Self {
         let (mut input_sender, input_receiver) = async_broadcast::broadcast(1);
         input_sender.set_overflow(true);
 
         let (selection_change_sender, selection_change_receiver) = flume::unbounded();
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
-        let (app_msg_sender, app_msg_receiver) = flume::unbounded();
 
         Launcher {
             app: application,
@@ -76,14 +78,14 @@ impl Launcher {
             sidebar_receiver,
 
             db: Arc::new(RwLock::default()),
-
-            window: None
         }
     }
 
     pub fn launch_plugins(&self) {
         let sidebar_sender = self.sidebar_sender.clone();
         let input_broadcast = self.input_receiver.clone();
+
+        self.message_handler();
 
         let clip_db = self.app_args.clip_db.clone();
         PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
@@ -118,11 +120,16 @@ impl Launcher {
         );
     }
 
-    pub fn new_window(&mut self) -> RGWindow {
+    pub fn message_handler(&self) {
+        let oself = self.clone();
+
+    }
+
+    pub fn new_window(&self) -> RGWindow {
+        let app_msg_receiver = self.app_msg_receiver.clone();
         let window = RGWindow::new(
             &self.app,
             self.app_msg_sender.clone(),
-            self.app_msg_receiver.clone(),
             self.input_sender.clone(),
             self.input_receiver.clone(),
             self.selection_change_sender.clone(),
@@ -130,7 +137,26 @@ impl Launcher {
             self.sidebar_sender.clone(),
             self.sidebar_receiver.clone(),
         );
-        self.window.replace(window.clone());
+
+        let win = window.clone();
+        MainContext::ref_thread_default().spawn_local(async move {
+            loop {
+                match app_msg_receiver.recv_async().await {
+                    Ok(msg) => match msg {
+                        AppMsg::Exit =>  {
+                        },
+                        AppMsg::NewWindow => {
+                            win.show_window();
+                        }
+                        AppMsg::SelectSomething => {
+                            win.hide_window();
+                        }
+                    },
+                    Err(_) => {}
+                }
+            }
+        });
+
         return window
     }
 }

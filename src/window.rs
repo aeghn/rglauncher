@@ -2,15 +2,16 @@ use std::sync::Arc;
 use flume::{Receiver, Sender};
 use gdk::Key;
 use gio::traits::ApplicationExt;
-use glib::{BoxedAnyObject, clone, MainContext};
+use glib::{BoxedAnyObject, clone, GStr, MainContext};
 use gtk::{Application, ApplicationWindow, gdk};
 use gtk::prelude::EntryBufferExtManual;
 use gtk::traits::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
-use tracing::error;
+use tracing::{error, info};
 use crate::inputbar::{InputBar, InputMessage};
 use crate::launcher::AppMsg;
 use crate::preview::Preview;
 use crate::sidebar::SidebarMsg;
+use gtk::prelude::EditableExt;
 
 
 #[derive(Clone)]
@@ -19,7 +20,6 @@ pub struct RGWindow {
     input_bar: InputBar,
     preview: Preview,
     sidebar_sender: Sender<SidebarMsg>,
-    app_msg_receiver: flume::Receiver<AppMsg>,
     selection_change_receiver: flume::Receiver<BoxedAnyObject>,
 
 }
@@ -27,7 +27,6 @@ pub struct RGWindow {
 impl RGWindow {
     pub fn new(app: &Application,
                app_msg_sender: Sender<AppMsg>,
-               app_msg_receiver: flume::Receiver<AppMsg>,
                input_sender: async_broadcast::Sender<Arc<InputMessage>>,
                input_receiver: async_broadcast::Receiver<Arc<InputMessage>>,
                selection_change_sender: Sender<BoxedAnyObject>,
@@ -80,48 +79,42 @@ impl RGWindow {
             input_bar,
             preview,
             sidebar_sender,
-            app_msg_receiver,
-            selection_change_receiver
+            selection_change_receiver,
         }
     }
 
     fn setup_keybindings(&self) {
         let controller = gtk::EventControllerKey::new();
         let sender = self.sidebar_sender.clone();
-        let entry = &self.input_bar.entry;
+        let entry = self.input_bar.entry.clone();
         let window = &self.window;
 
         controller.connect_key_pressed(clone!(@strong window,
             @strong entry => move |_, key, _keycode, _| {
             match key {
                 gdk::Key::Up => {
-                    sender.send(SidebarMsg::PreviousItem).unwrap();
-                    glib::Propagation::Proceed
-                }
+                        sender.send(SidebarMsg::PreviousItem).unwrap();
+                        glib::Propagation::Proceed
+                    }
                 gdk::Key::Down => {
-                    sender.send(SidebarMsg::NextItem).unwrap();
-                    glib::Propagation::Proceed
+                        sender.send(SidebarMsg::NextItem).unwrap();
+                        glib::Propagation::Proceed
                 }
                 gdk::Key::Escape => {
-                    window.hide();
-                    glib::Propagation::Proceed
-                }
-                gdk::Key::Return => {
-                    sender.send(SidebarMsg::Enter).unwrap();
-
-                    glib::Propagation::Proceed
+                        window.hide();
+                        glib::Propagation::Proceed
                 }
                 _ => {
-                    if !(key.is_lower() && key.is_upper()) {
-                        if let Some(key_name) = key.name() {
-                            let buffer = entry.buffer();
+                        if !(key.is_lower() && key.is_upper()) {
+                            if let Some(key_name) = key.name() {
+                                let buffer = entry.buffer();
 
-                            let content = buffer.text();
-                            buffer.insert_text((content.len()) as u16, key_name);
+                                let content = buffer.text();
+                                buffer.insert_text((content.len()) as u16, key_name);
+                            }
                         }
-                    }
 
-                    glib::Propagation::Proceed
+                        glib::Propagation::Proceed
                 }
             }
         }));
@@ -130,26 +123,6 @@ impl RGWindow {
 
     pub fn prepare(&self) {
         self.setup_keybindings();
-
-        let app_msg_receiver = self.app_msg_receiver.clone();
-        let window = self.window.clone();
-        MainContext::ref_thread_default().spawn_local(async move {
-            loop {
-                match app_msg_receiver.recv_async().await {
-                    Ok(msg) => match msg {
-                        AppMsg::Exit => match window.application() {
-                            None => {
-                                error!("unable to get this application.");
-                            }
-                            Some(app) => {
-                            }
-                        },
-                    },
-                    Err(_) => {}
-                }
-            }
-        });
-
         let selection_change_receiver = self.selection_change_receiver.clone();
         let preview = self.preview.clone();
         MainContext::ref_thread_default().spawn_local(async move {
@@ -159,5 +132,15 @@ impl RGWindow {
 
     pub fn show_window(&self) {
         self.window.show();
+    }
+
+    pub fn hide_window(&self) {
+        let entry = self.input_bar.entry.clone();
+        let window = self.window.clone();
+
+        glib::idle_add_local_once(move || {
+            window.hide();
+            entry.set_text(&"".to_string());
+        });
     }
 }

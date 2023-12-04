@@ -9,7 +9,7 @@ use gtk::{Align, Image, TextBuffer, TextView, Widget};
 use gtk::Align::End;
 
 use crate::plugins::{Plugin, PluginResult};
-use crate::user_input::UserInput;
+use crate::userinput::UserInput;
 use gtk::traits::{GridExt, WidgetExt};
 use gtk::Grid;
 use gtk::Label;

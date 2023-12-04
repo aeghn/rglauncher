@@ -1,16 +1,14 @@
-// #![no_main]
-
 mod arguments;
 mod constants;
 mod icon_cache;
 mod inputbar;
 mod launcher;
-mod plugin_worker;
+mod pluginworker;
 mod plugins;
 mod preview;
-mod user_input;
+mod userinput;
 mod sidebar;
-mod sidebar_row;
+mod sidebarrow;
 mod util;
 mod window;
 
@@ -26,15 +24,16 @@ use gtk::prelude::*;
 use gtk::*;
 
 use std::os::unix::net::{UnixListener, UnixStream};
+use flume::{Receiver, Sender};
 use fragile::Fragile;
-use glib::MainContext;
-use crate::launcher::Launcher;
+use glib::{MainContext, MainLoop};
+use crate::launcher::{AppMsg, Launcher};
 use crate::window::RGWindow;
 
 const APP_ID: &str = "org.codeberg.wangzh.rglauncher";
 
 fn main() {
-    ensure_unix_socket().expect("unable to create socket");
+    try_communicate().expect("unable to create socket");
 }
 
 fn load_css() {
@@ -49,80 +48,96 @@ fn load_css() {
 
 }
 
-fn activate(launcher: Launcher) {
-    let window = launcher.clone().new_window();
+fn activate(app: &Application, app_msg_sender: Sender<AppMsg>, app_msg_receiver: Receiver<AppMsg>) {
+    let arguments = arguments::Arguments::parse();
+
+    let launcher = launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
+
+    launcher.launch_plugins();
+
+    let window = launcher.new_window();
 
     window.prepare();
     window.show_window();
 }
 
-fn ensure_unix_socket() -> anyhow::Result<bool>{
+fn start_new() {
+    tracing_subscriber::fmt()
+        .with_max_level(Level::INFO)
+        .with_timer(tracing_subscriber::fmt::time::time())
+        .init();
+
+    let (app_msg_sender, app_msg_receiver) = flume::unbounded();
+
+    {
+        let app_msg_sender = app_msg_sender.clone();
+        std::thread::spawn(move || {
+            build_uds(&app_msg_sender).expect("unable to build unix domain socket");
+        });
+    }
+
+    gtk::init();
+
+    let main_loop = glib::MainLoop::new(None, false);
+
+    let app = Application::builder().application_id(APP_ID).build();
+
+    app.connect_startup(|_| load_css());
+
+    {
+        let app_msg_sender = app_msg_sender.clone();
+        let app_msg_receiver = app_msg_receiver.clone();
+        app.connect_activate(move |app| {
+            activate(app,
+                     app_msg_sender.clone(),
+                     app_msg_receiver.clone());
+        });
+
+    }
+
+    let empty: Vec<String> = vec![];
+    let _ = app.hold();
+    app.run_with_args(&empty);
+
+    main_loop.run();
+}
+
+fn build_uds(app_msg_sender: &Sender<AppMsg>) -> anyhow::Result<()> {
+    if !Path::new(constants::TMP_DIR).exists() {
+        std::fs::create_dir(constants::TMP_DIR)?;
+    }
+
+    if Path::new(constants::UNIX_SOCKET_PATH).exists() {
+        std::fs::remove_file(constants::UNIX_SOCKET_PATH)?;
+    }
+
+    let listener = UnixListener::bind(constants::UNIX_SOCKET_PATH)?;
+    loop {
+        match listener.accept() {
+            Ok((mut stream, _)) => {
+                let mut response = String::new();
+                stream.read_to_string(&mut response)?;
+                info!("Got Echo {}", response);
+
+                if response == "new_window" {
+                    app_msg_sender.send(AppMsg::NewWindow)?;
+                }
+            }
+            Err(e) => {
+                error!("Failed to accept connection: {}", e);
+            }
+        }
+    }
+}
+
+fn try_communicate() -> anyhow::Result<bool>{
     match UnixStream::connect(constants::UNIX_SOCKET_PATH) {
         Ok(mut stream) => {
             stream.write_all("new_window".as_bytes())?;
             Ok(true)
         }
         Err(_) => {
-            tracing_subscriber::fmt()
-                .with_max_level(Level::INFO)
-                .with_timer(tracing_subscriber::fmt::time::time())
-                .init();
-
-            let app = Application::builder().application_id(APP_ID).build();
-
-            let arguments = arguments::Arguments::parse();
-            let launcher = launcher::Launcher::new(app.clone(), arguments);
-            let launcher_wrapper = Fragile::new(launcher.clone());
-
-            app.connect_startup(|_| load_css());
-
-            {
-                let launcher = launcher.clone();
-                launcher.launch_plugins();
-                app.connect_activate(move |_| {
-                    activate(launcher.clone());
-                });
-            }
-
-            let empty: Vec<String> = vec![];
-            app.run_with_args(&empty);
-
-
-            std::thread::spawn(|| {
-                if !Path::new(constants::TMP_DIR).exists() {
-                    std::fs::create_dir(constants::TMP_DIR)?;
-                }
-
-                if Path::new(constants::UNIX_SOCKET_PATH).exists() {
-                    std::fs::remove_file(constants::UNIX_SOCKET_PATH)?;
-                }
-
-                let listener = UnixListener::bind(constants::UNIX_SOCKET_PATH)?;
-                loop {
-                    match listener.accept() {
-                        Ok((mut stream, _)) => {
-                            let mut response = String::new();
-                            stream.read_to_string(&mut response)?;
-
-                            if response == "new_window" {
-                                let launcher_wrapper = launcher_wrapper.clone();
-                                MainContext::ref_thread_default().invoke(move || {
-                                    // activate(launcher_wrapper.get().clone());
-                                    match launcher_wrapper.get().window.clone() {
-                                        None => {}
-                                        Some(win) => {
-                                            win.show_window();
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed to accept connection: {}", e);
-                        }
-                    }
-                }
-            });
+            start_new();
             Ok(true)
         }
     }

@@ -24,13 +24,14 @@ lazy_static! {
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
 use lazy_static::lazy_static;
+use tracing::info;
 
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
 use crate::plugins::PluginResult;
-use crate::user_input::UserInput;
-use crate::sidebar_row::SidebarRow;
+use crate::userinput::UserInput;
+use crate::sidebarrow::SidebarRow;
 
 pub enum SidebarMsg {
     PluginResult(UserInput, Box<dyn PluginResult>),
@@ -137,14 +138,16 @@ impl Sidebar {
             }
             SidebarMsg::Enter => {
                 let item = self.selection_model.selected_item();
-                if let Some(boxed) = item {
-                    let tt = boxed
-                        .downcast_ref::<BoxedAnyObject>()
-                        .unwrap()
-                        .borrow::<Box<dyn PluginResult>>();
-                    tt.on_enter();
-                }
-                self.app_msg_sender.send(AppMsg::Exit).expect("should send");
+                glib::idle_add_local_once(|| {
+                    if let Some(boxed) = item {
+                        let tt = boxed
+                            .downcast_ref::<BoxedAnyObject>()
+                            .unwrap()
+                            .borrow::<Box<dyn PluginResult>>();
+                        tt.on_enter();
+                    }
+                });
+                self.app_msg_sender.send(AppMsg::SelectSomething).expect("should send");
             }
         }
     }
