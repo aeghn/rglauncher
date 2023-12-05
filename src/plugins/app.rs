@@ -1,5 +1,5 @@
-use crate::icon_cache;
-use crate::plugins::{Plugin, PluginResult};
+use crate::{icon_cache, register_plugin_preview};
+use crate::plugins::{Plugin, PluginPreview, PluginResult};
 use crate::userinput::UserInput;
 use fragile::Fragile;
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -11,15 +11,8 @@ use lazy_static::lazy_static;
 use std::option::Option::None;
 
 use std::sync::Mutex;
+use ripemd128::digest::impl_write;
 use crate::util::score_utils;
-
-
-lazy_static! {
-    static ref PREVIEW: Mutex<Option<Fragile<(gtk::Widget, gtk::Image, gtk::Label, gtk::Label, gtk::Label)>>> =
-        Mutex::new(None);
-}
-
-pub struct AppPlugin {}
 
 pub struct AppResult {
     icon_name: String,
@@ -30,7 +23,7 @@ pub struct AppResult {
 }
 
 impl PluginResult for AppResult {
-    fn get_score(&self) -> i32 {
+    fn score(&self) -> i32 {
         score_utils::high(self.score as i64)
     }
 
@@ -46,43 +39,6 @@ impl PluginResult for AppResult {
         Some(self.app_desc.clone())
     }
 
-    fn preview(&self) -> gtk::Widget {
-        let mut guard = PREVIEW.lock().unwrap();
-
-        let wv = guard
-            .get_or_insert_with(|| {
-                let preview = gtk::Grid::builder()
-                    .vexpand(true)
-                    .hexpand(true)
-                    .valign(gtk::Align::Center)
-                    .halign(gtk::Align::Center)
-                    .build();
-
-                let icon = gtk::Image::builder().pixel_size(256).build();
-                preview.attach(&icon, 0, 0, 1, 1);
-
-                let name = gtk::Label::builder().css_classes(["font32"]).wrap(true).build();
-                preview.attach(&name, 0, 1, 1, 1);
-
-                let desc = gtk::Label::builder().wrap(true).build();
-                preview.attach(&desc, 0, 2, 1, 1);
-
-                let exec = gtk::Label::builder().wrap(true).build();
-                preview.attach(&exec, 0, 3, 1, 1);
-
-                Fragile::new((preview.upcast(), icon, name, exec, desc))
-            })
-            .get();
-
-        let (preview, image, name, exec, desc) = wv;
-        image.set_from_gicon(icon_cache::get_icon(self.app_name.as_str()).get());
-        name.set_label(self.app_name.as_str());
-        exec.set_label("");
-        desc.set_label(self.app_desc.as_str());
-
-        preview.clone()
-    }
-
     fn on_enter(&self) {
         gio::AppInfo::all().iter().for_each(|app_info| {
             if app_info.id().unwrap().to_string() == self.id {
@@ -94,6 +50,10 @@ impl PluginResult for AppResult {
     }
 }
 
+pub struct AppPlugin {
+
+}
+
 impl AppPlugin {
     pub fn new() -> Self {
         AppPlugin {}
@@ -101,13 +61,14 @@ impl AppPlugin {
 }
 
 impl Plugin<AppResult> for AppPlugin {
-    fn handle_input(&self, user_input: &UserInput) -> Vec<AppResult> {
-        let matcher = SkimMatcherV2::default();
-        let mut result: Vec<AppResult> = vec![];
+    fn refresh_content(&mut self) {
+    }
 
-        gio::AppInfo::all().iter().for_each(|app_info| {
+    fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<AppResult>> {
+        let matcher = SkimMatcherV2::default();
+        let mut result: Vec<AppResult> = gio::AppInfo::all().iter().filter_map(|app_info| {
             if !app_info.should_show() {
-                return;
+                return None
             }
 
             let mut score: i32 = 0;
@@ -120,7 +81,7 @@ impl Plugin<AppResult> for AppPlugin {
             }
 
             if score > 0 {
-                result.push(AppResult {
+                Some(AppResult {
                     id: app_info.id().unwrap().to_string(),
                     icon_name: app_info.name().to_string(),
                     app_name: app_info.name().to_string(),
@@ -129,10 +90,63 @@ impl Plugin<AppResult> for AppPlugin {
                         Some(des) => des.to_string(),
                     },
                     score,
-                });
+                })
+            } else {
+                None
             }
-        });
+        }).collect();
 
-        result
+        Ok(result)
     }
 }
+
+
+pub struct AppPreview {
+    root: gtk::Grid,
+    icon: gtk::Image,
+    name: gtk::Label,
+    desc: gtk::Label,
+    exec: gtk::Label,
+}
+
+impl PluginPreview<AppResult> for AppPreview {
+    fn new() -> Self {
+        let preview = gtk::Grid::builder()
+            .vexpand(true)
+            .hexpand(true)
+            .valign(gtk::Align::Center)
+            .halign(gtk::Align::Center)
+            .build();
+
+        let icon = gtk::Image::builder().pixel_size(256).build();
+        preview.attach(&icon, 0, 0, 1, 1);
+
+        let name = gtk::Label::builder().css_classes(["font32"]).wrap(true).build();
+        preview.attach(&name, 0, 1, 1, 1);
+
+        let desc = gtk::Label::builder().wrap(true).build();
+        preview.attach(&desc, 0, 2, 1, 1);
+
+        let exec = gtk::Label::builder().wrap(true).build();
+        preview.attach(&exec, 0, 3, 1, 1);
+
+        AppPreview {
+            root: preview,
+            icon,
+            name,
+            desc,
+            exec
+        }
+    }
+
+    fn get_preview(&self, plugin_result: AppResult) -> gtk::Widget {
+        self.icon.set_from_gicon(icon_cache::get_icon(plugin_result.app_name.as_str()).get());
+        self.name.set_label(plugin_result.app_name.as_str());
+        self.exec.set_label("");
+        self.desc.set_label(plugin_result.app_desc.as_str());
+
+        self.root.clone().upcast()
+    }
+}
+
+register_plugin_preview!(AppResult, AppPreview);

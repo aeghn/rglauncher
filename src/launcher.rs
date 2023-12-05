@@ -23,10 +23,9 @@ use crate::inputbar::{InputBar, InputMessage};
 use crate::pluginworker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::calculator::{CalcResult, Calculator};
-use crate::plugins::clipboard::{ClipPluginResult, ClipboardPlugin};
-use crate::plugins::dict::{DictPlugin, DictPluginResult};
+use crate::plugins::clipboard::{ClipResult, ClipboardPlugin};
+use crate::plugins::dict::{DictPlugin, DictResult};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
-use crate::preview::Preview;
 
 use crate::sidebar::SidebarMsg;
 use crate::window::RGWindow;
@@ -88,7 +87,7 @@ impl Launcher {
         self.message_handler();
 
         let clip_db = self.app_args.clip_db.clone();
-        PluginWorker::<ClipboardPlugin, ClipPluginResult>::launch(
+        PluginWorker::<ClipboardPlugin, ClipResult>::launch(
             &sidebar_sender,
             move || ClipboardPlugin::new(clip_db.as_str()),
             &input_broadcast,
@@ -107,7 +106,7 @@ impl Launcher {
         );
 
         let dict_dir = self.app_args.dict_dir.clone();
-        PluginWorker::<DictPlugin, DictPluginResult>::launch(
+        PluginWorker::<DictPlugin, DictResult>::launch(
             &sidebar_sender,
             move || DictPlugin::new(dict_dir.as_str()).unwrap(),
             &input_broadcast,
@@ -139,6 +138,7 @@ impl Launcher {
         );
 
         let win = window.clone();
+        let input_sender = self.input_sender.clone();
         MainContext::ref_thread_default().spawn_local(async move {
             loop {
                 match app_msg_receiver.recv_async().await {
@@ -146,6 +146,7 @@ impl Launcher {
                         AppMsg::Exit =>  {
                         },
                         AppMsg::NewWindow => {
+                            let _ = input_sender.broadcast(Arc::new(InputMessage::RefreshContent));
                             win.show_window();
                         }
                         AppMsg::SelectSomething => {
