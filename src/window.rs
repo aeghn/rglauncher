@@ -1,18 +1,17 @@
-use std::sync::Arc;
-use flume::{Receiver, Sender};
-use gdk::Key;
-use gio::traits::ApplicationExt;
-use glib::{BoxedAnyObject, clone, GStr, MainContext};
-use gtk::{Application, ApplicationWindow, gdk};
-use gtk::prelude::EntryBufferExtManual;
-use gtk::traits::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
-use tracing::{error, info};
 use crate::inputbar::{InputBar, InputMessage};
 use crate::launcher::AppMsg;
 use crate::preview::Preview;
 use crate::sidebar::SidebarMsg;
+use flume::{Receiver, Sender};
+use gdk::Key;
+use gio::traits::ApplicationExt;
+use glib::{clone, BoxedAnyObject, GStr, MainContext};
 use gtk::prelude::EditableExt;
-
+use gtk::prelude::EntryBufferExtManual;
+use gtk::traits::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
+use gtk::{gdk, Application, ApplicationWindow};
+use std::sync::Arc;
+use tracing::{error, info};
 
 #[derive(Clone)]
 pub struct RGWindow {
@@ -21,18 +20,19 @@ pub struct RGWindow {
     preview: Preview,
     sidebar_sender: Sender<SidebarMsg>,
     selection_change_receiver: flume::Receiver<BoxedAnyObject>,
-
 }
 
 impl RGWindow {
-    pub fn new(app: &Application,
-               app_msg_sender: Sender<AppMsg>,
-               input_sender: async_broadcast::Sender<Arc<InputMessage>>,
-               input_receiver: async_broadcast::Receiver<Arc<InputMessage>>,
-               selection_change_sender: Sender<BoxedAnyObject>,
-               selection_change_receiver: flume::Receiver<BoxedAnyObject>,
-               sidebar_sender: Sender<SidebarMsg>,
-               sidebar_receiver: Receiver<SidebarMsg>) -> Self {
+    pub fn new(
+        app: &Application,
+        app_msg_sender: Sender<AppMsg>,
+        input_sender: async_broadcast::Sender<Arc<InputMessage>>,
+        input_receiver: async_broadcast::Receiver<Arc<InputMessage>>,
+        selection_change_sender: Sender<BoxedAnyObject>,
+        selection_change_receiver: flume::Receiver<BoxedAnyObject>,
+        sidebar_sender: Sender<SidebarMsg>,
+        sidebar_receiver: Receiver<SidebarMsg>,
+    ) -> Self {
         let window = ApplicationWindow::builder()
             .default_width(800)
             .default_height(600)

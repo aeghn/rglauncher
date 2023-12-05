@@ -4,9 +4,9 @@ const HIGH: i32 = 6000;
 
 fn limit_to(base: i32, size: i32, origin: i64) -> i32 {
     let scale = if origin <= 0 {
-         0
+        0
     } else {
-         (origin / i64::max_value() * (size as i64)) as i32
+        (origin / i64::max_value() * (size as i64)) as i32
     };
 
     return base + scale;

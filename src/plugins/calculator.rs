@@ -1,23 +1,22 @@
 use fragile::Fragile;
-use gtk::{TextBuffer, Widget};
 use gtk::prelude::{GridExt, TextBufferExt};
 use gtk::WrapMode::WordChar;
+use gtk::{TextBuffer, Widget};
 use lazy_static::lazy_static;
 
 use crate::plugins::{Plugin, PluginPreview, PluginResult};
 use crate::userinput::UserInput;
-use glib::{Cast};
-use gtk::prelude::{WidgetExt};
-
+use glib::Cast;
+use gtk::prelude::WidgetExt;
 
 use std::option::Option::None;
 
-use std::sync::Mutex;
 use crate::util::score_utils;
+use std::sync::Mutex;
 
 pub struct CalcResult {
     pub formula: String,
-    pub result: String
+    pub result: String,
 }
 
 impl PluginResult for CalcResult {
@@ -37,14 +36,10 @@ impl PluginResult for CalcResult {
         Some(self.formula.to_string())
     }
 
-    fn on_enter(&self) {
-
-    }
+    fn on_enter(&self) {}
 }
 
-pub struct Calculator {
-
-}
+pub struct Calculator {}
 
 impl Calculator {
     pub fn new() -> Self {
@@ -53,25 +48,22 @@ impl Calculator {
 }
 
 impl Plugin<CalcResult> for Calculator {
-    fn refresh_content(&mut self) {
-
-    }
+    fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<CalcResult>> {
-        Ok(vec![meval::eval_str(user_input.input.as_str())
-            .map(|res| {
-                CalcResult {
-                    formula: user_input.input.clone(),
-                    result: res.to_string()
-                }
-            })?])
+        Ok(vec![meval::eval_str(user_input.input.as_str()).map(
+            |res| CalcResult {
+                formula: user_input.input.clone(),
+                result: res.to_string(),
+            },
+        )?])
     }
 }
 
 pub struct CalcPreview {
     root: gtk::Grid,
     formula_buffer: gtk::TextBuffer,
-    result_buffer: gtk::TextBuffer
+    result_buffer: gtk::TextBuffer,
 }
 
 impl PluginPreview<CalcResult> for CalcPreview {
@@ -91,7 +83,6 @@ impl PluginPreview<CalcResult> for CalcPreview {
             .build();
         preview.attach(&formula_area, 0, 0, 1, 1);
 
-
         let result_buffer = gtk::TextBuffer::builder().build();
         let result_area = gtk::TextView::builder()
             .hexpand(true)
@@ -108,7 +99,7 @@ impl PluginPreview<CalcResult> for CalcPreview {
         CalcPreview {
             root: preview,
             formula_buffer,
-            result_buffer
+            result_buffer,
         }
     }
 

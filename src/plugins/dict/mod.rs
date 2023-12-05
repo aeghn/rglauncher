@@ -2,8 +2,8 @@ use crate::plugins::{Plugin, PluginPreview, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::{score_utils, string_utils};
 
-use glib::{Cast};
-use gtk::traits::{WidgetExt};
+use glib::Cast;
+use gtk::traits::WidgetExt;
 
 use fragile::Fragile;
 use gtk::Widget;
@@ -17,8 +17,8 @@ use webkit6::{UserStyleSheet, WebView};
 
 use self::mdx_utils::MDictLookup;
 
-mod mdx_utils;
 mod mdict;
+mod mdx_utils;
 
 pub struct DictResult {
     word: String,
@@ -43,52 +43,48 @@ impl PluginResult for DictResult {
         Some(string_utils::truncate(self.dict.as_str(), 60).to_string())
     }
 
-    fn on_enter(&self) {
-    }
+    fn on_enter(&self) {}
 }
-
 
 pub struct DictPlugin {
     dir_path: String,
-    mdxes: Vec<mdx_utils::MDictMemIndex>
+    mdxes: Vec<mdx_utils::MDictMemIndex>,
 }
-
 
 impl DictPlugin {
     pub fn new(dir_path: &str) -> anyhow::Result<Self, anyhow::Error> {
-
-        
-       let mdxes: Vec<mdx_utils::MDictMemIndex> = std::fs::read_dir(dir_path)?
-        .into_iter()
-        .filter_map(|dr| {
-            match dr {
+        let mdxes: Vec<mdx_utils::MDictMemIndex> = std::fs::read_dir(dir_path)?
+            .into_iter()
+            .filter_map(|dr| match dr {
                 Ok(e) => {
                     let p = e.path();
                     Some(mdx_utils::MDictMemIndex::new(p).ok()?)
-                },
+                }
                 Err(x) => None,
-            }
-        }).collect();
+            })
+            .collect();
 
         Ok(DictPlugin {
             dir_path: dir_path.to_string(),
-            mdxes
+            mdxes,
         })
-
-        
     }
 
     pub fn seek(&self, word: &str) -> Vec<DictResult> {
-        self.mdxes.iter()
-        .filter_map(|mdx| {
-            if let Ok(explain) = mdx.lookup_word(word) {
-                Some(DictResult {
-                    word: word.to_string(), html: explain, dict: mdx.name.to_string() })
-            } else {
-                None
-            }
-        })
-        .collect()
+        self.mdxes
+            .iter()
+            .filter_map(|mdx| {
+                if let Ok(explain) = mdx.lookup_word(word) {
+                    Some(DictResult {
+                        word: word.to_string(),
+                        html: explain,
+                        dict: mdx.name.to_string(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     fn cycle_seek(&self, word: &str) -> Vec<DictResult> {
@@ -111,19 +107,16 @@ impl DictPlugin {
 }
 
 impl Plugin<DictResult> for DictPlugin {
-    fn refresh_content(&mut self) {
-
-    }
+    fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<DictResult>> {
         if user_input.input.is_empty() {
-            return anyhow::Ok(vec![])
+            return anyhow::Ok(vec![]);
         }
 
         anyhow::Ok(self.cycle_seek(user_input.input.as_str()))
     }
 }
-
 
 pub struct DictPreview {
     pub preview: WebView,
@@ -143,9 +136,7 @@ impl PluginPreview<DictResult> for DictPreview {
             ucm.add_style_sheet(&ss);
         }
 
-        DictPreview {
-            preview: webview
-        }
+        DictPreview { preview: webview }
     }
 
     fn get_preview(&self, plugin_result: DictResult) -> Widget {
