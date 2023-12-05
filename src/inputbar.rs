@@ -10,6 +10,7 @@ use gtk::traits::EditableExt;
 pub enum InputMessage {
     TextChanged(String),
     EmitSubmit(String),
+    RefreshContent,
 }
 
 #[derive(Clone)]

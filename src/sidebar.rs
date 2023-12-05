@@ -184,6 +184,7 @@ impl Sidebar {
                                 InputMessage::EmitSubmit(_) => {
                                     self.handle_msg(SidebarMsg::Enter);
                                 }
+                                _ => {}
                             }
                         }
                         _ => {}
@@ -205,8 +206,8 @@ impl Sidebar {
                 .borrow::<Box<dyn PluginResult>>();
 
             plugin_result2
-                .get_score()
-                .cmp(&plugin_result1.get_score())
+                .score()
+                .cmp(&plugin_result1.score())
                 .into()
         });
 

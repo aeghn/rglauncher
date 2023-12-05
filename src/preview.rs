@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use flume::Receiver;
 use glib::{BoxedAnyObject, clone, ControlFlow, StrV};
 
 
-use crate::plugins::PluginResult;
+use crate::plugins::{PluginPreview, PluginResult, self};
 use gtk::prelude::WidgetExt;
 use gtk::PolicyType::Never;
 
@@ -25,13 +26,15 @@ impl Preview {
 
     pub async fn loop_recv(&self, receiver: Receiver<BoxedAnyObject>) {
         let preview_window = self.preview_window.clone();
+        plugins::factory::create_plugin_preview()
+
         loop {
-            if let Ok(bao) = receiver.recv_async().await {
+            if let Ok(gboxed) = receiver.recv_async().await {
                 glib::idle_add_local(clone!(@strong preview_window => move || {
-                    let down = bao.try_borrow::<Box<dyn PluginResult>>();
-                    if let Ok(pr) = down {
-                        let child = pr.preview();
-                        preview_window.set_child(Some(&child));
+                    let down = gboxed.try_borrow::<Box<dyn PluginResult>>();
+                    if let Ok(plugin_result) = down {
+                  /*       let child = plugin_result.preview(); */
+           /*              preview_window.set_child(Some(&child)); */
                     } else {
                         preview_window.set_child(None::<&gtk::Widget>);
                     }
