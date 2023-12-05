@@ -1,9 +1,9 @@
 pub mod app;
+pub mod calculator;
 pub mod clipboard;
 pub mod dict;
-pub mod windows;
-pub mod calculator;
 pub mod factory;
+pub mod windows;
 
 use crate::userinput::UserInput;
 
@@ -20,8 +20,8 @@ pub trait PluginResult: Send {
 }
 
 pub trait Plugin<R>
-    where
-        R: PluginResult
+where
+    R: PluginResult,
 {
     fn refresh_content(&mut self);
 
@@ -29,11 +29,12 @@ pub trait Plugin<R>
 }
 
 pub trait PluginPreview<R>: 'static
-    where
-        R: PluginResult
+where
+    R: PluginResult,
 {
-    fn new() -> Self where Self: Sized;
+    fn new() -> Self
+    where
+        Self: Sized;
 
     fn get_preview(&self, plugin_result: R) -> gtk::Widget;
 }
-

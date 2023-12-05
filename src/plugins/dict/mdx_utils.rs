@@ -99,7 +99,7 @@ impl MDictMemIndex {
             mdd_blocks,
             mdd_files,
             header: mdx.into_header(),
-            name: "".to_string()
+            name: "".to_string(),
         })
     }
     pub fn keyword_iter(&self) -> impl Iterator<Item = String> + '_ {

@@ -1,18 +1,18 @@
-use crate::{icon_cache, register_plugin_preview};
 use crate::plugins::{Plugin, PluginPreview, PluginResult};
 use crate::userinput::UserInput;
+use crate::{icon_cache, register_plugin_preview};
 use fragile::Fragile;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
-use glib::{Cast};
+use glib::Cast;
 use gtk::prelude::{ButtonExt, GridExt, WidgetExt};
 use lazy_static::lazy_static;
 use std::option::Option::None;
 
-use std::sync::Mutex;
-use ripemd128::digest::impl_write;
 use crate::util::score_utils;
+use ripemd128::digest::impl_write;
+use std::sync::Mutex;
 
 pub struct AppResult {
     icon_name: String,
@@ -50,9 +50,7 @@ impl PluginResult for AppResult {
     }
 }
 
-pub struct AppPlugin {
-
-}
+pub struct AppPlugin {}
 
 impl AppPlugin {
     pub fn new() -> Self {
@@ -61,45 +59,46 @@ impl AppPlugin {
 }
 
 impl Plugin<AppResult> for AppPlugin {
-    fn refresh_content(&mut self) {
-    }
+    fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<AppResult>> {
         let matcher = SkimMatcherV2::default();
-        let mut result: Vec<AppResult> = gio::AppInfo::all().iter().filter_map(|app_info| {
-            if !app_info.should_show() {
-                return None
-            }
+        let mut result: Vec<AppResult> = gio::AppInfo::all()
+            .iter()
+            .filter_map(|app_info| {
+                if !app_info.should_show() {
+                    return None;
+                }
 
-            let mut score: i32 = 0;
-            if user_input.input.is_empty() {
-                score = 100;
-            } else if let Some(_s) =
-                matcher.fuzzy_match(app_info.name().as_str(), user_input.input.as_str())
-            {
-                score = _s as i32;
-            }
+                let mut score: i32 = 0;
+                if user_input.input.is_empty() {
+                    score = 100;
+                } else if let Some(_s) =
+                    matcher.fuzzy_match(app_info.name().as_str(), user_input.input.as_str())
+                {
+                    score = _s as i32;
+                }
 
-            if score > 0 {
-                Some(AppResult {
-                    id: app_info.id().unwrap().to_string(),
-                    icon_name: app_info.name().to_string(),
-                    app_name: app_info.name().to_string(),
-                    app_desc: match app_info.description() {
-                        None => "".to_string(),
-                        Some(des) => des.to_string(),
-                    },
-                    score,
-                })
-            } else {
-                None
-            }
-        }).collect();
+                if score > 0 {
+                    Some(AppResult {
+                        id: app_info.id().unwrap().to_string(),
+                        icon_name: app_info.name().to_string(),
+                        app_name: app_info.name().to_string(),
+                        app_desc: match app_info.description() {
+                            None => "".to_string(),
+                            Some(des) => des.to_string(),
+                        },
+                        score,
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
 
         Ok(result)
     }
 }
-
 
 pub struct AppPreview {
     root: gtk::Grid,
@@ -121,7 +120,10 @@ impl PluginPreview<AppResult> for AppPreview {
         let icon = gtk::Image::builder().pixel_size(256).build();
         preview.attach(&icon, 0, 0, 1, 1);
 
-        let name = gtk::Label::builder().css_classes(["font32"]).wrap(true).build();
+        let name = gtk::Label::builder()
+            .css_classes(["font32"])
+            .wrap(true)
+            .build();
         preview.attach(&name, 0, 1, 1, 1);
 
         let desc = gtk::Label::builder().wrap(true).build();
@@ -135,12 +137,13 @@ impl PluginPreview<AppResult> for AppPreview {
             icon,
             name,
             desc,
-            exec
+            exec,
         }
     }
 
     fn get_preview(&self, plugin_result: AppResult) -> gtk::Widget {
-        self.icon.set_from_gicon(icon_cache::get_icon(plugin_result.app_name.as_str()).get());
+        self.icon
+            .set_from_gicon(icon_cache::get_icon(plugin_result.app_name.as_str()).get());
         self.name.set_label(plugin_result.app_name.as_str());
         self.exec.set_label("");
         self.desc.set_label(plugin_result.app_desc.as_str());

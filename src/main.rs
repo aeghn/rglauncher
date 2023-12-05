@@ -3,32 +3,32 @@ mod constants;
 mod icon_cache;
 mod inputbar;
 mod launcher;
-mod pluginworker;
 mod plugins;
+mod pluginworker;
 mod preview;
-mod userinput;
 mod sidebar;
 mod sidebarrow;
+mod userinput;
 mod util;
 mod window;
 
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
 use clap::Parser;
 use gio::File;
 use gio::FileType::Directory;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use tracing::*;
 
 use gtk::gdk::*;
 use gtk::prelude::*;
 use gtk::*;
 
-use std::os::unix::net::{UnixListener, UnixStream};
+use crate::launcher::{AppMsg, Launcher};
+use crate::window::RGWindow;
 use flume::{Receiver, Sender};
 use fragile::Fragile;
 use glib::{MainContext, MainLoop};
-use crate::launcher::{AppMsg, Launcher};
-use crate::window::RGWindow;
+use std::os::unix::net::{UnixListener, UnixStream};
 
 const APP_ID: &str = "org.codeberg.wangzh.rglauncher";
 
@@ -45,13 +45,13 @@ fn load_css() {
         &provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
-
 }
 
 fn activate(app: &Application, app_msg_sender: Sender<AppMsg>, app_msg_receiver: Receiver<AppMsg>) {
     let arguments = arguments::Arguments::parse();
 
-    let launcher = launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
+    let launcher =
+        launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
 
     launcher.launch_plugins();
 
@@ -88,11 +88,8 @@ fn start_new() {
         let app_msg_sender = app_msg_sender.clone();
         let app_msg_receiver = app_msg_receiver.clone();
         app.connect_activate(move |app| {
-            activate(app,
-                     app_msg_sender.clone(),
-                     app_msg_receiver.clone());
+            activate(app, app_msg_sender.clone(), app_msg_receiver.clone());
         });
-
     }
 
     let empty: Vec<String> = vec![];
@@ -130,7 +127,7 @@ fn build_uds(app_msg_sender: &Sender<AppMsg>) -> anyhow::Result<()> {
     }
 }
 
-fn try_communicate() -> anyhow::Result<bool>{
+fn try_communicate() -> anyhow::Result<bool> {
     match UnixStream::connect(constants::UNIX_SOCKET_PATH) {
         Ok(mut stream) => {
             stream.write_all("new_window".as_bytes())?;
