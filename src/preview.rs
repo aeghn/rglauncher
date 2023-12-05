@@ -26,7 +26,6 @@ impl Preview {
 
     pub async fn loop_recv(&self, receiver: Receiver<BoxedAnyObject>) {
         let preview_window = self.preview_window.clone();
-        plugins::factory::create_plugin_preview()
 
         loop {
             if let Ok(gboxed) = receiver.recv_async().await {
