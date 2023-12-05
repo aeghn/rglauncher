@@ -15,10 +15,9 @@ use gtk::Grid;
 use crate::plugins::{Plugin, PluginPreview, PluginResult};
 use crate::userinput::UserInput;
 
-use gtk::Label;
 use crate::icon_cache;
 use crate::util::score_utils;
-
+use gtk::Label;
 
 #[derive(Clone)]
 pub struct HyprWindowResult {
@@ -77,14 +76,15 @@ impl PluginResult for HyprWindowResult {
     }
 }
 
-
 pub struct HyprWindows {
     windows: Vec<HyprWindowResult>,
 }
 
 impl HyprWindows {
     pub fn new() -> Self {
-        HyprWindows { windows: get_windows() }
+        HyprWindows {
+            windows: get_windows(),
+        }
     }
 }
 
@@ -177,13 +177,12 @@ impl Plugin<HyprWindowResult> for HyprWindows {
     }
 }
 
-
 pub struct HyprWindowPreview {
     preview: gtk::Grid,
     big_pic: gtk::Image,
     little_pic: gtk::Image,
     title: gtk::Label,
-    extra: gtk::Label
+    extra: gtk::Label,
 }
 
 impl PluginPreview<HyprWindowResult> for HyprWindowPreview {
@@ -200,10 +199,7 @@ impl PluginPreview<HyprWindowResult> for HyprWindowPreview {
             .pixel_size(256)
             .build();
 
-        let little_pic = gtk::Image::builder()
-            .pixel_size(64)
-            .hexpand(true)
-            .build();
+        let little_pic = gtk::Image::builder().pixel_size(64).hexpand(true).build();
 
         preview.attach(&big_pic, 0, 0, 1, 1);
         preview.attach(&little_pic, 0, 1, 1, 1);
@@ -238,7 +234,8 @@ impl PluginPreview<HyprWindowResult> for HyprWindowPreview {
             self.extra.set_text(c.as_str());
         }
 
-        self.big_pic.set_from_gicon(icon_cache::get_icon(plugin_result.icon_name.as_str()).get());
+        self.big_pic
+            .set_from_gicon(icon_cache::get_icon(plugin_result.icon_name.as_str()).get());
 
         self.preview.clone().upcast()
     }

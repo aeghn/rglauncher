@@ -12,10 +12,10 @@ use gio::{
 use glib::{BoxedAnyObject, IsA, PropertyGet, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::atomic::Ordering::SeqCst;
 use futures::future::err;
+use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 lazy_static! {
     static ref CHANGE_FOCUS: AtomicBool = AtomicBool::new(false);
@@ -26,12 +26,11 @@ use gtk::traits::{SelectionModelExt, WidgetExt};
 use lazy_static::lazy_static;
 use tracing::info;
 
-
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
 use crate::plugins::PluginResult;
-use crate::userinput::UserInput;
 use crate::sidebarrow::SidebarRow;
+use crate::userinput::UserInput;
 
 pub enum SidebarMsg {
     PluginResult(UserInput, Box<dyn PluginResult>),
@@ -106,12 +105,11 @@ impl Sidebar {
                 if let Some(ui) = &self.input {
                     if ui_.input == ui.input {
                         self.list_store.append(&BoxedAnyObject::new(pr_));
-                        if !CHANGE_FOCUS.load(SeqCst) && self.selection_model.selected() != 0{
+                        if !CHANGE_FOCUS.load(SeqCst) && self.selection_model.selected() != 0 {
                             self.srcoll_to_item(&0, false);
                         }
                     }
                 }
-
             }
             SidebarMsg::NextItem => {
                 let new_selection = if self.selection_model.n_items() > 0 {
@@ -147,13 +145,16 @@ impl Sidebar {
                         tt.on_enter();
                     }
                 });
-                self.app_msg_sender.send(AppMsg::SelectSomething).expect("should send");
+                self.app_msg_sender
+                    .send(AppMsg::SelectSomething)
+                    .expect("should send");
             }
         }
     }
 
     fn srcoll_to_item(&mut self, new_selection: &u32, change_focus: bool) {
-        self.selection_model.select_item(new_selection.clone(), true);
+        self.selection_model
+            .select_item(new_selection.clone(), true);
         self.list_view
             .activate_action("list.scroll-to-item", Some(&new_selection.to_variant()))
             .unwrap();
@@ -205,10 +206,7 @@ impl Sidebar {
                 .unwrap()
                 .borrow::<Box<dyn PluginResult>>();
 
-            plugin_result2
-                .score()
-                .cmp(&plugin_result1.score())
-                .into()
+            plugin_result2.score().cmp(&plugin_result1.score()).into()
         });
 
         gtk::SortListModel::builder()
@@ -291,7 +289,6 @@ impl Sidebar {
                         };
                     }
                 });
-
             } else {
                 {
                     let mut guard = TRY_PREVIEW.write().unwrap();

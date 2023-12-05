@@ -1,31 +1,31 @@
 use flume::{Receiver, Sender};
+use futures::io::Window;
 use glib::{clone, BoxedAnyObject, MainContext};
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
-use futures::io::Window;
 
 use gio::prelude::*;
-use gtk::{Application, gdk};
 use gtk::prelude::*;
+use gtk::ResponseType::No;
 use gtk::{
     self,
     traits::{BoxExt, GtkWindowExt, WidgetExt},
     ApplicationWindow, Entry,
 };
-use gtk::ResponseType::No;
+use gtk::{gdk, Application};
 
-use tracing::{error, info};
-use webkit6::prelude::WebsocketConnectionExtManual;
 use crate::arguments;
 use crate::arguments::Arguments;
+use tracing::{error, info};
+use webkit6::prelude::WebsocketConnectionExtManual;
 
 use crate::inputbar::{InputBar, InputMessage};
-use crate::pluginworker::PluginWorker;
 use crate::plugins::app::{AppPlugin, AppResult};
 use crate::plugins::calculator::{CalcResult, Calculator};
 use crate::plugins::clipboard::{ClipResult, ClipboardPlugin};
 use crate::plugins::dict::{DictPlugin, DictResult};
 use crate::plugins::windows::{HyprWindowResult, HyprWindows};
+use crate::pluginworker::PluginWorker;
 
 use crate::sidebar::SidebarMsg;
 use crate::window::RGWindow;
@@ -54,9 +54,12 @@ pub enum AppMsg {
 }
 
 impl Launcher {
-    pub fn new(application: Application, arguments: Arguments,
-               app_msg_sender: Sender<AppMsg>,
-               app_msg_receiver: Receiver<AppMsg>) -> Self {
+    pub fn new(
+        application: Application,
+        arguments: Arguments,
+        app_msg_sender: Sender<AppMsg>,
+        app_msg_receiver: Receiver<AppMsg>,
+    ) -> Self {
         let (mut input_sender, input_receiver) = async_broadcast::broadcast(1);
         input_sender.set_overflow(true);
 
@@ -121,7 +124,6 @@ impl Launcher {
 
     pub fn message_handler(&self) {
         let oself = self.clone();
-
     }
 
     pub fn new_window(&self) -> RGWindow {
@@ -143,8 +145,7 @@ impl Launcher {
             loop {
                 match app_msg_receiver.recv_async().await {
                     Ok(msg) => match msg {
-                        AppMsg::Exit =>  {
-                        },
+                        AppMsg::Exit => {}
                         AppMsg::NewWindow => {
                             let _ = input_sender.broadcast(Arc::new(InputMessage::RefreshContent));
                             win.show_window();
@@ -158,6 +159,6 @@ impl Launcher {
             }
         });
 
-        return window
+        return window;
     }
 }

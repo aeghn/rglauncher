@@ -30,7 +30,8 @@ impl InputBar {
         entry.connect_changed(move |e| {
             let text = e.text().to_string();
             block_on(async {
-                tx.broadcast(Arc::new(InputMessage::TextChanged(text))).await
+                tx.broadcast(Arc::new(InputMessage::TextChanged(text)))
+                    .await
             })
             .expect("TODO: panic message");
         });
@@ -38,14 +39,10 @@ impl InputBar {
         let tx = input_sender.clone();
         entry.connect_activate(move |e| {
             let text = e.text().to_string();
-            block_on(async {
-                tx.broadcast(Arc::new(InputMessage::EmitSubmit(text))).await
-            })
-            .expect("TODO: panic message");
+            block_on(async { tx.broadcast(Arc::new(InputMessage::EmitSubmit(text))).await })
+                .expect("TODO: panic message");
         });
 
-        InputBar {
-            entry,
-        }
+        InputBar { entry }
     }
 }

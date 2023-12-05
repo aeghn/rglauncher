@@ -1,21 +1,21 @@
 use anyhow::Error;
+use chrono::{DateTime, Local, Utc};
 use fragile::Fragile;
 use std::sync::Mutex;
-use chrono::{DateTime, Utc, Local};
 
 use glib::Cast;
 
 use gtk::prelude::{DisplayExt, TextBufferExt};
-use gtk::{Align, Image, TextBuffer, TextView, Widget};
 use gtk::Align::End;
+use gtk::{Align, Image, TextBuffer, TextView, Widget};
 
 use crate::plugins::{Plugin, PluginPreview, PluginResult};
 use crate::userinput::UserInput;
+use crate::util::score_utils;
 use gtk::traits::{GridExt, WidgetExt};
 use gtk::WrapMode::WordChar;
 use lazy_static::lazy_static;
 use rusqlite::Connection;
-use crate::util::score_utils;
 
 #[derive(Debug)]
 pub struct ClipResult {
@@ -52,7 +52,6 @@ impl PluginResult for ClipResult {
     }
 }
 
-
 pub struct ClipboardPlugin {
     connection: Option<Connection>,
 }
@@ -73,34 +72,34 @@ impl ClipboardPlugin {
 }
 
 impl Plugin<ClipResult> for ClipboardPlugin {
-    fn refresh_content(&mut self) {
-    }
+    fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<ClipResult>> {
         if let Some(conn) = self.connection.as_ref() {
-            let mut stmt = conn
-            .prepare("SELECT content0, mimes, insert_time, update_time, count \
-        from clipboard where content0 like ? order by UPDATE_TIME asc limit 100")?;
+            let mut stmt = conn.prepare(
+                "SELECT content0, mimes, insert_time, update_time, count \
+        from clipboard where content0 like ? order by UPDATE_TIME asc limit 100",
+            )?;
 
-        let result = stmt.query_map([format!("%{}%", user_input.input.as_str())], |row| {
-            Ok(ClipResult {
-                content: row.get(0)?,
-                score: 0,
-                mime: row.get(1)?,
-                insert_time: row.get(2)?,
-                update_time: row.get(3)?,
-                count: row.get(4)?,
-            })
-        })?.collect::<Result<Vec<ClipResult>, rusqlite::Error>>()?;
+            let result = stmt
+                .query_map([format!("%{}%", user_input.input.as_str())], |row| {
+                    Ok(ClipResult {
+                        content: row.get(0)?,
+                        score: 0,
+                        mime: row.get(1)?,
+                        insert_time: row.get(2)?,
+                        update_time: row.get(3)?,
+                        count: row.get(4)?,
+                    })
+                })?
+                .collect::<Result<Vec<ClipResult>, rusqlite::Error>>()?;
 
-        Ok(result)
+            Ok(result)
         } else {
             Err(Error::msg("unable to find connection"))
         }
-
     }
 }
-
 
 pub struct ClipPreview {
     root: gtk::Grid,
@@ -122,7 +121,7 @@ impl PluginPreview<ClipResult> for ClipPreview {
             .build();
         preview.attach(&image, 0, 0, 1, 4);
 
-        let f = |e| {gtk::Label::builder().label(e).halign(End).build()};
+        let f = |e| gtk::Label::builder().label(e).halign(End).build();
 
         preview.attach(&f("Insert Time: "), 1, 0, 1, 1);
         let insert_time = gtk::Label::builder().halign(Align::Start).build();
@@ -168,7 +167,8 @@ impl PluginPreview<ClipResult> for ClipPreview {
         self.insert_time.set_label(il.to_string().as_str());
         let il: DateTime<Local> = DateTime::from(plugin_result.update_time);
         self.update_time.set_label(il.to_string().as_str());
-        self.count.set_text(plugin_result.count.to_string().as_str());
+        self.count
+            .set_text(plugin_result.count.to_string().as_str());
         self.text_buffer.set_text(plugin_result.content.as_str());
         self.mime.set_text(plugin_result.mime.as_str());
 

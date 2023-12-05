@@ -115,7 +115,9 @@ impl<P: Plugin<R> + 'static + Send, R: PluginResult + 'static> PluginWorker<P, R
                                 idle_add(move || match result_arc.lock() {
                                     Ok(mut vec_guard) => {
                                         if let Some(vv) = vec_guard.pop() {
-                                            sender.send(SidebarMsg::PluginResult(ui.clone(),
+                                            sender
+                                                .send(SidebarMsg::PluginResult(
+                                                    ui.clone(),
                                                     Box::new(vv) as Box<dyn PluginResult>,
                                                 ))
                                                 .unwrap();
