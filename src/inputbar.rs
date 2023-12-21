@@ -19,7 +19,7 @@ pub struct InputBar {
 }
 
 impl InputBar {
-    pub fn new(input_sender: &async_broadcast::Sender<Arc<InputMessage>>) -> Self {
+    pub fn new(input_sender: &flume::Sender<Arc<InputMessage>>) -> Self {
         let entry = gtk::Entry::builder()
             .placeholder_text("Input Anything...")
             .css_classes(StrV::from(vec!["inputbar"]))
@@ -30,8 +30,7 @@ impl InputBar {
         entry.connect_changed(move |e| {
             let text = e.text().to_string();
             block_on(async {
-                tx.broadcast(Arc::new(InputMessage::TextChanged(text)))
-                    .await
+                tx.send(Arc::new(InputMessage::TextChanged(text)))
             })
             .expect("TODO: panic message");
         });
@@ -39,7 +38,7 @@ impl InputBar {
         let tx = input_sender.clone();
         entry.connect_activate(move |e| {
             let text = e.text().to_string();
-            block_on(async { tx.broadcast(Arc::new(InputMessage::EmitSubmit(text))).await })
+            block_on(async { tx.send(Arc::new(InputMessage::EmitSubmit(text))) })
                 .expect("TODO: panic message");
         });
 

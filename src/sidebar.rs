@@ -24,7 +24,7 @@ lazy_static! {
 
 use gtk::traits::{SelectionModelExt, WidgetExt};
 use lazy_static::lazy_static;
-use tracing::info;
+use tracing::{info, error};
 
 use crate::inputbar::InputMessage;
 use crate::launcher::AppMsg;
@@ -50,7 +50,7 @@ pub struct Sidebar {
 
     input: Option<UserInput>,
 
-    input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
+    input_broadcast: flume::Receiver<Arc<InputMessage>>,
     sidebar_receiver: flume::Receiver<SidebarMsg>,
     selection_change_sender: flume::Sender<BoxedAnyObject>,
     app_msg_sender: flume::Sender<AppMsg>,
@@ -58,7 +58,7 @@ pub struct Sidebar {
 
 impl Sidebar {
     pub fn new(
-        input_broadcast: async_broadcast::Receiver<Arc<InputMessage>>,
+        input_broadcast: flume::Receiver<Arc<InputMessage>>,
         sidebar_receiver: flume::Receiver<SidebarMsg>,
         selection_change_sender: flume::Sender<BoxedAnyObject>,
         app_msg_sender: flume::Sender<AppMsg>,
@@ -105,9 +105,9 @@ impl Sidebar {
                 if let Some(ui) = &self.input {
                     if ui_.input == ui.input {
                         self.list_store.append(&BoxedAnyObject::new(pr_));
-                        if !CHANGE_FOCUS.load(SeqCst) && self.selection_model.selected() != 0 {
+         /*                if !CHANGE_FOCUS.load(SeqCst) && self.selection_model.selected() != 0 {
                             self.srcoll_to_item(&0, false);
-                        }
+                        } */
                     }
                 }
             }
@@ -167,13 +167,13 @@ impl Sidebar {
         let sidebar_receiver = self.sidebar_receiver.clone();
         let mut input_receiver = self.input_broadcast.clone();
         loop {
-            select! {
+/*             select! {
                 sidebar_msg = sidebar_receiver.recv_async() => {
                     if let Ok(msg) = sidebar_msg {
                         self.handle_msg(msg);
                     }
                 }
-                input_msg = input_receiver.next() => {
+                input_msg = input_receiver.recv_async() => {
                     match input_msg {
                         Some(arc) => {
                             match arc.borrow() {
@@ -191,7 +191,7 @@ impl Sidebar {
                         _ => {}
                     }
                 }
-            }
+            } */
         }
     }
 
@@ -226,12 +226,15 @@ impl Sidebar {
     fn build_signal_list_item_factory() -> gtk::SignalListItemFactory {
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
+            error!("begin to setup");
             let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             let row = Sidebar::get_sidebar_item();
             item.set_child(Some(&row));
         });
 
         factory.connect_bind(move |_factory, item| {
+            error!("begin to bind");
+
             let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             let plugin_result_box = item.item().and_downcast::<BoxedAnyObject>().unwrap();
             let plugin_result = plugin_result_box.borrow::<Box<dyn PluginResult>>();
@@ -241,6 +244,8 @@ impl Sidebar {
         });
 
         factory.connect_unbind(move |_factory, item| {
+            error!("begin to unbind");
+
             let _list_item = item.downcast_ref::<gtk::ListItem>().unwrap();
 
             let child = item.child().and_downcast::<SidebarRow>().unwrap();
