@@ -1,0 +1,86 @@
+#+TITLE: Architecture
+
+This is my first project using rust and GTK, in order to improve my skill in it, I decide to record the Architecture and the idea.
+
+* Idea
+I wanted to build a launcher years ago, which including everything I need, such as
+- applications
+- windows switcher
+- dictionary
+- calculator
+- clipboard manager
+- password-store support
+- screen recording tool support
+
+  and the meantime, this tool should also support previews, so the ui should look like this:
+  #+begin_src
+   +----------------------------------------------+
+   |                  Input Bar                   |
+   +------------+---------------------------------+
+   |            |                                 |
+   |            |                                 |
+   |            |                                 |
+   |  Side Bar  |                                 |
+   |            |                                 |
+   |  Item 1    |                                 |
+   |  Item 2    |                                 |
+   |  Item 3    |        Preview Window           |
+   |  ...       |                                 |
+   |  ...       |                                 |
+   |  ...       |                                 |
+   |            |                                 |
+   |            |                                 |
+   |            |                                 |
+   +------------+---------------------------------+
+  #+end_src
+
+At first, I spent some time on selecting the framework.
+
+The inputbar should accept all unicodes, which need more efforts in iced or other pure rust framework now, so I   ruled out those options. I didn't find a mature binding for QT in rust, and to be honest, I didn't like QT.
+
+The side bar is a list container which could hold thousauds of item, the better choice is to use a list view widget which could hold endless items.
+
+The preview is a widget which could handle text, picture, web page and many more complex formats.
+
+Thus I finally chose GTK4 as my ui framework. At the beginning, I wanted to implement all features in gtk, including the frontend and backend(This is a work edition now), but I found gtk is not that perfect in all conditions, and some problems is still here, the developers didn't want to listen to users, but gtk is a good solution for frontend framework now, so maybe I should only hand over ui to gtk to implement.
+
+Let us implement it.
+
+* Architecture
+#+begin_src plantuml :file ./arch.png
+@startuml
+box Gtk Main Thread
+participant "Input Bar" as input
+participant "Sidebar" as sidebar
+participant "Preview" as prev
+end box
+
+box Result Handler Thread
+participant "Result Handler" as rht
+end box
+
+box Plugin Dispatcher Thread
+participant "Plugin Dispatcher" as pdt
+end box
+
+box Plugin Task Thread Pool
+participant "Plugin Task Pool" as pdp
+end box
+
+input -> rht: Send __User Input__
+rht -> pdt
+pdt -> pdp: Submit task
+pdt -> pdp: Stop Task
+pdp -> rht: Send back result(check user input)
+
+
+rht -> sidebar: splice update result
+sidebar -> rht: send current selection
+
+sidebar -> prev: update preview
+
+@enduml
+#+end_src
+
+#+RESULTS:
+[[file:./arch.png]]

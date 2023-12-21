@@ -1,18 +1,18 @@
 use crate::plugins::{Plugin, PluginPreview, PluginResult};
 use crate::userinput::UserInput;
-use crate::{icon_cache, register_plugin_preview};
-use fragile::Fragile;
+use crate::{icon_cache};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use gio::prelude::AppInfoExt;
 use glib::Cast;
 use gtk::prelude::{ButtonExt, GridExt, WidgetExt};
-use lazy_static::lazy_static;
 use std::option::Option::None;
 
 use crate::util::score_utils;
-use ripemd128::digest::impl_write;
-use std::sync::Mutex;
+
+pub enum AppMsg {
+
+}
 
 pub struct AppResult {
     icon_name: String,
@@ -21,6 +21,8 @@ pub struct AppResult {
     score: i32,
     pub id: String,
 }
+
+pub const TYPE_ID : &str = "app_result";
 
 impl PluginResult for AppResult {
     fn score(&self) -> i32 {
@@ -48,17 +50,21 @@ impl PluginResult for AppResult {
             }
         });
     }
-}
 
-pub struct AppPlugin {}
-
-impl AppPlugin {
-    pub fn new() -> Self {
-        AppPlugin {}
+    fn get_type_id(&self) -> &'static str {
+        TYPE_ID
     }
 }
 
-impl Plugin<AppResult> for AppPlugin {
+pub struct ApplicationPlugin {}
+
+impl ApplicationPlugin {
+    pub fn new() -> Self {
+        ApplicationPlugin {}
+    }
+}
+
+impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<AppResult>> {
@@ -98,6 +104,10 @@ impl Plugin<AppResult> for AppPlugin {
 
         Ok(result)
     }
+
+    fn handle_msg(msg: AppMsg) {
+        
+    }
 }
 
 pub struct AppPreview {
@@ -108,7 +118,8 @@ pub struct AppPreview {
     exec: gtk::Label,
 }
 
-impl PluginPreview<AppResult> for AppPreview {
+impl PluginPreview for AppPreview {
+    type PluginResult = AppResult;
     fn new() -> Self {
         let preview = gtk::Grid::builder()
             .vexpand(true)
@@ -141,7 +152,7 @@ impl PluginPreview<AppResult> for AppPreview {
         }
     }
 
-    fn get_preview(&self, plugin_result: AppResult) -> gtk::Widget {
+    fn get_preview(&self, plugin_result: &AppResult) -> gtk::Widget {
         self.icon
             .set_from_gicon(icon_cache::get_icon(plugin_result.app_name.as_str()).get());
         self.name.set_label(plugin_result.app_name.as_str());
@@ -151,5 +162,3 @@ impl PluginPreview<AppResult> for AppPreview {
         self.root.clone().upcast()
     }
 }
-
-register_plugin_preview!(AppResult, AppPreview);
