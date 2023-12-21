@@ -1,7 +1,5 @@
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use chrono::{DateTime, Local, Utc};
-use fragile::Fragile;
-use std::sync::Mutex;
 
 use glib::Cast;
 
@@ -14,8 +12,13 @@ use crate::userinput::UserInput;
 use crate::util::score_utils;
 use gtk::traits::{GridExt, WidgetExt};
 use gtk::WrapMode::WordChar;
-use lazy_static::lazy_static;
 use rusqlite::Connection;
+
+pub const TYPE_ID : &str = "clipboard";
+
+pub enum ClipMsg {
+
+}
 
 #[derive(Debug)]
 pub struct ClipResult {
@@ -50,6 +53,10 @@ impl PluginResult for ClipResult {
             clipboard.set_text(self.content.as_str());
         }
     }
+
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
+    }
 }
 
 pub struct ClipboardPlugin {
@@ -58,20 +65,14 @@ pub struct ClipboardPlugin {
 
 impl ClipboardPlugin {
     pub fn new(path: &str) -> Self {
-        if !std::path::Path::new(path).exists() {
-            return ClipboardPlugin { connection: None };
+        match Connection::open(path) {
+            Ok(connection) => ClipboardPlugin { connection: Some(connection) },
+            Err(err) => ClipboardPlugin { connection: None }
         }
-
-        let conn = match Connection::open(path) {
-            Ok(e) => Some(e),
-            Err(_) => None,
-        };
-
-        return ClipboardPlugin { connection: conn };
     }
 }
 
-impl Plugin<ClipResult> for ClipboardPlugin {
+impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<ClipResult>> {
@@ -99,6 +100,10 @@ impl Plugin<ClipResult> for ClipboardPlugin {
             Err(Error::msg("unable to find connection"))
         }
     }
+
+    fn handle_msg(msg: ClipMsg) {
+        todo!()
+    }
 }
 
 pub struct ClipPreview {
@@ -110,7 +115,8 @@ pub struct ClipPreview {
     text_buffer: gtk::TextBuffer,
 }
 
-impl PluginPreview<ClipResult> for ClipPreview {
+impl PluginPreview for ClipPreview {
+    type PluginResult = ClipResult;
     fn new() -> Self {
         let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
 
@@ -162,7 +168,7 @@ impl PluginPreview<ClipResult> for ClipPreview {
         }
     }
 
-    fn get_preview(&self, plugin_result: ClipResult) -> Widget {
+    fn get_preview(&self, plugin_result: &ClipResult) -> Widget {
         let il: DateTime<Local> = DateTime::from(plugin_result.insert_time);
         self.insert_time.set_label(il.to_string().as_str());
         let il: DateTime<Local> = DateTime::from(plugin_result.update_time);
@@ -176,4 +182,3 @@ impl PluginPreview<ClipResult> for ClipPreview {
     }
 }
 
-crate::register_plugin_preview!(ClipResult, ClipPreview);

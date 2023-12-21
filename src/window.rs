@@ -26,8 +26,8 @@ impl RGWindow {
     pub fn new(
         app: &Application,
         app_msg_sender: Sender<AppMsg>,
-        input_sender: async_broadcast::Sender<Arc<InputMessage>>,
-        input_receiver: async_broadcast::Receiver<Arc<InputMessage>>,
+        input_sender: flume::Sender<Arc<InputMessage>>,
+        input_receiver: flume::Receiver<Arc<InputMessage>>,
         selection_change_sender: Sender<BoxedAnyObject>,
         selection_change_receiver: flume::Receiver<BoxedAnyObject>,
         sidebar_sender: Sender<SidebarMsg>,

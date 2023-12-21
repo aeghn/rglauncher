@@ -4,13 +4,13 @@ mod icon_cache;
 mod inputbar;
 mod launcher;
 mod plugins;
-mod pluginworker;
 mod preview;
 mod sidebar;
 mod sidebarrow;
 mod userinput;
 mod util;
 mod window;
+mod resulthandler;
 
 use clap::Parser;
 use gio::File;
@@ -26,7 +26,6 @@ use gtk::*;
 use crate::launcher::{AppMsg, Launcher};
 use crate::window::RGWindow;
 use flume::{Receiver, Sender};
-use fragile::Fragile;
 use glib::{MainContext, MainLoop};
 use std::os::unix::net::{UnixListener, UnixStream};
 
@@ -55,10 +54,10 @@ fn activate(app: &Application, app_msg_sender: Sender<AppMsg>, app_msg_receiver:
 
     launcher.launch_plugins();
 
-    let window = launcher.new_window();
+/*     let window = launcher.new_window();
 
     window.prepare();
-    window.show_window();
+    window.show_window(); */
 }
 
 fn start_new() {

@@ -1,4 +1,3 @@
-use fragile::Fragile;
 use gtk::prelude::{GridExt, TextBufferExt};
 use gtk::WrapMode::WordChar;
 use gtk::{TextBuffer, Widget};
@@ -13,6 +12,12 @@ use std::option::Option::None;
 
 use crate::util::score_utils;
 use std::sync::Mutex;
+
+pub const TYPE_ID : &str = "calc";
+
+pub struct CalcMsg {
+
+}
 
 pub struct CalcResult {
     pub formula: String,
@@ -37,17 +42,21 @@ impl PluginResult for CalcResult {
     }
 
     fn on_enter(&self) {}
-}
-
-pub struct Calculator {}
-
-impl Calculator {
-    pub fn new() -> Self {
-        Calculator {}
+    
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
     }
 }
 
-impl Plugin<CalcResult> for Calculator {
+pub struct CalculatorPlugin {}
+
+impl CalculatorPlugin {
+    pub fn new() -> Self {
+        CalculatorPlugin {}
+    }
+}
+
+impl Plugin<CalcResult, CalcMsg> for CalculatorPlugin {
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<CalcResult>> {
@@ -58,6 +67,10 @@ impl Plugin<CalcResult> for Calculator {
             },
         )?])
     }
+
+    fn handle_msg(msg: CalcMsg) {
+        todo!()
+    }
 }
 
 pub struct CalcPreview {
@@ -66,7 +79,8 @@ pub struct CalcPreview {
     result_buffer: gtk::TextBuffer,
 }
 
-impl PluginPreview<CalcResult> for CalcPreview {
+impl PluginPreview for CalcPreview {
+    type PluginResult = CalcResult;
     fn new() -> Self {
         let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
 
@@ -103,12 +117,10 @@ impl PluginPreview<CalcResult> for CalcPreview {
         }
     }
 
-    fn get_preview(&self, plugin_result: CalcResult) -> gtk::Widget {
+    fn get_preview(&self, plugin_result: &CalcResult) -> gtk::Widget {
         self.formula_buffer.set_text(plugin_result.formula.as_str());
         self.result_buffer.set_text(plugin_result.result.as_str());
 
         self.root.clone().upcast()
     }
 }
-
-crate::register_plugin_preview!(CalcResult, CalcPreview);

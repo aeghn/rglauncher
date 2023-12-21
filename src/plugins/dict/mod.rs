@@ -5,7 +5,6 @@ use crate::util::{score_utils, string_utils};
 use glib::Cast;
 use gtk::traits::WidgetExt;
 
-use fragile::Fragile;
 use gtk::Widget;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -19,6 +18,12 @@ use self::mdx_utils::MDictLookup;
 
 mod mdict;
 mod mdx_utils;
+
+pub const TYPE_ID : &str = "dict";
+
+pub enum DictMsg {
+
+}
 
 pub struct DictResult {
     word: String,
@@ -44,14 +49,18 @@ impl PluginResult for DictResult {
     }
 
     fn on_enter(&self) {}
+
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
+    }
 }
 
-pub struct DictPlugin {
+pub struct DictionaryPlugin {
     dir_path: String,
     mdxes: Vec<mdx_utils::MDictMemIndex>,
 }
 
-impl DictPlugin {
+impl DictionaryPlugin {
     pub fn new(dir_path: &str) -> anyhow::Result<Self, anyhow::Error> {
         let mdxes: Vec<mdx_utils::MDictMemIndex> = std::fs::read_dir(dir_path)?
             .into_iter()
@@ -64,7 +73,7 @@ impl DictPlugin {
             })
             .collect();
 
-        Ok(DictPlugin {
+        Ok(DictionaryPlugin {
             dir_path: dir_path.to_string(),
             mdxes,
         })
@@ -106,7 +115,7 @@ impl DictPlugin {
     }
 }
 
-impl Plugin<DictResult> for DictPlugin {
+impl Plugin<DictResult, DictMsg> for DictionaryPlugin {
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<DictResult>> {
@@ -116,13 +125,18 @@ impl Plugin<DictResult> for DictPlugin {
 
         anyhow::Ok(self.cycle_seek(user_input.input.as_str()))
     }
+
+    fn handle_msg(msg: DictMsg) {
+        todo!()
+    }
 }
 
 pub struct DictPreview {
     pub preview: WebView,
 }
 
-impl PluginPreview<DictResult> for DictPreview {
+impl PluginPreview for DictPreview {
+    type PluginResult = DictResult;
     fn new() -> Self {
         let webview = WebView::new();
         webview.set_vexpand(true);
@@ -139,7 +153,7 @@ impl PluginPreview<DictResult> for DictPreview {
         DictPreview { preview: webview }
     }
 
-    fn get_preview(&self, plugin_result: DictResult) -> Widget {
+    fn get_preview(&self, plugin_result: &DictResult) -> Widget {
         let html_content = plugin_result.html.replace("\0", " ");
         self.preview.load_html(html_content.as_str(), None);
 

@@ -1,4 +1,4 @@
-use fragile::Fragile;
+use std::any::TypeId;
 use std::process::Command;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -17,7 +17,11 @@ use crate::userinput::UserInput;
 
 use crate::icon_cache;
 use crate::util::score_utils;
-use gtk::Label;
+
+pub const TYPE_ID : &str = "hypr_windows";
+
+
+pub enum HyprWindowMsg {}
 
 #[derive(Clone)]
 pub struct HyprWindowResult {
@@ -74,15 +78,19 @@ impl PluginResult for HyprWindowResult {
             .output()
             .expect("unable to switch to the window");
     }
+
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
+    }
 }
 
-pub struct HyprWindows {
+pub struct HyprWindowsPlugin {
     windows: Vec<HyprWindowResult>,
 }
 
-impl HyprWindows {
+impl HyprWindowsPlugin {
     pub fn new() -> Self {
-        HyprWindows {
+        HyprWindowsPlugin {
             windows: get_windows(),
         }
     }
@@ -146,7 +154,7 @@ fn get_icon_name(class: &str) -> String {
     }
 }
 
-impl Plugin<HyprWindowResult> for HyprWindows {
+impl Plugin<HyprWindowResult, HyprWindowMsg> for HyprWindowsPlugin {
     fn refresh_content(&mut self) {
         self.windows = get_windows();
     }
@@ -175,6 +183,10 @@ impl Plugin<HyprWindowResult> for HyprWindows {
 
         Ok(result)
     }
+
+    fn handle_msg(msg: HyprWindowMsg) {
+        todo!()
+    }
 }
 
 pub struct HyprWindowPreview {
@@ -185,7 +197,9 @@ pub struct HyprWindowPreview {
     extra: gtk::Label,
 }
 
-impl PluginPreview<HyprWindowResult> for HyprWindowPreview {
+impl PluginPreview for HyprWindowPreview {
+    type PluginResult = HyprWindowResult;
+
     fn new() -> Self {
         let preview = Grid::builder()
             .vexpand(true)
@@ -227,7 +241,7 @@ impl PluginPreview<HyprWindowResult> for HyprWindowPreview {
         }
     }
 
-    fn get_preview(&self, plugin_result: HyprWindowResult) -> Widget {
+    fn get_preview(&self, plugin_result: &Self::PluginResult) -> Widget {
         self.title.set_text(plugin_result.title.as_str());
 
         if let Some(c) = plugin_result.sidebar_content() {
@@ -240,5 +254,3 @@ impl PluginPreview<HyprWindowResult> for HyprWindowPreview {
         self.preview.clone().upcast()
     }
 }
-
-crate::register_plugin_preview!(HyprWindowResult, HyprWindowPreview);
