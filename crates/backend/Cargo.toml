@@ -1,5 +1,5 @@
 [package]
-name = "rglauncher"
+name = "backend"
 version = "0.1.0"
 edition = "2021"
 
@@ -21,7 +21,6 @@ chrono = "0.4.24"
 futures = { version = "0.3.25", features = ["thread-pool"]}
 
 meval = "0.2.0"
-clap = { version = "4.4.10", features = ["derive"] }
 bytes = "1.4.0"
 miniz_oxide = "0.7.1"
 encoding_rs = '0.8'

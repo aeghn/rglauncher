@@ -1,5 +1,6 @@
+use std::os;
 use std::sync::Arc;
-use crate::plugins::ResultMsg;
+use crate::ResultMsg;
 use crate::plugins::app::ApplicationPlugin;
 use crate::plugins::calculator::CalculatorPlugin;
 use crate::plugins::clipboard::ClipboardPlugin;
@@ -21,18 +22,23 @@ pub struct PluginDispatcher {
 
     pool: futures::executor::ThreadPool,
 
-    app_plugin: Arc<ApplicationPlugin>,
-    window_plugin: Arc<HyprWindowsPlugin>,
-    calc_plugin: Arc<CalculatorPlugin>,
-    dict_plugin: Arc<DictionaryPlugin>,
-    clip_plugin: Arc<ClipboardPlugin>
+
 }
 
 impl PluginDispatcher {
-    pub fn new(directory_dir: &str,
+    pub fn new(dictionary_dir: &str,
                clipboard_path: &str,
                result_sender: &flume::Sender<ResultMsg>) {
 
+        let dictionary_dir = dictionary_dir.to_string();
+        let clipboard_path= clipboard_path.to_string();
+
         let window_sender = PluginWorker::launch(|| HyprWindowsPlugin::new(), result_sender.clone());
+        let app_sender = PluginWorker::launch(|| ApplicationPlugin::new(), result_sender.clone());
+        let clip_sender = PluginWorker::launch(move || ClipboardPlugin::new(clipboard_path.as_str()), result_sender.clone());
+        let dict_sender = PluginWorker::launch(move || DictionaryPlugin::new(dictionary_dir.as_str()), result_sender.clone());
+        let calc_sender = PluginWorker::launch(|| CalculatorPlugin::new(), result_sender.clone());
+
+
     }
 }
