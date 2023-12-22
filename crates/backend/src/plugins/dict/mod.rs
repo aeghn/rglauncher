@@ -13,8 +13,8 @@ pub enum DictMsg {
 }
 
 pub struct DictResult {
-    word: String,
-    html: String,
+    pub word: String,
+    pub html: String,
     pub dict: String,
 }
 
@@ -48,22 +48,32 @@ pub struct DictionaryPlugin {
 }
 
 impl DictionaryPlugin {
-    pub fn new(dir_path: &str) -> anyhow::Result<Self, anyhow::Error> {
-        let mdxes: Vec<mdx_utils::MDictMemIndex> = std::fs::read_dir(dir_path)?
-            .into_iter()
-            .filter_map(|dr| match dr {
-                Ok(e) => {
-                    let p = e.path();
-                    Some(mdx_utils::MDictMemIndex::new(p).ok()?)
-                }
-                Err(x) => None,
-            })
-            .collect();
+    pub fn new(dir_path: &str) -> Self {
+        let mdxes: Vec<mdx_utils::MDictMemIndex> = match std::fs::read_dir(dir_path) {
+            Ok(paths) => {
+                paths.into_iter()
+                    .filter_map(|dr| match dr {
+                        Ok(e) => {
+                            let p = e.path();
 
-        Ok(DictionaryPlugin {
+                            match mdx_utils::MDictMemIndex::new(p) {
+                                Ok(mdx) => Some(mdx),
+                                Err(_) => None
+                            }
+                        }
+                        Err(x) => None,
+                    })
+                    .collect()
+            }
+            Err(_) => {
+                vec![]
+            }
+        };
+
+        DictionaryPlugin {
             dir_path: dir_path.to_string(),
             mdxes,
-        })
+        }
     }
 
     pub fn seek(&self, word: &str) -> Vec<DictResult> {

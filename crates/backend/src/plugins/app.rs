@@ -12,9 +12,9 @@ pub enum AppMsg {}
 #[derive(Debug, Clone)]
 pub struct AppResult {
     icon_name: String,
-    app_name: String,
-    app_desc: String,
-    exec_path: String,
+    pub app_name: String,
+    pub app_desc: String,
+    pub exec_path: String,
     score: i32,
     pub id: String,
 }
