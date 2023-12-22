@@ -14,12 +14,12 @@ pub enum ClipMsg {
 
 #[derive(Debug)]
 pub struct ClipResult {
-    content: String,
+    pub content: String,
     score: i32,
-    mime: String,
-    insert_time: DateTime<Utc>,
-    update_time: DateTime<Utc>,
-    count: i64,
+    pub mime: String,
+    pub insert_time: DateTime<Utc>,
+    pub update_time: DateTime<Utc>,
+    pub count: i64,
 }
 
 impl PluginResult for ClipResult {

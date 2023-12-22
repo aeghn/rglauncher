@@ -14,12 +14,6 @@ pub enum PluginMsg<T> {
     TypeMsg(T),
 }
 
-pub enum ResultMsg {
-    Result(Arc<UserInput>, Vec<Box<dyn PluginResult>>),
-    UserInput(Arc<UserInput>),
-    RemoveWindow(i32),
-}
-
 pub trait PluginResult: Send {
     fn score(&self) -> i32;
 
