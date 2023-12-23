@@ -4,6 +4,7 @@ use freedesktop_desktop_entry::DesktopEntry;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use std::option::Option::None;
+use tracing::info;
 
 use crate::util::score_utils;
 
@@ -43,6 +44,10 @@ impl PluginResult for AppResult {
     fn get_type_id(&self) -> &'static str {
         TYPE_ID
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self as &dyn std::any::Any
+    }
 }
 
 pub struct ApplicationPlugin {
@@ -52,6 +57,7 @@ pub struct ApplicationPlugin {
 
 impl ApplicationPlugin {
     pub fn new() -> Self {
+        info!("Creating App Plugin");
         let matcher = SkimMatcherV2::default();
 
         let applications =
@@ -60,6 +66,9 @@ impl ApplicationPlugin {
                 .filter_map(|path| {
                     if let Ok(bytes) = std::fs::read_to_string(&path) {
                         if let Ok(entry) = DesktopEntry::decode(&path, &bytes) {
+                            if entry.no_display() {
+                                return None;
+                            }
                             return Some(AppResult {
                                 id: entry.id().to_string(),
                                 icon_name: entry.icon().unwrap_or_default().to_string(),
@@ -74,7 +83,10 @@ impl ApplicationPlugin {
                 })
                 .collect();
 
-        ApplicationPlugin {applications, matcher}
+        ApplicationPlugin {
+            applications,
+            matcher,
+        }
     }
 }
 
@@ -82,33 +94,39 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<AppResult>> {
-        let result = self.applications
-        .iter()
-        .filter_map(|app| {
-            let score = self.matcher.fuzzy_match(&app.app_name, &user_input.input);
+        let result = self
+            .applications
+            .iter()
+            .filter_map(|app| {
+                let score = self.matcher.fuzzy_match(&app.app_name, &user_input.input);
 
-            if score.unwrap_or(0) > 0 {
-                Some(app.clone())
-            } else {
-                None
-            }
-        }).collect();
+                if score.unwrap_or(0) > 0 {
+                    Some(app.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
 
         Ok(result)
     }
 
-    fn handle_msg(&mut self, msg: AppMsg) {
-        
+    fn handle_msg(&mut self, msg: AppMsg) {}
+
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::{plugins::{app::ApplicationPlugin, Plugin}, userinput::UserInput};
+    use crate::{
+        plugins::{app::ApplicationPlugin, Plugin},
+        userinput::UserInput,
+    };
 
     #[test]
-    fn test_app()    {
+    fn test_app() {
         let app_plugin = ApplicationPlugin::new();
         println!("apps: {:?}", app_plugin.handle_input(&UserInput::new("a")));
     }

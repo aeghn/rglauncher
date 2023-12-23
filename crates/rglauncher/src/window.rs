@@ -1,38 +1,42 @@
-use crate::inputbar::{InputBar, InputMessage};
-use crate::launcher::AppMsg;
+use crate::inputbar::InputBar;
 use crate::preview::Preview;
+use crate::resulthandler::ResultHolder;
 use crate::sidebar::SidebarMsg;
-use flume::{Receiver, Sender};
-use gdk::Key;
-use gio::traits::ApplicationExt;
-use glib::{clone, BoxedAnyObject, GStr, MainContext};
+use backend::plugindispatcher::DispatchMsg;
+use backend::ResultMsg;
+use flume::Sender;
+use glib::{clone, MainContext};
 use gtk::prelude::EditableExt;
 use gtk::prelude::EntryBufferExtManual;
 use gtk::traits::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
 use gtk::{gdk, Application, ApplicationWindow};
-use std::sync::Arc;
-use tracing::{error, info};
+use std::sync::atomic::AtomicI32;
+use std::sync::atomic::Ordering::SeqCst;
 
 #[derive(Clone)]
 pub struct RGWindow {
+    id: i32,
+
     window: ApplicationWindow,
     input_bar: InputBar,
     preview: Preview,
+
+    dispatch_sender: Sender<DispatchMsg>,
+
     sidebar_sender: Sender<SidebarMsg>,
-    selection_change_receiver: flume::Receiver<BoxedAnyObject>,
 }
 
+static WINDOW_ID_COUNT: AtomicI32 = AtomicI32::new(0);
+
 impl RGWindow {
-    pub fn new(
-        app: &Application,
-        app_msg_sender: Sender<AppMsg>,
-        input_sender: flume::Sender<Arc<InputMessage>>,
-        input_receiver: flume::Receiver<Arc<InputMessage>>,
-        selection_change_sender: Sender<BoxedAnyObject>,
-        selection_change_receiver: flume::Receiver<BoxedAnyObject>,
-        sidebar_sender: Sender<SidebarMsg>,
-        sidebar_receiver: Receiver<SidebarMsg>,
-    ) -> Self {
+    pub fn new(app: &Application, dispatch_sender: &Sender<DispatchMsg>) -> Self {
+        let id = WINDOW_ID_COUNT.fetch_add(1, SeqCst);
+
+        let (sidebar_sender, sidebar_receiver) = flume::unbounded();
+        let (preview_sender, preview_receiver) = flume::unbounded();
+
+        let result_sender = ResultHolder::start(dispatch_sender, &sidebar_sender, &preview_sender);
+
         let window = ApplicationWindow::builder()
             .default_width(800)
             .default_height(600)
@@ -48,7 +52,7 @@ impl RGWindow {
 
         window.set_child(Some(&main_box));
 
-        let input_bar = InputBar::new(&input_sender);
+        let input_bar = InputBar::new(&result_sender, id);
         main_box.append(&input_bar.entry);
 
         let bottom_box = gtk::Box::builder()
@@ -57,29 +61,31 @@ impl RGWindow {
             .build();
         main_box.append(&bottom_box);
 
-        let sidebar = crate::sidebar::Sidebar::new(
-            input_receiver.clone(),
+        let mut sidebar = crate::sidebar::Sidebar::new(
+            &result_sender,
+            sidebar_sender.clone(),
             sidebar_receiver.clone(),
-            selection_change_sender.clone(),
-            app_msg_sender.clone(),
         );
         let sidebar_window = &sidebar.scrolled_window;
+        let sidebar_sender = sidebar.sidebar_sender.clone();
         bottom_box.append(sidebar_window);
 
-        let mut sidebar_worker = sidebar.clone();
-        MainContext::ref_thread_default().spawn_local(async move {
-            sidebar_worker.loop_recv().await;
-        });
+        sidebar.loop_recv();
 
-        let preview = Preview::new();
+        let preview = Preview::new(preview_sender, preview_receiver);
         bottom_box.append(&preview.preview_window.clone());
 
+        preview.loop_recv();
+
         Self {
+            id,
             window,
             input_bar,
             preview,
+
+            dispatch_sender: dispatch_sender.clone(),
+
             sidebar_sender,
-            selection_change_receiver,
         }
     }
 
@@ -123,11 +129,6 @@ impl RGWindow {
 
     pub fn prepare(&self) {
         self.setup_keybindings();
-        let selection_change_receiver = self.selection_change_receiver.clone();
-        let preview = self.preview.clone();
-        MainContext::ref_thread_default().spawn_local(async move {
-            preview.loop_recv(selection_change_receiver).await;
-        });
     }
 
     pub fn show_window(&self) {

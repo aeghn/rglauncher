@@ -5,12 +5,11 @@ use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::score_utils;
 use rusqlite::Connection;
+use tracing::info;
 
-pub const TYPE_ID : &str = "clipboard";
+pub const TYPE_ID: &str = "clipboard";
 
-pub enum ClipMsg {
-
-}
+pub enum ClipMsg {}
 
 #[derive(Debug)]
 pub struct ClipResult {
@@ -24,7 +23,7 @@ pub struct ClipResult {
 
 impl PluginResult for ClipResult {
     fn score(&self) -> i32 {
-        score_utils::middle(self.score as i64)
+        score_utils::low(self.score as i64)
     }
 
     fn sidebar_icon_name(&self) -> String {
@@ -39,11 +38,14 @@ impl PluginResult for ClipResult {
         Some(crate::util::string_utils::truncate(self.content.as_str(), 200).to_string())
     }
 
-    fn on_enter(&self) {
-    }
+    fn on_enter(&self) {}
 
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self as &dyn std::any::Any
     }
 }
 
@@ -53,9 +55,13 @@ pub struct ClipboardPlugin {
 
 impl ClipboardPlugin {
     pub fn new(path: &str) -> Self {
+        info!("Creating Clip Plugin, path: {}", path);
+
         match Connection::open(path) {
-            Ok(connection) => ClipboardPlugin { connection: Some(connection) },
-            Err(err) => ClipboardPlugin { connection: None }
+            Ok(connection) => ClipboardPlugin {
+                connection: Some(connection),
+            },
+            Err(err) => ClipboardPlugin { connection: None },
         }
     }
 }
@@ -92,6 +98,8 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
     fn handle_msg(&mut self, msg: ClipMsg) {
         todo!()
     }
+
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
+    }
 }
-
-

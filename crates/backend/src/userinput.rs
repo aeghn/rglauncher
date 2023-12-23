@@ -1,12 +1,12 @@
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::SeqCst;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Debug)]
 pub struct UserInput {
     pub window_id: i32,
     pub input: String,
-    cancel_signal: Arc<AtomicBool>
+    cancel_signal: Arc<RwLock<bool>>,
 }
 impl PartialEq for UserInput {
     fn eq(&self, other: &Self) -> bool {
@@ -15,19 +15,21 @@ impl PartialEq for UserInput {
 }
 
 impl UserInput {
-    pub fn new(input: &str) -> Self {
+    pub fn new(input: &str, window_id: &i32) -> Self {
         UserInput {
-            window_id: 0,
+            window_id: window_id.clone(),
             input: input.to_string(),
-            cancel_signal: Arc::new(AtomicBool::from(false)),
+            cancel_signal: Arc::new(RwLock::new(false)),
         }
     }
 
     pub fn cancelled(&self) -> bool {
-        return self.cancel_signal.load(SeqCst)
+        *self.cancel_signal.read().unwrap()
     }
 
-    pub fn cancel(&mut self) {
-        self.cancel_signal.store(true, SeqCst)
+    pub fn cancel(&self) {
+        if let Ok(mut cancel_signal) = self.cancel_signal.write() {
+            *cancel_signal = true;
+        }
     }
 }

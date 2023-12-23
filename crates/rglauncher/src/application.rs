@@ -1,43 +1,20 @@
-mod arguments;
-mod constants;
-mod icon_cache;
-mod inputbar;
-mod launcher;
-mod plugins;
-mod preview;
-mod sidebar;
-mod sidebarrow;
-mod userinput;
-mod util;
-mod window;
-mod resulthandler;
-
 use clap::Parser;
-use gio::File;
-use gio::FileType::Directory;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tracing::*;
 
 use gtk::gdk::*;
 use gtk::prelude::*;
 use gtk::*;
 
-use crate::launcher::{AppMsg, Launcher};
-use crate::window::RGWindow;
+use crate::launcher::LauncherMsg;
+use crate::{arguments, constants, launcher};
 use flume::{Receiver, Sender};
-use glib::{MainContext, MainLoop};
 use std::os::unix::net::{UnixListener, UnixStream};
-
-const APP_ID: &str = "org.codeberg.wangzh.rglauncher";
-
-fn main() {
-    try_communicate().expect("unable to create socket");
-}
 
 fn load_css() {
     let provider = CssProvider::new();
-    provider.load_from_data(include_str!("../resources/style.css"));
+    provider.load_from_data(include_str!("../../../resources/style.css"));
 
     style_context_add_provider_for_display(
         &Display::default().expect("Could not connect to a display."),
@@ -46,23 +23,29 @@ fn load_css() {
     );
 }
 
-fn activate(app: &Application, app_msg_sender: Sender<AppMsg>, app_msg_receiver: Receiver<AppMsg>) {
+fn activate(
+    app: &Application,
+    app_msg_sender: Sender<LauncherMsg>,
+    app_msg_receiver: Receiver<LauncherMsg>,
+) {
     let arguments = arguments::Arguments::parse();
+
+    let settings = Settings::default().expect("Failed to create GTK settings.");
+    settings.set_gtk_icon_theme_name(Some(arguments.theme.as_str()));
 
     let launcher =
         launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
 
-    launcher.launch_plugins();
-
-/*     let window = launcher.new_window();
+    let window = launcher.new_window();
 
     window.prepare();
-    window.show_window(); */
+    window.show_window();
 }
 
-fn start_new() {
+pub fn new_backend() {
     tracing_subscriber::fmt()
         .with_max_level(Level::INFO)
+        .with_thread_ids(true)
         .with_timer(tracing_subscriber::fmt::time::time())
         .init();
 
@@ -79,7 +62,9 @@ fn start_new() {
 
     let main_loop = glib::MainLoop::new(None, false);
 
-    let app = Application::builder().application_id(APP_ID).build();
+    let app = Application::builder()
+        .application_id(constants::APP_ID)
+        .build();
 
     app.connect_startup(|_| load_css());
 
@@ -98,7 +83,7 @@ fn start_new() {
     main_loop.run();
 }
 
-fn build_uds(app_msg_sender: &Sender<AppMsg>) -> anyhow::Result<()> {
+fn build_uds(app_msg_sender: &Sender<LauncherMsg>) -> anyhow::Result<()> {
     if !Path::new(constants::TMP_DIR).exists() {
         std::fs::create_dir(constants::TMP_DIR)?;
     }
@@ -116,25 +101,12 @@ fn build_uds(app_msg_sender: &Sender<AppMsg>) -> anyhow::Result<()> {
                 info!("Got Echo {}", response);
 
                 if response == "new_window" {
-                    app_msg_sender.send(AppMsg::NewWindow)?;
+                    app_msg_sender.send(LauncherMsg::NewWindow)?;
                 }
             }
             Err(e) => {
                 error!("Failed to accept connection: {}", e);
             }
-        }
-    }
-}
-
-fn try_communicate() -> anyhow::Result<bool> {
-    match UnixStream::connect(constants::UNIX_SOCKET_PATH) {
-        Ok(mut stream) => {
-            stream.write_all("new_window".as_bytes())?;
-            Ok(true)
-        }
-        Err(_) => {
-            start_new();
-            Ok(true)
         }
     }
 }

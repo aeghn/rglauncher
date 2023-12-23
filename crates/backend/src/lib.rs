@@ -3,15 +3,15 @@ use std::sync::Arc;
 use plugins::PluginResult;
 use userinput::UserInput;
 
+pub mod plugindispatcher;
 pub mod plugins;
-pub mod util;
-pub mod userinput;
-mod plugindispatcher;
 mod pluginworker;
-
+pub mod userinput;
+pub mod util;
 
 pub enum ResultMsg {
-    Result(Arc<UserInput>, Vec<Box<dyn PluginResult>>),
+    Result(Arc<UserInput>, Vec<Arc<dyn PluginResult>>),
     UserInput(Arc<UserInput>),
-    RemoveWindow(i32),
+    RemoveWindow,
+    ChangeSelect(u32),
 }
