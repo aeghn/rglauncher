@@ -5,3 +5,4 @@ pub const PROJECT_DESCRIPTION: &str = "A tool to help people launch somethings."
 pub const TMP_DIR: &str = "/tmp/rglauncher/";
 
 pub const UNIX_SOCKET_PATH: &str = "/tmp/rglauncher/.socket";
+pub const APP_ID: &str = "org.codeberg.wangzh.rglauncher";

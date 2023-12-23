@@ -2,13 +2,14 @@ use std::process::Command;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use tracing::info;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 
 use crate::util::score_utils;
 
-pub const TYPE_ID : &str = "hypr_windows";
+pub const TYPE_ID: &str = "hypr_windows";
 
 pub enum HyprWindowMsg {}
 
@@ -71,6 +72,10 @@ impl PluginResult for HyprWindowResult {
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self as &dyn std::any::Any
+    }
 }
 
 pub struct HyprWindowsPlugin {
@@ -79,6 +84,8 @@ pub struct HyprWindowsPlugin {
 
 impl HyprWindowsPlugin {
     pub fn new() -> Self {
+        info!("Creating Windows Plugin");
+
         HyprWindowsPlugin {
             windows: get_windows(),
         }
@@ -145,6 +152,7 @@ fn get_icon_name(class: &str) -> String {
 
 impl Plugin<HyprWindowResult, HyprWindowMsg> for HyprWindowsPlugin {
     fn refresh_content(&mut self) {
+        info!("update windows");
         self.windows = get_windows();
     }
 
@@ -176,6 +184,8 @@ impl Plugin<HyprWindowResult, HyprWindowMsg> for HyprWindowsPlugin {
     fn handle_msg(&mut self, msg: HyprWindowMsg) {
         todo!()
     }
+
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
+    }
 }
-
-

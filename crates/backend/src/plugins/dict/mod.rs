@@ -1,16 +1,15 @@
+use self::mdx_utils::MDictLookup;
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::{score_utils, string_utils};
-use self::mdx_utils::MDictLookup;
+use tracing::info;
 
 mod mdict;
 mod mdx_utils;
 
-pub const TYPE_ID : &str = "dict";
+pub const TYPE_ID: &str = "dict";
 
-pub enum DictMsg {
-
-}
+pub enum DictMsg {}
 
 pub struct DictResult {
     pub word: String,
@@ -40,6 +39,10 @@ impl PluginResult for DictResult {
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self as &dyn std::any::Any
+    }
 }
 
 pub struct DictionaryPlugin {
@@ -50,26 +53,26 @@ pub struct DictionaryPlugin {
 impl DictionaryPlugin {
     pub fn new(dir_path: &str) -> Self {
         let mdxes: Vec<mdx_utils::MDictMemIndex> = match std::fs::read_dir(dir_path) {
-            Ok(paths) => {
-                paths.into_iter()
-                    .filter_map(|dr| match dr {
-                        Ok(e) => {
-                            let p = e.path();
+            Ok(paths) => paths
+                .into_iter()
+                .filter_map(|dr| match dr {
+                    Ok(e) => {
+                        let p = e.path();
 
-                            match mdx_utils::MDictMemIndex::new(p) {
-                                Ok(mdx) => Some(mdx),
-                                Err(_) => None
-                            }
+                        match mdx_utils::MDictMemIndex::new(p) {
+                            Ok(mdx) => Some(mdx),
+                            Err(_) => None,
                         }
-                        Err(x) => None,
-                    })
-                    .collect()
-            }
+                    }
+                    Err(x) => None,
+                })
+                .collect(),
             Err(_) => {
                 vec![]
             }
         };
 
+        info!("Creating Dict Plugin");
         DictionaryPlugin {
             dir_path: dir_path.to_string(),
             mdxes,
@@ -125,5 +128,9 @@ impl Plugin<DictResult, DictMsg> for DictionaryPlugin {
 
     fn handle_msg(&mut self, msg: DictMsg) {
         todo!()
+    }
+
+    fn get_type_id(&self) -> &'static str {
+        &TYPE_ID
     }
 }

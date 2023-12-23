@@ -1,39 +1,6 @@
-[package]
-name = "rglauncher"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-fuzzy-matcher = "0.3.7"
-lazy_static = "1.4.0"
-locale-types = "0.4.0"
-regex = "1.6.0"
-serde_json = "1.0.79"
-flume = "0.10.14"
-tracing = "0.1.37"
-
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-tracing-tree = "0.2.2"
-rusqlite = { version = "0.29.0", features = ["bundled", "chrono"] }
-chrono = "0.4.24"
-futures = { version = "0.3.25", features = ["thread-pool"]}
-gtk = { version = "0.7.3", package = "gtk4"}
-gio = "0.18"
-glib = "0.18"
-webkit6 = {version = "0.2", all-features = false}
-fragile = "2.0.0"
-meval = "0.2.0"
-clap = { version = "4.4.10", features = ["derive"] }
-bytes = "1.4.0"
-miniz_oxide = "0.7.1"
-encoding_rs = '0.8'
-ripemd128 = '0.1'
-anyhow = "1.0.75"
-adler = "1.0.2"
-html-escape = "0.2.13"
-minilzo = "0.2.0"
-patricia_tree = "0.6.3"
-ctor = "0.2.5"
-async-trait = "0.1.74"
+members = [
+    "crates/backend",
+    "crates/rglauncher",
+]
