@@ -4,17 +4,18 @@ pub mod clipboard;
 pub mod dict;
 pub mod windows;
 
-
-use std::sync::Arc;
 use crate::userinput::UserInput;
+use crate::ResultMsg;
+use std::any::Any;
+use std::sync::Arc;
 
 pub enum PluginMsg<T> {
-    UserInput(Arc<UserInput>),
+    UserInput(Arc<UserInput>, flume::Sender<ResultMsg>),
     RefreshContent,
     TypeMsg(T),
 }
 
-pub trait PluginResult: Send {
+pub trait PluginResult: Send + Sync {
     fn score(&self) -> i32;
 
     fn sidebar_icon_name(&self) -> String;
@@ -26,17 +27,21 @@ pub trait PluginResult: Send {
     fn on_enter(&self);
 
     fn get_type_id(&self) -> &'static str;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 // TODO: async trait
 pub trait Plugin<R, T>
 where
     R: PluginResult,
-    T: Send
+    T: Send,
 {
     fn handle_msg(&mut self, msg: T);
 
     fn refresh_content(&mut self);
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<R>>;
+
+    fn get_type_id(&self) -> &'static str;
 }
