@@ -1,16 +1,13 @@
 use crate::preview::PreviewMsg;
-use crate::sidebar::{Sidebar, SidebarMsg};
-use backend::plugindispatcher::{DispatchMsg, PluginDispatcher};
+use crate::sidebar::SidebarMsg;
+use backend::plugindispatcher::DispatchMsg;
 use backend::plugins::PluginResult;
 use backend::userinput::UserInput;
 use backend::ResultMsg;
 use flume::Sender;
-use futures::executor::block_on;
-use futures::sink::drain;
-use glib::BoxedAnyObject;
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::thread;
+use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
 
 pub struct ResultHolder {
@@ -25,6 +22,8 @@ pub struct ResultHolder {
 
     sidebar_sender: flume::Sender<SidebarMsg>,
     preview_sender: Sender<PreviewMsg>,
+
+    last: Instant,
 }
 
 impl ResultHolder {
@@ -45,6 +44,7 @@ impl ResultHolder {
             dispatch_sender,
             sidebar_sender,
             preview_sender,
+            last: Instant::now(),
         }
     }
 
@@ -52,21 +52,34 @@ impl ResultHolder {
         self.result_holder
             .sort_by(|e1, e2| e2.score().cmp(&e1.score()));
         let holder = self.result_holder.clone();
+
+        let holder_size = holder.len();
         self.sidebar_sender
             .send(SidebarMsg::Result(holder))
-            .expect("unable to send result to sidebar")
+            .expect("unable to send result to sidebar");
+
+        if holder_size == 0 {
+            self.preview_sender.send(PreviewMsg::Clear)
+                .expect("unable to clear preview");
+        }
+
+        self.last = Instant::now();
     }
 
-    async fn accept_messages(&mut self) {
+    fn accept_messages(&mut self) {
+        let interval = Duration::from_millis(80);
+        let mut received_something = false;
+        let mut next_sleep_time = 10000;
         loop {
-            match self.result_receiver.recv_async().await {
+            match self.result_receiver.recv_timeout(Duration::from_millis(next_sleep_time)) {
                 Ok(msg) => match msg {
                     ResultMsg::Result(input, mut results) => match self.user_input.as_ref() {
                         None => {}
                         Some(user_input) => {
                             if user_input.as_ref() == input.as_ref() {
                                 self.result_holder.append(&mut results);
-                                self.send_to_sidebar();
+                                received_something = true;
+                                next_sleep_time = 50;
                             }
                         }
                     },
@@ -83,6 +96,7 @@ impl ResultHolder {
                                 self.result_sender.clone(),
                             ))
                             .expect("todo");
+                        self.last = Instant::now();
                     }
                     ResultMsg::RemoveWindow => {}
                     ResultMsg::ChangeSelect(item) => {
@@ -96,10 +110,31 @@ impl ResultHolder {
                             _ => {}
                         }
                     }
+                    ResultMsg::SelectSomething => {
+                        match self.current_index.clone() {
+                            None => {}
+                            Some(id) => {
+                                match self.result_holder.get(id as usize) {
+                                    Some(pr) => {
+                                        pr.on_enter();
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+
+                    }
                 },
                 Err(ex) => {
-                    error!("unable to receive message: {:?}", ex);
+                    // error!("unable to receive message: {:?}", ex);
                 }
+            }
+            if received_something && Instant::now().duration_since(self.last).cmp(&interval).is_ge() {
+                info!("Time internal is big enough");
+                self.send_to_sidebar();
+                received_something  = false;
+                next_sleep_time = 10000;
+            } else {
             }
         }
     }
@@ -118,7 +153,7 @@ impl ResultHolder {
         let result_sender = result_handler.result_sender.clone();
 
         thread::spawn(move || {
-            block_on(result_handler.accept_messages());
+            result_handler.accept_messages();
         });
 
         result_sender

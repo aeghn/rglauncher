@@ -1,30 +1,24 @@
 use std::borrow::Borrow;
-use std::ops::Deref;
-use std::sync::{Mutex, RwLock};
+
 
 use flume::Sender;
-use futures::select;
 use futures::StreamExt;
 use gio::traits::ListModelExt;
 use gio::{
     glib,
     prelude::{Cast, CastNone},
 };
-use glib::{BoxedAnyObject, IsA, MainContext, PropertyGet, StrV, ToVariant};
+use glib::{BoxedAnyObject, ControlFlow, IsA, MainContext, Priority, PropertyGet, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::SeqCst;
+
 use std::sync::Arc;
 
 use backend::plugins::PluginResult;
-use backend::userinput::UserInput;
 use backend::ResultMsg;
 use gtk::traits::{SelectionModelExt, WidgetExt};
-use lazy_static::lazy_static;
 use tracing::{error, info};
 
-use crate::inputbar::InputMessage;
-use crate::launcher::LauncherMsg;
+
 use crate::sidebarrow::SidebarRow;
 
 pub enum SidebarMsg {
@@ -121,7 +115,7 @@ impl Sidebar {
             }
             SidebarMsg::Result(results) => {
                 let list_store = self.list_store.clone();
-                glib::idle_add_local_once(move || {
+                MainContext::ref_thread_default().spawn_local_with_priority(Priority::LOW, async move {
                     info!("begin to handle sidebar result");
                     let boxed_objects: Vec<BoxedAnyObject> = results
                         .into_iter()
@@ -129,6 +123,9 @@ impl Sidebar {
                         .collect();
                     info!("end to handle sidebar result");
                     list_store.splice(0, list_store.n_items(), &boxed_objects);
+                    info!("end splice");
+
+
                 });
             }
         }
@@ -204,6 +201,7 @@ impl Sidebar {
                 .send(ResultMsg::ChangeSelect(selection.selected()))
                 .expect("TODO: panic message");
         });
+
 
         selection_model
     }
