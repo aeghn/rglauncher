@@ -57,6 +57,10 @@ impl CalculatorPlugin {
 }
 
 impl Plugin<CalcResult, CalcMsg> for CalculatorPlugin {
+    fn handle_msg(&mut self, msg: CalcMsg) {
+        todo!()
+    }
+
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<CalcResult>> {
@@ -66,10 +70,6 @@ impl Plugin<CalcResult, CalcMsg> for CalculatorPlugin {
                 result: res.to_string(),
             },
         )?])
-    }
-
-    fn handle_msg(&mut self, msg: CalcMsg) {
-        todo!()
     }
 
     fn get_type_id(&self) -> &'static str {

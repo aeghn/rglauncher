@@ -50,11 +50,11 @@ where
                                                 .into_iter()
                                                 .map(|e| Arc::new(e) as Arc<dyn PluginResult>)
                                                 .collect();
-                                            info!(
-                                                "Send Result: {} {}",
-                                                plugin.get_type_id(),
-                                                &upcast.len()
-                                            );
+                                            // info!(
+                                            //     "Send Result: {} {}",
+                                            //     plugin.get_type_id(),
+                                            //     &upcast.len()
+                                            // );
                                             if let Err(err) = result_sender
                                                 .send(ResultMsg::Result(user_input.clone(), upcast))
                                             {
