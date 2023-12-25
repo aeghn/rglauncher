@@ -12,6 +12,7 @@ use gtk::PolicyType::Never;
 
 pub enum PreviewMsg {
     PluginResult(Arc<dyn PluginResult>),
+    Clear
 }
 
 #[derive(Clone)]
@@ -57,6 +58,9 @@ impl Preview {
                                 preview_window.set_child(preview.as_ref());
 
                             }));
+                        }
+                        PreviewMsg::Clear => {
+                            preview_window.set_child(None::<&gtk::Widget>)
                         }
                     }
                 }
