@@ -1,4 +1,4 @@
-use crate::inputbar::InputBar;
+use crate::inputbar::{InputBar, InputMessage};
 use crate::preview::Preview;
 use crate::resulthandler::ResultHolder;
 use crate::sidebar::SidebarMsg;
@@ -24,6 +24,8 @@ pub struct RGWindow {
     dispatch_sender: Sender<DispatchMsg>,
 
     sidebar_sender: Sender<SidebarMsg>,
+
+    result_sender: Sender<ResultMsg>,
 }
 
 static WINDOW_ID_COUNT: AtomicI32 = AtomicI32::new(0);
@@ -84,6 +86,7 @@ impl RGWindow {
             preview,
 
             dispatch_sender: dispatch_sender.clone(),
+            result_sender: result_sender.clone(),
 
             sidebar_sender,
         }
@@ -92,7 +95,9 @@ impl RGWindow {
     fn setup_keybindings(&self) {
         let controller = gtk::EventControllerKey::new();
         let sender = self.sidebar_sender.clone();
+        let result_sender = self.result_sender.clone();
         let entry = self.input_bar.entry.clone();
+        let inputbar_sender = self.input_bar.input_sender.clone();
         let window = &self.window;
 
         controller.connect_key_pressed(clone!(@strong window,
@@ -108,7 +113,14 @@ impl RGWindow {
                 }
                 gdk::Key::Escape => {
                         window.hide();
+                        inputbar_sender.send(InputMessage::Clear).expect("unable to clear");
                         glib::Propagation::Proceed
+                }
+                gdk::Key::Return => {
+                    result_sender.send(ResultMsg::SelectSomething).expect("select something");
+                        window.hide();
+                        inputbar_sender.send(InputMessage::Clear).expect("unable to clear");
+                    glib::Propagation::Proceed
                 }
                 _ => {
                         if !(key.is_lower() && key.is_upper()) {
