@@ -4,7 +4,11 @@ use freedesktop_desktop_entry::DesktopEntry;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use std::option::Option::None;
-use tracing::info;
+use std::process::{Command, exit, Stdio};
+use fork::Fork;
+use lazy_static::lazy_static;
+use regex::Regex;
+use tracing::{error, info};
 
 use crate::util::score_utils;
 
@@ -15,12 +19,52 @@ pub struct AppResult {
     icon_name: String,
     pub app_name: String,
     pub app_desc: String,
-    pub exec_path: String,
+    pub exec: String,
     score: i32,
     pub id: String,
+    pub desktop_path: String,
+    pub terminal: bool,
+}
+
+lazy_static! {
+    static ref PLACE_HOLDER_REPLACER : Regex = Regex::new(r"%\w").unwrap();
 }
 
 pub const TYPE_ID: &str = "app_result";
+
+fn run_command(command: Vec<&str>) {
+    match fork::fork() {
+        Ok(Fork::Child) => {
+            match fork::fork() {
+                Ok(Fork::Child) => {
+                    fork::setsid().expect("Failed to setsid");
+                    match Command::new(&command[0])
+                        .args(&command[1..])
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .spawn() {
+                        Ok(child) => {
+                            exit(0)
+                        }
+                        Err(err) => {
+                            error!("Error running command: {}", err);
+                            exit(1)
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("unable to run command: {:?} {}", command, e)
+                }
+                _ => {}
+            }
+        }
+        Err(e) => {
+            error!("unable running command: {}", e)
+        }
+        _ => {}
+    }
+}
 
 impl PluginResult for AppResult {
     fn score(&self) -> i32 {
@@ -39,7 +83,19 @@ impl PluginResult for AppResult {
         Some(self.app_desc.clone())
     }
 
-    fn on_enter(&self) {}
+    fn on_enter(&self) {
+        let mut true_command = PLACE_HOLDER_REPLACER.replace_all(self.exec.as_str(), "").trim().to_string();
+
+        if self.terminal {
+            Command::new("foot")
+                .arg("-e")
+                .arg(true_command)
+                .spawn().expect("unable to spawn terminal app");
+        } else {
+            let cmd_and_args: Vec<&str> = true_command.split(" ").collect();
+            run_command(cmd_and_args);
+        }
+    }
 
     fn get_type_id(&self) -> &'static str {
         TYPE_ID
@@ -69,12 +125,15 @@ impl ApplicationPlugin {
                             if entry.no_display() {
                                 return None;
                             }
+
                             return Some(AppResult {
                                 id: entry.id().to_string(),
                                 icon_name: entry.icon().unwrap_or_default().to_string(),
                                 app_name: entry.name(None).unwrap_or_default().to_string(),
                                 app_desc: entry.comment(None).unwrap_or_default().to_string(),
-                                exec_path: entry.exec().unwrap_or_default().to_string(),
+                                exec: entry.exec().unwrap_or_default().to_string(),
+                                desktop_path: path.to_str().unwrap_or_default().to_string(),
+                                terminal: entry.terminal(),
                                 score: 0,
                             });
                         }
@@ -91,6 +150,8 @@ impl ApplicationPlugin {
 }
 
 impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
+    fn handle_msg(&mut self, msg: AppMsg) {}
+
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<AppResult>> {
@@ -110,8 +171,6 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
 
         Ok(result)
     }
-
-    fn handle_msg(&mut self, msg: AppMsg) {}
 
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
