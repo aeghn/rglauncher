@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Error};
+use arboard::Clipboard;
 use chrono::{DateTime, Local, Utc};
 
 use crate::plugins::{Plugin, PluginResult};
@@ -38,7 +39,10 @@ impl PluginResult for ClipResult {
         Some(crate::util::string_utils::truncate(self.content.as_str(), 200).to_string())
     }
 
-    fn on_enter(&self) {}
+    fn on_enter(&self) {
+        let mut clipboard = Clipboard::new().unwrap();
+        clipboard.set_text(self.content.as_str()).unwrap();
+    }
 
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
@@ -67,6 +71,10 @@ impl ClipboardPlugin {
 }
 
 impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
+    fn handle_msg(&mut self, msg: ClipMsg) {
+        todo!()
+    }
+
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<ClipResult>> {
@@ -93,10 +101,6 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
         } else {
             Err(Error::msg("unable to find connection"))
         }
-    }
-
-    fn handle_msg(&mut self, msg: ClipMsg) {
-        todo!()
     }
 
     fn get_type_id(&self) -> &'static str {

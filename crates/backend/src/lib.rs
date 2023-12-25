@@ -14,4 +14,5 @@ pub enum ResultMsg {
     UserInput(Arc<UserInput>),
     RemoveWindow,
     ChangeSelect(u32),
+    SelectSomething,
 }
