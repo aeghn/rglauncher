@@ -29,6 +29,8 @@ pub trait PluginResult: Send + Sync {
     fn get_type_id(&self) -> &'static str;
 
     fn as_any(&self) -> &dyn Any;
+
+    fn get_id(&self) -> &str;
 }
 
 // TODO: async trait

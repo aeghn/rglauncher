@@ -15,6 +15,7 @@ pub struct DictResult {
     pub word: String,
     pub html: String,
     pub dict: String,
+    id: String
 }
 
 impl PluginResult for DictResult {
@@ -42,6 +43,10 @@ impl PluginResult for DictResult {
 
     fn as_any(&self) -> &dyn std::any::Any {
         self as &dyn std::any::Any
+    }
+
+    fn get_id(&self) -> &str {
+        self.id.as_str()
     }
 }
 
@@ -90,6 +95,7 @@ impl DictionaryPlugin {
                         word: word.to_string(),
                         html: explain,
                         dict: mdx.name.to_string(),
+                        id: format!("{}-{}-{}", TYPE_ID, mdx.name.as_str(), word)
                     })
                 } else {
                     None

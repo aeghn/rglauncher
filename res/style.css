@@ -6,7 +6,7 @@
 
 .sidebar {
     min-width: 300px;
-    max-width: 300px;
+    width: 300px;
     border-radius: 5px;
     margin: 10px 10px 10px 10px;
     border: solid 1px #dedede;
@@ -14,6 +14,15 @@
 
 .sidebar_view {
     border-radius: 5px;
+}
+
+.sidebar_label {
+    font-weight: bolder;
+    border: solid 1px #a00;
+}
+
+.sidebar_content {
+    color: #606060;
 }
 
 .preview {
@@ -42,7 +51,6 @@ padding15 {
 }
 
 .centercld {
-  align-items: center;
 }
 
 .border_debug {

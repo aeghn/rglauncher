@@ -44,6 +44,10 @@ impl PluginResult for CalcResult {
     fn as_any(&self) -> &dyn std::any::Any {
         self as &dyn std::any::Any
     }
+
+    fn get_id(&self) -> &str {
+        &TYPE_ID
+    }
 }
 
 pub struct CalculatorPlugin {}

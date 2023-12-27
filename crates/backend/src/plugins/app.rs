@@ -104,6 +104,10 @@ impl PluginResult for AppResult {
     fn as_any(&self) -> &dyn std::any::Any {
         self as &dyn std::any::Any
     }
+
+    fn get_id(&self) -> &str {
+        &self.desktop_path
+    }
 }
 
 pub struct ApplicationPlugin {
