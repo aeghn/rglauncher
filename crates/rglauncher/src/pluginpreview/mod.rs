@@ -1,3 +1,4 @@
+use crate::arguments::Arguments;
 use crate::pluginpreview::app::AppPreview;
 use crate::pluginpreview::calculator::CalcPreview;
 use crate::pluginpreview::clipboard::ClipPreview;
@@ -7,7 +8,7 @@ use anyhow::anyhow;
 use backend::plugins::app::AppResult;
 use backend::plugins::calculator::CalcResult;
 use backend::plugins::clipboard::ClipResult;
-use backend::plugins::dict::DictResult;
+use backend::plugins::dict::{DictResult, self};
 use backend::plugins::windows::HyprWindowResult;
 use backend::plugins::PluginResult;
 use gtk::ResponseType::No;
@@ -40,12 +41,15 @@ pub struct PluginPreviewBuilder {
 }
 
 impl PluginPreviewBuilder {
-    pub fn new() -> Self {
+    pub fn new(arguments: Arc<Arguments>) -> Self {
+        let dict_preview = DictPreview::new();
+        dict_preview.add_csses(arguments.dict_dir.as_str());
+
         PluginPreviewBuilder {
             app_preview: AppPreview::new(),
             calc_preview: CalcPreview::new(),
             clip_preview: ClipPreview::new(),
-            dict_preview: DictPreview::new(),
+            dict_preview,
             wind_preview: HyprWindowPreview::new(),
         }
     }

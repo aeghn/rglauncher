@@ -1,6 +1,7 @@
 use clap::Parser;
 use std::io::{Read, Write};
 use std::path::Path;
+use std::sync::Arc;
 use tracing::*;
 
 use gtk::gdk::*;
@@ -28,7 +29,7 @@ fn activate(
     app_msg_sender: Sender<LauncherMsg>,
     app_msg_receiver: Receiver<LauncherMsg>,
 ) {
-    let arguments = arguments::Arguments::parse();
+    let arguments = Arc::new(arguments::Arguments::parse());
 
     let settings = Settings::default().expect("Failed to create GTK settings.");
     settings.set_gtk_icon_theme_name(Some(arguments.icon.as_str()));

@@ -1,3 +1,4 @@
+use crate::arguments::Arguments;
 use crate::inputbar::{InputBar, InputMessage};
 use crate::preview::Preview;
 use crate::resulthandler::ResultHolder;
@@ -10,6 +11,7 @@ use gtk::prelude::EditableExt;
 use gtk::prelude::EntryBufferExtManual;
 use gtk::traits::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
 use gtk::{gdk, Application, ApplicationWindow};
+use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::SeqCst;
 
@@ -31,7 +33,9 @@ pub struct RGWindow {
 static WINDOW_ID_COUNT: AtomicI32 = AtomicI32::new(0);
 
 impl RGWindow {
-    pub fn new(app: &Application, dispatch_sender: &Sender<DispatchMsg>) -> Self {
+    pub fn new(app: &Application,
+        arguments: Arc<Arguments>,
+        dispatch_sender: &Sender<DispatchMsg>) -> Self {
         let id = WINDOW_ID_COUNT.fetch_add(1, SeqCst);
 
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
@@ -77,7 +81,7 @@ impl RGWindow {
         let preview = Preview::new(preview_sender, preview_receiver);
         bottom_box.append(&preview.preview_window.clone());
 
-        preview.loop_recv();
+        preview.loop_recv(&arguments);
 
         Self {
             id,

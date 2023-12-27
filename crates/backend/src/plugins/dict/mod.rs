@@ -27,11 +27,11 @@ impl PluginResult for DictResult {
     }
 
     fn sidebar_label(&self) -> Option<String> {
-        Some(self.word.to_string())
+        Some(string_utils::truncate(self.dict.as_str(), 60).to_string())
     }
 
     fn sidebar_content(&self) -> Option<String> {
-        Some(string_utils::truncate(self.dict.as_str(), 60).to_string())
+        Some(self.word.to_string())
     }
 
     fn on_enter(&self) {}
