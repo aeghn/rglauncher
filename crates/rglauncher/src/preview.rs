@@ -1,13 +1,11 @@
 use glib::{clone, BoxedAnyObject, ControlFlow, MainContext, StrV};
-use std::any::TypeId;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use crate::arguments::Arguments;
 use crate::pluginpreview::PluginPreviewBuilder;
 use backend::plugins::PluginResult;
-use gtk::prelude::WidgetExt;
 use gtk::PolicyType::Never;
 
 pub enum PreviewMsg {
@@ -42,11 +40,12 @@ impl Preview {
         }
     }
 
-    pub fn loop_recv(&self) {
+    pub fn loop_recv(&self, arguments: &Arc<Arguments>) {
         let preview_window = self.preview_window.clone();
         let preview_receiver = self.preview_receiver.clone();
+        let arguments = arguments.clone();
         MainContext::ref_thread_default().spawn_local(async move {
-            let plugin_preview_builder = Rc::new(RefCell::new(PluginPreviewBuilder::new()));
+            let plugin_preview_builder = Rc::new(RefCell::new(PluginPreviewBuilder::new(arguments)));
             loop {
                 if let Ok(preview_msg) = preview_receiver.recv_async().await {
                     match preview_msg {
@@ -54,9 +53,7 @@ impl Preview {
                             let plugin_preview_builder = plugin_preview_builder.clone();
                             glib::idle_add_local_once(clone!(@strong preview_window => move || {
                             let preview = plugin_preview_builder.borrow().get_preview(&pr);
-
                                 preview_window.set_child(preview.as_ref());
-
                             }));
                         }
                         PreviewMsg::Clear => {
