@@ -15,7 +15,7 @@ use std::os::unix::net::{UnixListener, UnixStream};
 
 fn load_css() {
     let provider = CssProvider::new();
-    provider.load_from_data(include_str!("../../../resources/style.css"));
+    provider.load_from_data(include_str!("../../../res/style.css"));
 
     style_context_add_provider_for_display(
         &Display::default().expect("Could not connect to a display."),

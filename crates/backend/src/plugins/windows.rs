@@ -76,6 +76,10 @@ impl PluginResult for HyprWindowResult {
     fn as_any(&self) -> &dyn std::any::Any {
         self as &dyn std::any::Any
     }
+
+    fn get_id(&self) -> &str {
+        self.address.as_str()
+    }
 }
 
 pub struct HyprWindowsPlugin {
