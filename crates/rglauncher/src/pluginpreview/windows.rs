@@ -13,7 +13,26 @@ pub struct HyprWindowPreview {
     big_pic: gtk::Image,
     little_pic: gtk::Image,
     title: gtk::Label,
-    extra: gtk::Label,
+    screen: gtk::Label,
+    workspace: gtk::Label,
+    xwayland: gtk::Label
+}
+
+fn build_pair_line(grid: &gtk::Grid, row: i32, title: &str) -> gtk::Label {
+    let left = gtk::Label::builder()
+            .xalign(1.0)
+            .wrap(true)
+            .wrap_mode(WordChar)
+            .label(title)
+            .build();
+    let right = gtk::Label::builder()
+            .xalign(0.0)
+            .wrap(true)
+            .wrap_mode(WordChar)
+            .build();
+    grid.attach(&left, 0, row, 1, 1);
+    grid.attach(&right, 1, row, 1, 1);
+    right
 }
 
 impl PluginPreview for HyprWindowPreview {
@@ -41,31 +60,37 @@ impl PluginPreview for HyprWindowPreview {
             .css_classes(["font16"])
             .wrap(true)
             .wrap_mode(WordChar)
+            .selectable(true)
             .build();
         preview.attach(&title, 0, 2, 1, 1);
 
-        let extra = gtk::Label::builder()
-            .wrap(true)
-            .wrap_mode(Word)
-            .hexpand(true)
-            .build();
+        let extra = gtk::Grid::builder().hexpand(false).vexpand(false).halign(gtk::Align::Center).
+        build();
         preview.attach(&extra, 0, 3, 1, 1);
+
+
+        let screen = build_pair_line(&extra, 0, "Screen: ");
+        let workspace = build_pair_line(&extra, 1, "Workspace: ");
+        let xwayland = build_pair_line(&extra, 2, "Xwayland: ");
+
 
         HyprWindowPreview {
             preview,
             big_pic,
             little_pic,
             title,
-            extra,
+            screen,
+            workspace,
+            xwayland
         }
     }
 
     fn get_preview(&self, plugin_result: &Self::PluginResult) -> Widget {
         self.title.set_text(plugin_result.title.as_str());
 
-        if let Some(c) = plugin_result.sidebar_content() {
-            self.extra.set_text(c.as_str());
-        }
+        self.screen.set_label(plugin_result.monitor.to_string().as_str());
+        self.workspace.set_label(&plugin_result.workspace);
+        self.xwayland.set_label(plugin_result.xwayland.to_string().as_str());
 
         self.big_pic
             .set_from_gicon(icon_cache::get_icon(plugin_result.icon_name.as_str()).get());
@@ -73,3 +98,4 @@ impl PluginPreview for HyprWindowPreview {
         self.preview.clone().upcast()
     }
 }
+
