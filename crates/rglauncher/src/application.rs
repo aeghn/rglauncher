@@ -31,7 +31,7 @@ fn activate(
     let arguments = arguments::Arguments::parse();
 
     let settings = Settings::default().expect("Failed to create GTK settings.");
-    settings.set_gtk_icon_theme_name(Some(arguments.theme.as_str()));
+    settings.set_gtk_icon_theme_name(Some(arguments.icon.as_str()));
 
     let launcher =
         launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);

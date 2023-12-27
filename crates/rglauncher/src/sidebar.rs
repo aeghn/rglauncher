@@ -124,8 +124,6 @@ impl Sidebar {
                     info!("end to handle sidebar result");
                     list_store.splice(0, list_store.n_items(), &boxed_objects);
                     info!("end splice");
-
-
                 });
             }
         }

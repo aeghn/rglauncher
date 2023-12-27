@@ -4,8 +4,8 @@ use clap::Parser;
 #[derive(Parser, Default, Debug, Clone)]
 #[command(author = constants::PROJECT_AUTHOR, version = constants::PROJECT_VERSION, about = constants::PROJECT_DESCRIPTION)]
 pub struct Arguments {
-    #[clap(long, help = "Gtk Theme to Use")]
-    pub theme: String,
+    #[clap(long, help = "Icon Theme to Use")]
+    pub icon: String,
     #[clap(long, help = "The path of mdict files, including css files.")]
     pub dict_dir: String,
     #[clap(long, help = "The file path of clipboard db.")]
