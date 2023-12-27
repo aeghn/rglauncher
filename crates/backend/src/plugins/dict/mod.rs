@@ -52,20 +52,22 @@ pub struct DictionaryPlugin {
 
 impl DictionaryPlugin {
     pub fn new(dir_path: &str) -> Self {
-        let mdxes: Vec<mdx_utils::MDictMemIndex> = match std::fs::read_dir(dir_path) {
+        let filepaths = crate::util::fs_utils::walk_dir(dir_path, Some(|p: &str| {
+            p.to_lowercase().as_str().ends_with("mdx")
+        }));
+        
+        
+        let mdxes: Vec<mdx_utils::MDictMemIndex> = match filepaths {
             Ok(paths) => paths
                 .into_iter()
-                .filter_map(|dr| match dr {
-                    Ok(e) => {
-                        let p = e.path();
+                .filter_map(|dr| {
+                        let p = dr.path();
 
                         match mdx_utils::MDictMemIndex::new(p) {
                             Ok(mdx) => Some(mdx),
                             Err(_) => None,
                         }
-                    }
-                    Err(x) => None,
-                })
+                    })
                 .collect(),
             Err(_) => {
                 vec![]
