@@ -9,31 +9,44 @@ use webkit6::UserStyleLevel::User;
 use webkit6::{UserStyleSheet, WebView};
 
 pub struct DictPreview {
-    pub preview: WebView,
+    pub webview: WebView,
+}
+
+impl DictPreview {
+    pub fn add_csses(&self, dirpath: &str) {
+        if let Some(ucm) = self.webview.user_content_manager() {
+            ucm.remove_all_style_sheets();
+            let paths = backend::util::fs_utils::walk_dir(dirpath, Some(|p: &str| {
+                p.to_lowercase().ends_with(".css")
+            }));
+
+            if let Ok(des) = paths {
+                for de in des {
+                    let css = std::fs::read_to_string(de.path()).expect("unable to read file");
+                    let ss = UserStyleSheet::new(css.as_str(), AllFrames, User, &[], &[]);
+                    ucm.add_style_sheet(&ss);
+                }
+            }
+        }
+    }    
 }
 
 impl PluginPreview for DictPreview {
     type PluginResult = DictResult;
+
     fn new() -> Self {
         let webview = WebView::new();
         webview.set_vexpand(true);
         webview.set_hexpand(true);
         webview.set_can_focus(false);
 
-        if let Some(ucm) = webview.user_content_manager() {
-            ucm.remove_all_style_sheets();
-            let css = include_str!("../../../../resources/dict.css");
-            let ss = UserStyleSheet::new(css, AllFrames, User, &[], &[]);
-            ucm.add_style_sheet(&ss);
-        }
-
-        DictPreview { preview: webview }
+        DictPreview { webview }
     }
 
     fn get_preview(&self, plugin_result: &DictResult) -> Widget {
         let html_content = plugin_result.html.replace("\0", " ");
-        self.preview.load_html(html_content.as_str(), None);
+        self.webview.load_html(html_content.as_str(), None);
 
-        self.preview.clone().upcast()
+        self.webview.clone().upcast()
     }
 }

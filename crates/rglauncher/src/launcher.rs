@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::arguments::Arguments;
 use crate::window::RGWindow;
 use backend::plugindispatcher::{DispatchMsg, PluginDispatcher};
@@ -10,7 +12,7 @@ use gtk::Application;
 #[derive(Clone)]
 pub struct Launcher {
     app: Application,
-    app_args: Arguments,
+    app_args: Arc<Arguments>,
 
     dispatcher_sender: flume::Sender<DispatchMsg>,
 
@@ -27,7 +29,7 @@ pub enum LauncherMsg {
 impl Launcher {
     pub fn new(
         application: Application,
-        arguments: Arguments,
+        arguments: Arc<Arguments>,
         launcher_sender: Sender<LauncherMsg>,
         launcher_receiver: Receiver<LauncherMsg>,
     ) -> Self {
@@ -46,7 +48,9 @@ impl Launcher {
     }
 
     pub fn new_window(&self) -> RGWindow {
-        let window = RGWindow::new(&self.app, &self.dispatcher_sender);
+        let window = RGWindow::new(&self.app, 
+            self.app_args.clone(),
+            &self.dispatcher_sender);
         let win = window.clone();
 
         let launcher_receiver = self.launcher_receiver.clone();

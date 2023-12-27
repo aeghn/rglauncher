@@ -13,10 +13,8 @@ where
     P: Plugin<R, M>,
     M: Send,
 {
-    pool: executor::LocalPool,
     plugin: P,
     pub message_sender: flume::Sender<M>,
-    message_receiver: flume::Receiver<M>,
     _phantom_data: std::marker::PhantomData<R>,
 }
 

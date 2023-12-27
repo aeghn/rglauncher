@@ -9,7 +9,6 @@ use crate::ResultMsg;
 use flume::Sender;
 use futures::executor::block_on;
 use std::sync::Arc;
-use tracing::info;
 
 use super::pluginworker::PluginWorker;
 

@@ -91,6 +91,11 @@ impl MDictMemIndex {
             mdd_blocks.push(mdd_block);
             tracing::debug!("Build Patricia Map for mdd {} in {:?}", i, now.elapsed());
         }
+
+        let mdx_header = mdx.into_header();
+        let file_name = path.as_ref().file_name().unwrap().to_str().unwrap_or("Unknown").to_string();
+        let title = mdx_header.attrs().get("Title").unwrap_or(&file_name).to_string();
+
         Ok(MDictMemIndex {
             mdx_index,
             mdx_block,
@@ -98,8 +103,8 @@ impl MDictMemIndex {
             mdd_index,
             mdd_blocks,
             mdd_files,
-            header: mdx.into_header(),
-            name: "".to_string(),
+            header: mdx_header,
+            name: title,
         })
     }
     pub fn keyword_iter(&self) -> impl Iterator<Item = String> + '_ {
