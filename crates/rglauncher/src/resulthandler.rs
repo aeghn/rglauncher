@@ -5,6 +5,7 @@ use backend::plugins::PluginResult;
 use backend::userinput::UserInput;
 use backend::ResultMsg;
 use flume::Sender;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -14,6 +15,7 @@ pub struct ResultHolder {
     user_input: Option<Arc<UserInput>>,
     current_index: Option<u32>,
     result_holder: Vec<Arc<dyn PluginResult>>,
+    result_id_set: HashSet<String>,
 
     pub result_sender: flume::Sender<ResultMsg>,
     result_receiver: flume::Receiver<ResultMsg>,
@@ -38,6 +40,7 @@ impl ResultHolder {
             user_input: None,
             current_index: None,
             result_holder: vec![],
+            result_id_set: HashSet::new(),
 
             result_sender,
             result_receiver,
@@ -77,7 +80,12 @@ impl ResultHolder {
                         None => {}
                         Some(user_input) => {
                             if user_input.as_ref() == input.as_ref() {
-                                self.result_holder.append(&mut results);
+                                results.into_iter()
+                                .for_each(|m| {
+                                    if self.result_id_set.insert(m.get_id().to_string()) {
+                                        self.result_holder.push(m);
+                                    }
+                                });
                                 received_something = true;
                                 next_sleep_time = 50;
                             }
@@ -88,6 +96,7 @@ impl ResultHolder {
                             old_input.cancel();
                             self.current_index.take();
                             self.result_holder.clear();
+                            self.result_id_set.clear();
                         }
                         debug!("Send message to dispatcher: {}", input.input);
                         self.dispatch_sender

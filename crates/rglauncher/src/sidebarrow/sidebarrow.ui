@@ -27,15 +27,18 @@
           <object class="GtkLabel" id="title">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="justify">center</property>
             <property name="selectable">False</property>
             <property name="ellipsize">end</property>
             <property name="width-chars">30</property>
             <property name="single-line-mode">True</property>
             <property name="max-width-chars">30</property>
             <property name="lines">1</property>
-            <property name="xalign">0.0</property>
-
+            <property name="halign">start</property>
+            <property name="valign">center</property>            
+            <property name="hexpand">True</property>
+            <style>
+              <class name="sidebar_label"/>
+            </style>
             <layout>
               <property name="column">1</property>
               <property name="column-span">1</property>
@@ -48,15 +51,18 @@
       <object class="GtkLabel" id="content">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="justify">center</property>
         <property name="selectable">False</property>
         <property name="ellipsize">end</property>
+        <property name="valign">center</property>        
         <property name="width-chars">30</property>
         <property name="single-line-mode">True</property>
         <property name="max-width-chars">30</property>
         <property name="lines">1</property>
-        <property name="xalign">0.0</property>
-
+        <property name="halign">start</property>
+        <property name="hexpand">True</property>
+        <style>
+          <class name="sidebar_content"/>
+        </style>
         <layout>
           <property name="column">1</property>
           <property name="row">1</property>
