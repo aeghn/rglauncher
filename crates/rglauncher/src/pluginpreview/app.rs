@@ -5,7 +5,7 @@ use glib::Cast;
 use gtk::prelude::GridExt;
 
 pub struct AppPreview {
-    root: gtk::Grid,
+    root: gtk::Widget,
     icon: gtk::Image,
     name: gtk::Label,
     desc: gtk::Label,
@@ -34,11 +34,14 @@ impl PluginPreview for AppPreview {
         let desc = gtk::Label::builder().wrap(true).build();
         preview.attach(&desc, 0, 2, 1, 1);
 
-        let exec = gtk::Label::builder().wrap(true).build();
+        let exec = gtk::Label::builder().wrap(true).css_classes(["dim-label"]).build();
         preview.attach(&exec, 0, 3, 1, 1);
 
+        let w= gtk::ScrolledWindow::builder().vexpand(true).hexpand(true).build();
+        w.set_child(Some(&preview));
+
         AppPreview {
-            root: preview,
+            root: w.upcast(),
             icon,
             name,
             desc,
@@ -46,13 +49,19 @@ impl PluginPreview for AppPreview {
         }
     }
 
-    fn get_preview(&self, plugin_result: &AppResult) -> gtk::Widget {
+    fn get_preview(&self) -> gtk::Widget {
+        self.root.clone().upcast()
+    }
+
+    fn set_preview(&self, plugin_result: &Self::PluginResult) {
         self.icon
             .set_from_gicon(icon_cache::get_icon(plugin_result.app_name.as_str()).get());
         self.name.set_label(plugin_result.app_name.as_str());
         self.exec.set_label(plugin_result.desktop_path.as_str());
         self.desc.set_label(plugin_result.app_desc.as_str());
+    }
 
-        self.root.clone().upcast()
+    fn get_id(&self) -> &str {
+        backend::plugins::app::TYPE_ID
     }
 }

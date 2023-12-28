@@ -33,8 +33,6 @@
             <property name="single-line-mode">True</property>
             <property name="max-width-chars">30</property>
             <property name="lines">1</property>
-            <property name="halign">start</property>
-            <property name="valign">center</property>            
             <property name="hexpand">True</property>
             <style>
               <class name="sidebar_label"/>
@@ -53,13 +51,10 @@
         <property name="can-focus">False</property>
         <property name="selectable">False</property>
         <property name="ellipsize">end</property>
-        <property name="valign">center</property>        
         <property name="width-chars">30</property>
         <property name="single-line-mode">True</property>
         <property name="max-width-chars">30</property>
         <property name="lines">1</property>
-        <property name="halign">start</property>
-        <property name="hexpand">True</property>
         <style>
           <class name="sidebar_content"/>
         </style>

@@ -1,4 +1,3 @@
-use crate::preview::PreviewMsg;
 use crate::sidebar::SidebarMsg;
 use backend::plugindispatcher::DispatchMsg;
 use backend::plugins::PluginResult;
@@ -10,6 +9,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
+use crate::pluginpreview::PreviewMsg;
 
 pub struct ResultHolder {
     user_input: Option<Arc<UserInput>>,
@@ -72,7 +72,7 @@ impl ResultHolder {
     fn accept_messages(&mut self) {
         let interval = Duration::from_millis(80);
         let mut received_something = false;
-        let mut next_sleep_time = 10000;
+        let mut next_sleep_time = 100000;
         loop {
             match self.result_receiver.recv_timeout(Duration::from_millis(next_sleep_time)) {
                 Ok(msg) => match msg {
@@ -139,10 +139,9 @@ impl ResultHolder {
                 }
             }
             if received_something && Instant::now().duration_since(self.last).cmp(&interval).is_ge() {
-                info!("Time internal is big enough");
                 self.send_to_sidebar();
                 received_something  = false;
-                next_sleep_time = 10000;
+                next_sleep_time = 100000;
             } else {
             }
         }

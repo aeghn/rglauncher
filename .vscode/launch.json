@@ -7,19 +7,20 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Cargo launch",
+            "name": "rglauncher",
             "cargo": {
                 "args": [
-                    "run",
-                    "--",
-                    "--dict-dir",
-                    "/home/chin/files/others/dict/",
-                    "--clip-db",
-                    "/home/chin/.cache/rglauncher/store.db",
-                    "--icon Papirus"
+                    "build"
                 ]
             },
-            "args": []
+            "args": [
+                "--dict-dir",
+                "/home/chin/files/others/dict/",
+                "--clip-db",
+                "/home/chin/.cache/rglauncher/store.db",
+                "--icon", "Papirus"
+            ],
+            "env": {"WAYLAND_DISPLAY": "wayland-1", "DISPLAY": "0"},
         }
         
     ]
