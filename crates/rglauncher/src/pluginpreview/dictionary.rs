@@ -3,10 +3,12 @@ use backend::plugins::dict::DictResult;
 use glib::Cast;
 use gtk::prelude::WidgetExt;
 use gtk::Widget;
+use tracing::info;
 use webkit6::prelude::WebViewExt;
 use webkit6::UserContentInjectedFrames::AllFrames;
 use webkit6::UserStyleLevel::User;
-use webkit6::{UserStyleSheet, WebView};
+use webkit6::{gdk, UserStyleSheet, WebView};
+use webkit6::gdk::RGBA;
 
 pub struct DictPreview {
     pub webview: WebView,
@@ -28,7 +30,9 @@ impl DictPreview {
                 }
             }
         }
-    }    
+
+        self.webview.set_css_classes(&["webview"]);
+    }
 }
 
 impl PluginPreview for DictPreview {
@@ -43,10 +47,17 @@ impl PluginPreview for DictPreview {
         DictPreview { webview }
     }
 
-    fn get_preview(&self, plugin_result: &DictResult) -> Widget {
+    fn get_preview(&self) -> Widget {
+        self.webview.clone().upcast()
+    }
+
+    fn set_preview(&self, plugin_result: &Self::PluginResult) {
         let html_content = plugin_result.html.replace("\0", " ");
         self.webview.load_html(html_content.as_str(), None);
+        self.webview.set_background_color(&gtk::gdk::RGBA::new(0., 0., 0., 0.));
+    }
 
-        self.webview.clone().upcast()
+    fn get_id(&self) -> &str {
+        backend::plugins::dict::TYPE_ID
     }
 }
