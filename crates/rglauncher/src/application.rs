@@ -40,7 +40,6 @@ fn activate(
     let window = launcher.new_window();
 
     window.prepare();
-    window.show_window();
 }
 
 pub fn new_backend() {

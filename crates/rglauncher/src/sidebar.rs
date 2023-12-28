@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::sync::atomic::{AtomicI32, AtomicBool, Ordering};
 
 
 use flume::Sender;
@@ -11,7 +12,7 @@ use gio::{
 use glib::{BoxedAnyObject, ControlFlow, IsA, MainContext, Priority, PropertyGet, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use backend::plugins::PluginResult;
 use backend::ResultMsg;
@@ -37,7 +38,7 @@ pub struct Sidebar {
     list_store: gio::ListStore,
 
     pub sidebar_sender: flume::Sender<SidebarMsg>,
-    sidebar_receiver: flume::Receiver<SidebarMsg>,
+    sidebar_receiver: flume::Receiver<SidebarMsg>,    
 }
 
 impl Sidebar {
@@ -116,14 +117,11 @@ impl Sidebar {
             SidebarMsg::Result(results) => {
                 let list_store = self.list_store.clone();
                 MainContext::ref_thread_default().spawn_local_with_priority(Priority::LOW, async move {
-                    info!("begin to handle sidebar result");
                     let boxed_objects: Vec<BoxedAnyObject> = results
                         .into_iter()
                         .map(|e| BoxedAnyObject::new(e))
                         .collect();
-                    info!("end to handle sidebar result");
                     list_store.splice(0, list_store.n_items(), &boxed_objects);
-                    info!("end splice");
                 });
             }
         }

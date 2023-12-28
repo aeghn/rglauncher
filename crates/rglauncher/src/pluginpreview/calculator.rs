@@ -25,9 +25,15 @@ impl PluginPreview for CalcPreview {
             .margin_top(15)
             .margin_bottom(15)
             .buffer(&formula_buffer)
+            .css_classes(["raw-box"])
             .build();
         preview.attach(&formula_area, 0, 0, 1, 1);
 
+        let sep = gtk::Separator::builder()
+        .hexpand(true).build();
+        preview.attach(&sep, 0, 1, 1, 1);
+
+        
         let result_buffer = gtk::TextBuffer::builder().build();
         let result_area = gtk::TextView::builder()
             .hexpand(true)
@@ -37,9 +43,10 @@ impl PluginPreview for CalcPreview {
             .margin_end(15)
             .margin_top(15)
             .margin_bottom(15)
+            .css_classes(["raw-box"])
             .buffer(&result_buffer)
             .build();
-        preview.attach(&result_area, 0, 1, 1, 1);
+        preview.attach(&result_area, 0, 2, 1, 1);
 
         CalcPreview {
             root: preview,
@@ -48,10 +55,16 @@ impl PluginPreview for CalcPreview {
         }
     }
 
-    fn get_preview(&self, plugin_result: &CalcResult) -> gtk::Widget {
+    fn get_preview(&self) -> gtk::Widget {
+        self.root.clone().upcast()
+    }
+
+    fn set_preview(&self, plugin_result: &Self::PluginResult) {
         self.formula_buffer.set_text(plugin_result.formula.as_str());
         self.result_buffer.set_text(plugin_result.result.as_str());
+    }
 
-        self.root.clone().upcast()
+    fn get_id(&self) -> &str {
+        backend::plugins::calculator::TYPE_ID
     }
 }

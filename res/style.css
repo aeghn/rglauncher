@@ -17,17 +17,30 @@
 }
 
 .sidebar_label {
-    font-weight: bolder;
-    border: solid 1px #a00;
+    /*font-weight: bolder;*/
+    text-align: 0.0;
+    align-content: 0.0;
 }
 
 .sidebar_content {
-    color: #606060;
+    text-align: 0.0;
+    align-content: 0.0;
 }
 
 .preview {
-    margin: 10px 10px 10px 10px;
+    margin: 20px 20px 20px 20px;
     background: none;
+}
+
+.round-box {
+    border-radius: 5px;
+    padding: 10px 10px 10px 10px;
+    border: solid 1px #ccc;
+    color: #fff;
+}
+
+.info-label {
+    font-size: 12px;
 }
 
 .font32 {
@@ -55,4 +68,19 @@ padding15 {
 
 .border_debug {
    border: solid 1px #aa0000;
+}
+
+.logo-font {
+    font-size: 32px;
+    font-style: italic;
+    font-weight: bold;
+}
+
+.webview {
+
+}
+
+.horizontal-separator {
+    margin-top: 10px;
+    margin-bottom: 10px;
 }

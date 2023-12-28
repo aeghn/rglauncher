@@ -1,6 +1,5 @@
 use crate::arguments::Arguments;
 use crate::inputbar::{InputBar, InputMessage};
-use crate::preview::Preview;
 use crate::resulthandler::ResultHolder;
 use crate::sidebar::SidebarMsg;
 use backend::plugindispatcher::DispatchMsg;
@@ -14,6 +13,7 @@ use gtk::{gdk, Application, ApplicationWindow};
 use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::SeqCst;
+use crate::pluginpreview::Preview;
 
 #[derive(Clone)]
 pub struct RGWindow {
@@ -57,6 +57,7 @@ impl RGWindow {
             .build();
 
         window.set_child(Some(&main_box));
+        window.show();
 
         let input_bar = InputBar::new(&result_sender, id);
         main_box.append(&input_bar.entry);

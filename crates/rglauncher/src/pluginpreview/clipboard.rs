@@ -2,13 +2,13 @@ use crate::pluginpreview::PluginPreview;
 use backend::plugins::clipboard::ClipResult;
 use chrono::{DateTime, Local};
 use glib::Cast;
-use gtk::prelude::{GridExt, TextBufferExt};
+use gtk::prelude::{BoxExt, GridExt, TextBufferExt};
 use gtk::Align::End;
 use gtk::WrapMode::WordChar;
-use gtk::{Align, Image, TextBuffer, TextView, Widget};
+use gtk::{Align, Image, Orientation, Overflow, TextBuffer, TextView, Widget};
 
 pub struct ClipPreview {
-    root: gtk::Grid,
+    root: gtk::Box,
     insert_time: gtk::Label,
     update_time: gtk::Label,
     count: gtk::Label,
@@ -19,45 +19,40 @@ pub struct ClipPreview {
 impl PluginPreview for ClipPreview {
     type PluginResult = ClipResult;
     fn new() -> Self {
-        let preview = gtk::Grid::builder().vexpand(true).hexpand(true).build();
-
-        let image = Image::builder()
-            .pixel_size(48)
-            .icon_name("xclipboard")
-            .halign(Align::End)
+        let preview = gtk::Box::builder()
+            .hexpand(true)
+            .vexpand(true)
+            .orientation(Orientation::Vertical)
             .build();
-        preview.attach(&image, 0, 0, 1, 4);
-
-        let f = |e| gtk::Label::builder().label(e).halign(End).build();
-
-        preview.attach(&f("Insert Time: "), 1, 0, 1, 1);
-        let insert_time = gtk::Label::builder().halign(Align::Start).build();
-        preview.attach(&insert_time, 2, 0, 1, 1);
-
-        preview.attach(&f("Update Time: "), 1, 1, 1, 1);
-        let update_time = gtk::Label::builder().halign(Align::Start).build();
-        preview.attach(&update_time, 2, 1, 1, 1);
-
-        preview.attach(&f("Insert Count: "), 1, 2, 1, 1);
-        let count = gtk::Label::builder().halign(Align::Start).build();
-        preview.attach(&count, 2, 2, 1, 1);
-
-        preview.attach(&f("Mime: "), 1, 3, 1, 1);
-        let mime = gtk::Label::builder().halign(Align::Start).build();
-        preview.attach(&mime, 2, 3, 1, 1);
 
         let text_buffer = TextBuffer::builder().build();
         let text_view = TextView::builder()
             .hexpand(true)
-            .vexpand(true)
             .wrap_mode(WordChar)
-            .margin_start(20)
-            .margin_end(20)
-            .margin_top(20)
-            .margin_bottom(20)
+            .css_classes(["raw-box"])
             .buffer(&text_buffer)
+            .vexpand(false)
             .build();
-        preview.attach(&text_view, 0, 4, 3, 1);
+
+        let text_window = gtk::ScrolledWindow::builder().hexpand(true).vexpand(true).build();
+        text_window.set_child(Some(&text_view));
+
+        let sep = super::get_seprator();
+
+
+        let info_grid = gtk::Grid::builder().hexpand(true).vexpand(false).valign(End).build();
+        
+        let insert_time = super::build_pair_line(&info_grid, 0, "Insert Time: ");
+
+        let update_time = super::build_pair_line(&info_grid, 1, "Update Time: ");
+
+        let count = super::build_pair_line(&info_grid, 2, "Insert Count: ");
+
+        let mime = super::build_pair_line(&info_grid, 3, "Mime: ");
+
+        preview.append(&text_window);
+        preview.append(&sep);
+        preview.append(&info_grid);
 
         ClipPreview {
             root: preview,
@@ -69,7 +64,11 @@ impl PluginPreview for ClipPreview {
         }
     }
 
-    fn get_preview(&self, plugin_result: &ClipResult) -> Widget {
+    fn get_preview(&self) -> Widget {
+        self.root.clone().upcast()
+    }
+
+    fn set_preview(&self, plugin_result: &Self::PluginResult) {
         let il: DateTime<Local> = DateTime::from(plugin_result.insert_time);
         self.insert_time.set_label(il.to_string().as_str());
         let il: DateTime<Local> = DateTime::from(plugin_result.update_time);
@@ -78,7 +77,9 @@ impl PluginPreview for ClipPreview {
             .set_text(plugin_result.count.to_string().as_str());
         self.text_buffer.set_text(plugin_result.content.as_str());
         self.mime.set_text(plugin_result.mime.as_str());
+    }
 
-        self.root.clone().upcast()
+    fn get_id(&self) -> &str {
+        backend::plugins::clipboard::TYPE_ID
     }
 }
