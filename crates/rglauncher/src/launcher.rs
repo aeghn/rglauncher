@@ -12,7 +12,7 @@ use gtk::Application;
 #[derive(Clone)]
 pub struct Launcher {
     app: Application,
-    app_args: Arc<Arguments>,
+    pub app_args: Arc<Arguments>,
 
     dispatcher_sender: flume::Sender<DispatchMsg>,
 
@@ -47,16 +47,23 @@ impl Launcher {
         }
     }
 
-    pub fn new_window(&self) -> RGWindow {
-        let window = RGWindow::new(&self.app, 
-            self.app_args.clone(),
-            &self.dispatcher_sender);
-        let win = window.clone();
+    pub fn new_window(&self) {
+        // let win = window.clone();
 
         let launcher_receiver = self.launcher_receiver.clone();
+        let launcher_sender = self.launcher_sender.clone();
         let dispatcher_sender = self.dispatcher_sender.clone();
+        let app_args = self.app_args.clone();
+        let app = self.app.clone();
+
+        let window = RGWindow::new(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
+        window.prepare();
 
         MainContext::ref_thread_default().spawn_local(async move {
+            let dispatcher_sender = dispatcher_sender.clone();
+            let launcher_sender = launcher_sender.clone();
+            let app_args = app_args.clone();
+            let app = app.clone();
             loop {
                 match launcher_receiver.recv_async().await {
                     Ok(msg) => match msg {
@@ -65,10 +72,11 @@ impl Launcher {
                             dispatcher_sender
                                 .send(DispatchMsg::RefreshContent)
                                 .expect("");
-                            win.show_window();
+                            let window = RGWindow::new(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
+                            window.prepare()
                         }
                         LauncherMsg::SelectSomething => {
-                            win.hide_window();
+                            // win.hide_window();
                         }
                     },
                     Err(_) => {}
@@ -76,6 +84,6 @@ impl Launcher {
             }
         });
 
-        window
+
     }
 }

@@ -71,6 +71,7 @@ impl PluginPreviewBuilder {
         let default = gtk::Label::builder().label(glib::GString::from("RGLauncher")).vexpand(true)
             .hexpand(true).valign(Center).halign(Center).css_classes(["logo-font", "dim-label"]).build();
         stack.add_named(&default, Some(DEFAULT_ID));
+        stack.set_visible_child(&default);
 
         dict_preview.add_csses(arguments.dict_dir.as_str());
 
@@ -142,9 +143,9 @@ fn build_pair_line(grid: &gtk::Grid, row: i32, title: &str) -> gtk::Label {
             .wrap(true)
             .wrap_mode(WordChar)
             .build();
-    right.add_css_class("info-label");
     grid.attach(&left, 0, row, 1, 1);
     grid.attach(&right, 1, row, 1, 1);
+    
     right
 }
 

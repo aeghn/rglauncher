@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use clap::Parser;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -8,10 +9,11 @@ use gtk::gdk::*;
 use gtk::prelude::*;
 use gtk::*;
 
-use crate::launcher::LauncherMsg;
+use crate::launcher::{Launcher, LauncherMsg};
 use crate::{arguments, constants, launcher};
 use flume::{Receiver, Sender};
 use std::os::unix::net::{UnixListener, UnixStream};
+use std::rc::Rc;
 
 fn load_css() {
     let provider = CssProvider::new();
@@ -26,20 +28,16 @@ fn load_css() {
 
 fn activate(
     app: &Application,
-    app_msg_sender: Sender<LauncherMsg>,
-    app_msg_receiver: Receiver<LauncherMsg>,
+    launcher: Arc<Launcher>
 ) {
-    let arguments = Arc::new(arguments::Arguments::parse());
+    let arguments = launcher.app_args.as_ref();
 
     let settings = Settings::default().expect("Failed to create GTK settings.");
     settings.set_gtk_icon_theme_name(Some(arguments.icon.as_str()));
 
-    let launcher =
-        launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
-
     let window = launcher.new_window();
 
-    window.prepare();
+    // window.prepare();
 }
 
 pub fn new_backend() {
@@ -68,17 +66,20 @@ pub fn new_backend() {
 
     app.connect_startup(|_| load_css());
 
-    {
-        let app_msg_sender = app_msg_sender.clone();
-        let app_msg_receiver = app_msg_receiver.clone();
-        app.connect_activate(move |app| {
-            activate(app, app_msg_sender.clone(), app_msg_receiver.clone());
-        });
-    }
+    let arguments = Arc::new(arguments::Arguments::parse());
+    let launcher = launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
+    let launcher = Arc::new(launcher);
+
+
+    let clauncher = launcher.clone();
+    app.connect_activate(move |app| {
+        activate(app, clauncher.clone());
+    });
 
     let empty: Vec<String> = vec![];
-    let _ = app.hold();
     app.run_with_args(&empty);
+
+    let _ = app.hold();
 
     main_loop.run();
 }
@@ -101,6 +102,7 @@ fn build_uds(app_msg_sender: &Sender<LauncherMsg>) -> anyhow::Result<()> {
                 info!("Got Echo {}", response);
 
                 if response == "new_window" {
+                    info!("Creating new window.");
                     app_msg_sender.send(LauncherMsg::NewWindow)?;
                 }
             }

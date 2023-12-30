@@ -42,7 +42,7 @@ impl PluginPreview for DictPreview {
         let webview = WebView::new();
         webview.set_vexpand(true);
         webview.set_hexpand(true);
-        webview.set_can_focus(false);
+        webview.set_focusable(false);
 
         DictPreview { webview }
     }
