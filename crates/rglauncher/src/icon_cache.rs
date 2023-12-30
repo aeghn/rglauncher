@@ -1,41 +1,45 @@
 use fragile::Fragile;
-use gio::traits::AppInfoExt;
-use gio::{AppInfo, Icon};
+use gio::{AppInfo, Icon, MemoryInputStream};
 
+use gtk::IconTheme;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use glib::Bytes;
+use gtk::gdk_pixbuf::{Pixbuf, PixbufLoader};
+use crate::constants;
 
 lazy_static! {
     static ref ICON_MAP: Mutex<HashMap<String, Arc<Fragile<Icon>>>> = Mutex::new(HashMap::new());
+    static ref LOGO_ICON: Arc<Fragile<Icon>> = Arc::new(Fragile::new(Icon::from(load_from_svg(include_str!("../../../res/logo.svg")))));
+}
+
+fn load_from_svg(s: &str) -> Pixbuf {
+    let logo_bytes = Bytes::from(s.as_bytes());
+    let image_stream = MemoryInputStream::from_bytes(&logo_bytes);
+    Pixbuf::from_stream_at_scale(&image_stream, 256, 256, true, None::<&gio::Cancellable>)
+        .expect("unablt to read dom stream")
 }
 
 pub fn get_icon(name: &str) -> Arc<Fragile<Icon>> {
     let mut guard = ICON_MAP.lock().unwrap();
     let oficon = guard.get(name);
+    if name == "" || name == constants::APP_ID {
+        return get_logo()
+    }
+
 
     if let Some(ficon) = oficon {
         return ficon.clone();
     } else {
-        if guard.len() == 0 {
-            let mut oi: Option<Arc<Fragile<Icon>>> = None;
-            for app_info in AppInfo::all() {
-                if let Some(icon) = app_info.icon() {
-                    let iname = app_info.name().to_string();
-                    let arc = Arc::new(Fragile::from(icon));
-                    if iname.eq(name) {
-                        oi = Some(arc.clone());
-                    }
-                    guard.insert(iname, arc);
-                }
-            }
-            if let Some(icon) = oi {
-                return icon;
-            }
-        }
         let _icon = gio::Icon::from(gio::ThemedIcon::from_names(&[name]));
+
         let arc = Arc::new(Fragile::from(_icon.clone()));
         guard.insert(name.to_string(), arc.clone());
-        arc
+        return arc
     }
+}
+
+pub fn get_logo() -> Arc<Fragile<Icon>> {
+    LOGO_ICON.clone()
 }

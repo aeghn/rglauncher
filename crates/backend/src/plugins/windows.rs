@@ -144,6 +144,7 @@ fn get_windows() -> Vec<HyprWindowResult> {
 
 fn get_icon_name(class: &str) -> String {
     let c = class;
+
     if class == "jetbrains-studio" {
         "android-studio".to_string()
     } else {

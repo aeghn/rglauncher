@@ -1,30 +1,35 @@
 .inputbar {
-    margin: 20px 20px;
+    margin-top: 30px;
+    margin-bottom: 30px;
     border: solid 1px #eeeeee;
-    background: none;
+    /*width: 300px;*/
+    /*min-width: 300px;*/
 }
 
 .sidebar {
-    min-width: 300px;
-    width: 300px;
-    border-radius: 5px;
+    min-width: 320px;
+    /*width: 320px;*/
+    /*border-radius: 5px;*/
     margin: 10px 10px 10px 10px;
-    border: solid 1px #dedede;
+    /*border: none;*/
 }
 
-.sidebar_view {
-    border-radius: 5px;
+.sidebar-view {
+    background: transparent;
+    border: 0;
 }
 
 .sidebar_label {
     /*font-weight: bolder;*/
-    text-align: 0.0;
-    align-content: 0.0;
+
+}
+
+.main-box {
+
 }
 
 .sidebar_content {
-    text-align: 0.0;
-    align-content: 0.0;
+
 }
 
 .preview {
@@ -73,7 +78,8 @@ padding15 {
 .logo-font {
     font-size: 32px;
     font-style: italic;
-    font-weight: bold;
+    font-weight: 900;
+    font-family: "Alegyera", serif;
 }
 
 .webview {

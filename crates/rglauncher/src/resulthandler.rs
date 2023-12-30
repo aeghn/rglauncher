@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
+use crate::launcher::LauncherMsg;
 use crate::pluginpreview::PreviewMsg;
 
 pub struct ResultHolder {
@@ -20,6 +21,7 @@ pub struct ResultHolder {
     pub result_sender: flume::Sender<ResultMsg>,
     result_receiver: flume::Receiver<ResultMsg>,
 
+    launcher_sender: Sender<LauncherMsg>,
     dispatch_sender: flume::Sender<DispatchMsg>,
 
     sidebar_sender: flume::Sender<SidebarMsg>,
@@ -30,6 +32,7 @@ pub struct ResultHolder {
 
 impl ResultHolder {
     fn new(
+        launcher_sender: Sender<LauncherMsg>,
         dispatch_sender: flume::Sender<DispatchMsg>,
         sidebar_sender: Sender<SidebarMsg>,
         preview_sender: Sender<PreviewMsg>,
@@ -44,6 +47,7 @@ impl ResultHolder {
 
             result_sender,
             result_receiver,
+            launcher_sender,
             dispatch_sender,
             sidebar_sender,
             preview_sender,
@@ -126,6 +130,7 @@ impl ResultHolder {
                                 match self.result_holder.get(id as usize) {
                                     Some(pr) => {
                                         pr.on_enter();
+                                        self.launcher_sender.send(LauncherMsg::SelectSomething);
                                     }
                                     _ => {}
                                 }
@@ -148,11 +153,13 @@ impl ResultHolder {
     }
 
     pub fn start(
+        launcher_sender: &Sender<LauncherMsg>,
         dispatcher_sender: &flume::Sender<DispatchMsg>,
         sidebar_sender: &flume::Sender<SidebarMsg>,
         preview_sender: &Sender<PreviewMsg>,
     ) -> Sender<ResultMsg> {
         let mut result_handler = Self::new(
+            launcher_sender.clone(),
             dispatcher_sender.clone(),
             sidebar_sender.clone(),
             preview_sender.clone(),

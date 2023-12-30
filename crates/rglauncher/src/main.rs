@@ -14,6 +14,5 @@ mod sidebarrow;
 mod window;
 
 fn main() {
-    println!("=============== {:?}", std::env::var("WAYLAND_DISPLAY"));
     try_communicate().expect("TODO: panic message");
 }

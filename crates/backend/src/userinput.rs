@@ -1,5 +1,3 @@
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Debug)]

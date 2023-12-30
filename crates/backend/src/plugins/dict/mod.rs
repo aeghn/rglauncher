@@ -24,7 +24,7 @@ impl PluginResult for DictResult {
     }
 
     fn sidebar_icon_name(&self) -> String {
-        "dictionary".to_string()
+        "org.gnome.Dictionary".to_string()
     }
 
     fn sidebar_label(&self) -> Option<String> {
