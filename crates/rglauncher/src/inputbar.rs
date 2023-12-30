@@ -6,14 +6,17 @@ use flume::RecvError;
 
 use glib::{ControlFlow, MainContext, StrV};
 use gtk;
-use gtk::prelude::EntryExt;
+use gtk::Align::Center;
+use gtk::prelude::{EntryExt, WidgetExt};
 use gtk::traits::EditableExt;
 use tracing::info;
 
 #[derive(Clone, Debug)]
 pub enum InputMessage {
     TextChanged(String),
-    Clear
+    TextAppend(String),
+    Clear,
+    Focus
 }
 
 #[derive(Clone)]
@@ -30,7 +33,7 @@ impl InputBar {
         let entry = gtk::Entry::builder()
             .placeholder_text("Input Anything...")
             .css_classes(StrV::from(vec!["inputbar"]))
-            .xalign(0.5)
+            .halign(Center)
             .build();
 
         {
@@ -65,6 +68,13 @@ impl InputBar {
                             InputMessage::Clear => {
                                 entry.set_text("");
                             }
+                            InputMessage::TextAppend(cs) => {
+                                let mut pos: i32 = entry.text_length() as i32;
+                                entry.insert_text(cs.as_str(), &mut pos);
+                            }
+                            InputMessage::Focus => {
+                                entry.grab_focus_without_selecting();
+                            }
                         }
                     }
                     Err(_) => {}
@@ -76,4 +86,5 @@ impl InputBar {
 
         InputBar { entry, input_sender, input_receiver }
     }
+
 }

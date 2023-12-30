@@ -32,6 +32,7 @@ impl PluginPreview for ClipPreview {
             .css_classes(["raw-box"])
             .buffer(&text_buffer)
             .vexpand(false)
+            .focusable(false)
             .build();
 
         let text_window = gtk::ScrolledWindow::builder().hexpand(true).vexpand(true).build();
