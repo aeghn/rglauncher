@@ -2,7 +2,7 @@ use backend::userinput::UserInput;
 use backend::ResultMsg;
 use futures::executor::block_on;
 use std::sync::Arc;
-use flume::RecvError;
+use flume::{RecvError, Sender};
 
 use glib::{ControlFlow, MainContext, StrV};
 use gtk;
@@ -10,6 +10,7 @@ use gtk::Align::Center;
 use gtk::prelude::{EntryExt, WidgetExt};
 use gtk::traits::EditableExt;
 use tracing::info;
+use crate::window::WindowMsg;
 
 #[derive(Clone, Debug)]
 pub enum InputMessage {
@@ -27,7 +28,9 @@ pub struct InputBar {
 }
 
 impl InputBar {
-    pub fn new(result_sender: &flume::Sender<ResultMsg>, window_id: i32) -> Self {
+    pub fn new(result_sender: &flume::Sender<ResultMsg>,
+               window_sender: &flume::Sender<WindowMsg>,
+               window_id: i32) -> Self {
         let (input_sender, input_receiver) = flume::unbounded();
 
         let entry = gtk::Entry::builder()
@@ -50,8 +53,10 @@ impl InputBar {
 
         {
             let result_sender = result_sender.clone();
+            let window_tx = window_sender.clone();
             entry.connect_activate(move |e| {
                 result_sender.send(ResultMsg::SelectSomething).expect("TODO: panic message");
+                window_tx.send(WindowMsg::Close).expect("unable to close window");
             });
         }
 

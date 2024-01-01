@@ -7,11 +7,11 @@ use flume::{Receiver, Sender};
 use gio::prelude::*;
 use glib::MainContext;
 use gtk::prelude::*;
-use gtk::Application;
+use crate::application::RGLApplication;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Launcher {
-    app: Application,
+    app: RGLApplication,
     pub app_args: Arc<Arguments>,
 
     dispatcher_sender: flume::Sender<DispatchMsg>,
@@ -28,7 +28,7 @@ pub enum LauncherMsg {
 
 impl Launcher {
     pub fn new(
-        application: Application,
+        application: RGLApplication,
         arguments: Arc<Arguments>,
         launcher_sender: Sender<LauncherMsg>,
         launcher_receiver: Receiver<LauncherMsg>,
@@ -56,8 +56,8 @@ impl Launcher {
         let app_args = self.app_args.clone();
         let app = self.app.clone();
 
-        let window = RGWindow::new(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
-        window.prepare();
+        RGWindow::setup_one(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
+
 
         MainContext::ref_thread_default().spawn_local(async move {
             let dispatcher_sender = dispatcher_sender.clone();
@@ -72,8 +72,8 @@ impl Launcher {
                             dispatcher_sender
                                 .send(DispatchMsg::RefreshContent)
                                 .expect("");
-                            let window = RGWindow::new(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
-                            window.prepare()
+                            RGWindow::setup_one(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
+
                         }
                         LauncherMsg::SelectSomething => {
                             // win.hide_window();
