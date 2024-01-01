@@ -22,3 +22,6 @@ futures = "0.3.28"
 backend = { path = "../backend" }
 tracing = "0.1.40"
 anyhow = "1.0.75"
+once_cell = "1.19.0"
+serde_json = { version = "1.0.108", features = [] }
+log = { version = "0.4.20", features = [] }

@@ -5,7 +5,7 @@ use crate::resulthandler::ResultHolder;
 use crate::sidebar::SidebarMsg;
 use backend::plugindispatcher::DispatchMsg;
 use backend::ResultMsg;
-use flume::Sender;
+use flume::{Receiver, RecvError, Sender};
 use glib::{clone, MainContext};
 use gtk::prelude::EditableExt;
 use gtk::prelude::EntryBufferExtManual;
@@ -15,8 +15,13 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::SeqCst;
 use tracing::info;
+use crate::application::RGLApplication;
 use crate::launcher::LauncherMsg;
 use crate::pluginpreview::Preview;
+
+pub enum WindowMsg {
+    Close
+}
 
 #[derive(Clone)]
 pub struct RGWindow {
@@ -26,17 +31,18 @@ pub struct RGWindow {
     input_bar: InputBar,
     preview: Preview,
 
+    pub window_sender: Sender<WindowMsg>,
+    window_receiver: Receiver<WindowMsg>,
+
     dispatch_sender: Sender<DispatchMsg>,
-
     sidebar_sender: Sender<SidebarMsg>,
-
     result_sender: Sender<ResultMsg>,
 }
 
 static WINDOW_ID_COUNT: AtomicI32 = AtomicI32::new(0);
 
 impl RGWindow {
-    pub fn new(app: &Application,
+    pub fn new(app: &RGLApplication,
                arguments: Arc<Arguments>,
                dispatch_sender: &Sender<DispatchMsg>,
                launcher_sender: &Sender<LauncherMsg>) -> Self {
@@ -44,6 +50,7 @@ impl RGWindow {
 
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
         let (preview_sender, preview_receiver) = flume::unbounded();
+        let (window_sender, window_receiver) = flume::unbounded();
 
         let result_sender = ResultHolder::start(launcher_sender, dispatch_sender, &sidebar_sender, &preview_sender);
 
@@ -56,16 +63,15 @@ impl RGWindow {
             .decorated(false)
             .build();
 
+
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .css_classes(["main-box"])
             .build();
 
         window.set_child(Some(&main_box));
-        info!("Show window");
-        window.show();
 
-        let input_bar = InputBar::new(&result_sender, id);
+        let input_bar = InputBar::new(&result_sender, &window_sender, id);
         main_box.append(&input_bar.entry);
 
         let bottom_box = gtk::Box::builder()
@@ -85,18 +91,25 @@ impl RGWindow {
 
         sidebar.loop_recv();
 
-        // bottom_box.append(&gtk::Separator::builder().orientation(Orientation::Vertical).vexpand(true).build());
-
         let preview = Preview::new(preview_sender, preview_receiver);
         bottom_box.append(&preview.preview_window.clone());
 
         preview.loop_recv(&arguments);
+
+        window.present();
+
+        window.connect_destroy(|win| {
+            info!("window destroied");
+        });
 
         Self {
             id,
             window,
             input_bar,
             preview,
+
+            window_sender,
+            window_receiver,
 
             dispatch_sender: dispatch_sender.clone(),
             result_sender: result_sender.clone(),
@@ -105,12 +118,29 @@ impl RGWindow {
         }
     }
 
+    fn receive_messages(&self) {
+        let window = self.window.clone();
+        let window_receiver = self.window_receiver.clone();
+        MainContext::ref_thread_default().spawn_local(async move {
+            loop {
+                match window_receiver.recv_async().await {
+                    Ok(WindowMsg::Close) => {
+                        RGWindow::close_window(&window.clone());
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
+
     fn setup_keybindings(&self) {
         let controller = gtk::EventControllerKey::new();
         let sidebar_sender = self.sidebar_sender.clone();
         let result_sender = self.result_sender.clone();
         let entry = self.input_bar.entry.clone();
         let inputbar_sender = self.input_bar.input_sender.clone();
+        let window_sender = self.window_sender.clone();
         let window = &self.window;
         let rg_window = self.clone();
 
@@ -128,12 +158,13 @@ impl RGWindow {
                         glib::Propagation::Stop
                     }
                 gdk::Key::Escape => {
-                        rg_window.hide_window();
+
                         glib::Propagation::Stop
                     }
                 gdk::Key::Return => {
                         result_sender.send(ResultMsg::SelectSomething).expect("select something");
                         inputbar_sender.send(InputMessage::Clear).expect("unable to clear");
+                        window_sender.send(WindowMsg::Close).expect("unable to close window");
                         glib::Propagation::Proceed
                     }
                 _ => {
@@ -153,21 +184,30 @@ impl RGWindow {
         window.add_controller(controller);
     }
 
-    pub fn prepare(&self) {
-        self.setup_keybindings();
+    pub fn setup_one(app: &RGLApplication,
+                     arguments: Arc<Arguments>,
+                     dispatch_sender: &Sender<DispatchMsg>,
+                     launcher_sender: &Sender<LauncherMsg>) {
+        let window = Self::new(
+            app,
+            arguments,
+            dispatch_sender,
+            launcher_sender
+        );
+
+        window.setup_keybindings();
+        window.receive_messages();
     }
 
     pub fn show_window(&self) {
         self.window.show();
     }
 
-    pub fn hide_window(&self) {
-        let inputbar_sender = self.input_bar.input_sender.clone();
-        let window = self.window.clone();
+    pub fn close_window(window: &ApplicationWindow) {
+        let window = window.clone();
 
         glib::idle_add_local_once(move || {
             window.destroy();
-            inputbar_sender.send(InputMessage::Clear).expect("unable to clear");
         });
     }
 }
