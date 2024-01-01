@@ -8,19 +8,19 @@ use anyhow::anyhow;
 use backend::plugins::app::AppResult;
 use backend::plugins::calculator::CalcResult;
 use backend::plugins::clipboard::ClipResult;
-use backend::plugins::dict::{DictResult, self};
+use backend::plugins::dict::{self, DictResult};
 use backend::plugins::windows::HyprWindowResult;
 use backend::plugins::PluginResult;
-use gtk::ResponseType::No;
+use glib::{clone, MainContext};
+use gtk::pango::WrapMode::{Word, WordChar};
 use gtk::prelude::{GridExt, WidgetExt};
+use gtk::Align::Center;
+use gtk::ResponseType::No;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-use glib::{clone, MainContext};
-use gtk::Align::Center;
 use tracing::info;
-use gtk::pango::WrapMode::{Word, WordChar};
 
 mod app;
 mod calculator;
@@ -68,8 +68,14 @@ impl PluginPreviewBuilder {
         stack.add_named(&clip_preview.get_preview(), Some(clip_preview.get_id()));
         stack.add_named(&wind_preview.get_preview(), Some(wind_preview.get_id()));
 
-        let default = gtk::Label::builder().label(glib::GString::from("RGLauncher")).vexpand(true)
-            .hexpand(true).valign(Center).halign(Center).css_classes(["logo-font", "dim-label"]).build();
+        let default = gtk::Label::builder()
+            .label(glib::GString::from("RGLauncher"))
+            .vexpand(true)
+            .hexpand(true)
+            .valign(Center)
+            .halign(Center)
+            .css_classes(["logo-font", "dim-label"])
+            .build();
         stack.add_named(&default, Some(DEFAULT_ID));
         stack.set_visible_child(&default);
 
@@ -85,7 +91,7 @@ impl PluginPreviewBuilder {
         }
     }
 
-    pub fn set_preview(&self, opr: Option<&Arc<dyn PluginResult>>) -> Option<()>{
+    pub fn set_preview(&self, opr: Option<&Arc<dyn PluginResult>>) -> Option<()> {
         if let Some(plugin_result) = opr {
             let any = plugin_result.as_any();
 
@@ -116,7 +122,7 @@ impl PluginPreviewBuilder {
                     self.dict_preview.set_preview(win);
                 }
 
-                _ => {},
+                _ => {}
             };
 
             self.stack.set_visible_child_name(preview_id);
@@ -130,32 +136,35 @@ impl PluginPreviewBuilder {
 
 fn build_pair_line(grid: &gtk::Grid, row: i32, title: &str) -> gtk::Label {
     let left = gtk::Label::builder()
-            .halign(gtk::Align::Start)
-            .wrap(true)
-            .wrap_mode(WordChar)
-            .label(title)
+        .halign(gtk::Align::Start)
+        .wrap(true)
+        .wrap_mode(WordChar)
+        .label(title)
         .hexpand(true)
-            .build();
+        .build();
     left.add_css_class("dim-label");
     left.add_css_class("info-label");
     let right = gtk::Label::builder()
-            .halign(gtk::Align::End)
-            .wrap(true)
-            .wrap_mode(WordChar)
-            .build();
+        .halign(gtk::Align::End)
+        .wrap(true)
+        .wrap_mode(WordChar)
+        .build();
     grid.attach(&left, 0, row, 1, 1);
     grid.attach(&right, 1, row, 1, 1);
-    
+
     right
 }
 
 fn get_seprator() -> gtk::Separator {
-    gtk::Separator::builder().hexpand(true).css_classes(["horizontal-separator"]).build()
+    gtk::Separator::builder()
+        .hexpand(true)
+        .css_classes(["horizontal-separator"])
+        .build()
 }
 
 pub enum PreviewMsg {
     PluginResult(Arc<dyn PluginResult>),
-    Clear
+    Clear,
 }
 
 #[derive(Clone)]
@@ -189,17 +198,16 @@ impl Preview {
         let preview_receiver = self.preview_receiver.clone();
         let arguments = arguments.clone();
         MainContext::ref_thread_default().spawn_local(async move {
-            let plugin_previews = Rc::new(RefCell::new(PluginPreviewBuilder::new(&preview_window, arguments)));
+            let plugin_previews = Rc::new(RefCell::new(PluginPreviewBuilder::new(
+                &preview_window,
+                arguments,
+            )));
             loop {
                 if let Ok(preview_msg) = preview_receiver.recv_async().await {
                     let plugin_preview_builder = plugin_previews.clone();
                     let opt_plugin_result = match preview_msg {
-                        PreviewMsg::PluginResult(pr) => {
-                            Some(pr)
-                        }
-                        PreviewMsg::Clear => {
-                            None
-                        }
+                        PreviewMsg::PluginResult(pr) => Some(pr),
+                        PreviewMsg::Clear => None,
                     };
                     glib::idle_add_local_once(clone!(@strong preview_window => move || {
                         plugin_preview_builder.borrow().set_preview(opt_plugin_result.as_ref());

@@ -1,3 +1,4 @@
+mod application;
 mod arguments;
 mod constants;
 mod icon_cache;
@@ -8,10 +9,9 @@ mod resulthandler;
 mod sidebar;
 mod sidebarrow;
 mod window;
-mod application;
 
-use std::cell::RefCell;
 use clap::Parser;
+use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::Arc;
@@ -21,10 +21,10 @@ use gtk::gdk::*;
 use gtk::prelude::*;
 use gtk::*;
 
+use crate::application::RGLApplication;
 use crate::launcher::LauncherMsg;
 use flume::Sender;
 use std::os::unix::net::{UnixListener, UnixStream};
-use crate::application::RGLApplication;
 
 pub fn daemon() {
     tracing_subscriber::fmt()
@@ -35,7 +35,6 @@ pub fn daemon() {
 
     let (app_msg_sender, app_msg_receiver) = flume::unbounded();
 
-
     let app_msg_tx = app_msg_sender.clone();
     std::thread::spawn(move || {
         build_uds(&app_msg_tx).expect("unable to build unix domain socket");
@@ -44,12 +43,13 @@ pub fn daemon() {
     let mut app = RGLApplication::new();
 
     let arguments = Arc::new(arguments::Arguments::parse());
-    let launcher = launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
+    let launcher =
+        launcher::Launcher::new(app.clone(), arguments, app_msg_sender, app_msg_receiver);
 
     app.set_launcher(launcher);
     app.set_hold();
 
-    let empty_args : Vec<String> = vec![];
+    let empty_args: Vec<String> = vec![];
     app.run_with_args(&empty_args);
 }
 
@@ -81,7 +81,6 @@ fn build_uds(app_msg_sender: &Sender<LauncherMsg>) -> anyhow::Result<()> {
         }
     }
 }
-
 
 pub fn try_communicate() -> anyhow::Result<bool> {
     match UnixStream::connect(constants::UNIX_SOCKET_PATH) {

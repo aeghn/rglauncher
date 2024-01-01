@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::RGLApplication;
 use crate::arguments::Arguments;
 use crate::window::RGWindow;
 use backend::plugindispatcher::{DispatchMsg, PluginDispatcher};
@@ -7,7 +8,6 @@ use flume::{Receiver, Sender};
 use gio::prelude::*;
 use glib::MainContext;
 use gtk::prelude::*;
-use crate::application::RGLApplication;
 
 #[derive(Clone, Debug)]
 pub struct Launcher {
@@ -58,7 +58,6 @@ impl Launcher {
 
         RGWindow::setup_one(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
 
-
         MainContext::ref_thread_default().spawn_local(async move {
             let dispatcher_sender = dispatcher_sender.clone();
             let launcher_sender = launcher_sender.clone();
@@ -72,8 +71,12 @@ impl Launcher {
                             dispatcher_sender
                                 .send(DispatchMsg::RefreshContent)
                                 .expect("");
-                            RGWindow::setup_one(&app, app_args.clone(), &dispatcher_sender, &launcher_sender);
-
+                            RGWindow::setup_one(
+                                &app,
+                                app_args.clone(),
+                                &dispatcher_sender,
+                                &launcher_sender,
+                            );
                         }
                         LauncherMsg::SelectSomething => {
                             // win.hide_window();
@@ -83,7 +86,5 @@ impl Launcher {
                 }
             }
         });
-
-
     }
 }

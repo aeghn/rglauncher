@@ -1,3 +1,5 @@
+use crate::launcher::LauncherMsg;
+use crate::pluginpreview::PreviewMsg;
 use crate::sidebar::SidebarMsg;
 use backend::plugindispatcher::DispatchMsg;
 use backend::plugins::PluginResult;
@@ -9,8 +11,6 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info};
-use crate::launcher::LauncherMsg;
-use crate::pluginpreview::PreviewMsg;
 
 pub struct ResultHolder {
     user_input: Option<Arc<UserInput>>,
@@ -66,7 +66,8 @@ impl ResultHolder {
             .expect("unable to send result to sidebar");
 
         if holder_size == 0 {
-            self.preview_sender.send(PreviewMsg::Clear)
+            self.preview_sender
+                .send(PreviewMsg::Clear)
                 .expect("unable to clear preview");
         }
 
@@ -78,14 +79,16 @@ impl ResultHolder {
         let mut received_something = false;
         let mut next_sleep_time = 100000;
         loop {
-            match self.result_receiver.recv_timeout(Duration::from_millis(next_sleep_time)) {
+            match self
+                .result_receiver
+                .recv_timeout(Duration::from_millis(next_sleep_time))
+            {
                 Ok(msg) => match msg {
                     ResultMsg::Result(input, mut results) => match self.user_input.as_ref() {
                         None => {}
                         Some(user_input) => {
                             if user_input.as_ref() == input.as_ref() {
-                                results.into_iter()
-                                .for_each(|m| {
+                                results.into_iter().for_each(|m| {
                                     if self.result_id_set.insert(m.get_id().to_string()) {
                                         self.result_holder.push(m);
                                     }
@@ -123,29 +126,29 @@ impl ResultHolder {
                             _ => {}
                         }
                     }
-                    ResultMsg::SelectSomething => {
-                        match self.current_index.clone() {
-                            None => {}
-                            Some(id) => {
-                                match self.result_holder.get(id as usize) {
-                                    Some(pr) => {
-                                        pr.on_enter();
-                                        self.launcher_sender.send(LauncherMsg::SelectSomething);
-                                    }
-                                    _ => {}
-                                }
+                    ResultMsg::SelectSomething => match self.current_index.clone() {
+                        None => {}
+                        Some(id) => match self.result_holder.get(id as usize) {
+                            Some(pr) => {
+                                pr.on_enter();
+                                self.launcher_sender.send(LauncherMsg::SelectSomething);
                             }
-                        }
-
-                    }
+                            _ => {}
+                        },
+                    },
                 },
                 Err(ex) => {
                     // error!("unable to receive message: {:?}", ex);
                 }
             }
-            if received_something && Instant::now().duration_since(self.last).cmp(&interval).is_ge() {
+            if received_something
+                && Instant::now()
+                    .duration_since(self.last)
+                    .cmp(&interval)
+                    .is_ge()
+            {
                 self.send_to_sidebar();
-                received_something  = false;
+                received_something = false;
                 next_sleep_time = 100000;
             } else {
             }

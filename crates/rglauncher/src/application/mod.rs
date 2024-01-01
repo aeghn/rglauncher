@@ -1,10 +1,10 @@
 mod imp;
 
+use crate::constants;
+use crate::launcher::Launcher;
 use gio::prelude::ApplicationExtManual;
 use glib::subclass::prelude::ObjectSubclassIsExt;
 use gtk::{gio, glib};
-use crate::constants;
-use crate::launcher::Launcher;
 
 glib::wrapper! {
     pub struct RGLApplication(ObjectSubclass<imp::RGLApplication>) @extends gio::Application, gtk::Application, @implements gio::ActionGroup, gio::ActionMap;
@@ -24,10 +24,16 @@ impl RGLApplication {
     }
 
     pub fn set_launcher(&mut self, launcher: Launcher) {
-        self.imp().launcher.set(launcher).expect("TODO: panic message");
+        self.imp()
+            .launcher
+            .set(launcher)
+            .expect("TODO: panic message");
     }
 
     pub fn set_hold(&self) {
-        self.imp().background_hold.set(self.hold()).expect("Unable set background hold");
+        self.imp()
+            .background_hold
+            .set(self.hold())
+            .expect("Unable set background hold");
     }
 }

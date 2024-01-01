@@ -106,7 +106,8 @@ fn get_windows() -> Vec<HyprWindowResult> {
 
     let out = String::from_utf8(output.stdout).unwrap();
 
-    let json = serde_json::from_str::<serde_json::Value>(out.as_str()).unwrap_or_else(|_| serde_json::Value::Null);
+    let json = serde_json::from_str::<serde_json::Value>(out.as_str())
+        .unwrap_or_else(|_| serde_json::Value::Null);
 
     if let Some(array) = json.as_array() {
         for e in array {

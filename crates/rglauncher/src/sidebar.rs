@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
-use std::sync::atomic::{AtomicI32, AtomicBool, Ordering};
-
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
 use flume::Sender;
 use futures::StreamExt;
@@ -18,7 +17,6 @@ use backend::plugins::PluginResult;
 use backend::ResultMsg;
 use gtk::traits::{SelectionModelExt, WidgetExt};
 use tracing::{error, info};
-
 
 use crate::sidebarrow::SidebarRow;
 
@@ -38,7 +36,7 @@ pub struct Sidebar {
     list_store: gio::ListStore,
 
     pub sidebar_sender: flume::Sender<SidebarMsg>,
-    sidebar_receiver: flume::Receiver<SidebarMsg>,    
+    sidebar_receiver: flume::Receiver<SidebarMsg>,
 }
 
 impl Sidebar {
@@ -116,13 +114,16 @@ impl Sidebar {
             }
             SidebarMsg::Result(results) => {
                 let list_store = self.list_store.clone();
-                MainContext::ref_thread_default().spawn_local_with_priority(Priority::LOW, async move {
-                    let boxed_objects: Vec<BoxedAnyObject> = results
-                        .into_iter()
-                        .map(|e| BoxedAnyObject::new(e))
-                        .collect();
-                    list_store.splice(0, list_store.n_items(), &boxed_objects);
-                });
+                MainContext::ref_thread_default().spawn_local_with_priority(
+                    Priority::LOW,
+                    async move {
+                        let boxed_objects: Vec<BoxedAnyObject> = results
+                            .into_iter()
+                            .map(|e| BoxedAnyObject::new(e))
+                            .collect();
+                        list_store.splice(0, list_store.n_items(), &boxed_objects);
+                    },
+                );
             }
         }
     }
@@ -197,7 +198,6 @@ impl Sidebar {
                 .send(ResultMsg::ChangeSelect(selection.selected()))
                 .expect("TODO: panic message");
         });
-
 
         selection_model
     }

@@ -1,12 +1,12 @@
-use std::cell::{OnceCell, RefCell};
-use std::ops::Deref;
-use gtk::{CssProvider, glib, Settings, style_context_add_provider_for_display};
+use crate::constants;
+use crate::launcher::Launcher;
 use gtk::gdk::Display;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
+use gtk::{glib, style_context_add_provider_for_display, CssProvider, Settings};
+use std::cell::{OnceCell, RefCell};
+use std::ops::Deref;
 use tracing::info;
-use crate::constants;
-use crate::launcher::Launcher;
 
 use std::borrow::Borrow;
 #[derive(Default)]

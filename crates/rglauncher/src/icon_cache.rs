@@ -1,17 +1,19 @@
 use fragile::Fragile;
 use gio::{AppInfo, Icon, MemoryInputStream};
 
+use crate::constants;
+use glib::Bytes;
+use gtk::gdk_pixbuf::{Pixbuf, PixbufLoader};
 use gtk::IconTheme;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use glib::Bytes;
-use gtk::gdk_pixbuf::{Pixbuf, PixbufLoader};
-use crate::constants;
 
 lazy_static! {
     static ref ICON_MAP: Mutex<HashMap<String, Arc<Fragile<Icon>>>> = Mutex::new(HashMap::new());
-    static ref LOGO_ICON: Arc<Fragile<Icon>> = Arc::new(Fragile::new(Icon::from(load_from_svg(include_str!("../../../res/logo.svg")))));
+    static ref LOGO_ICON: Arc<Fragile<Icon>> = Arc::new(Fragile::new(Icon::from(load_from_svg(
+        include_str!("../../../res/logo.svg")
+    ))));
 }
 
 fn load_from_svg(s: &str) -> Pixbuf {
@@ -25,9 +27,8 @@ pub fn get_icon(name: &str) -> Arc<Fragile<Icon>> {
     let mut guard = ICON_MAP.lock().unwrap();
     let oficon = guard.get(name);
     if name == "" || name == constants::APP_ID {
-        return get_logo()
+        return get_logo();
     }
-
 
     if let Some(ficon) = oficon {
         return ficon.clone();
@@ -36,7 +37,7 @@ pub fn get_icon(name: &str) -> Arc<Fragile<Icon>> {
 
         let arc = Arc::new(Fragile::from(_icon.clone()));
         guard.insert(name.to_string(), arc.clone());
-        return arc
+        return arc;
     }
 }
 
