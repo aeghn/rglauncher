@@ -2,20 +2,18 @@ use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Debug)]
 pub struct UserInput {
-    pub window_id: i32,
     pub input: String,
     cancel_signal: Arc<RwLock<bool>>,
 }
 impl PartialEq for UserInput {
     fn eq(&self, other: &Self) -> bool {
-        self.window_id == other.window_id && self.input == other.input
+        self.input == other.input
     }
 }
 
 impl UserInput {
-    pub fn new(input: &str, window_id: &i32) -> Self {
+    pub fn new(input: &str) -> Self {
         UserInput {
-            window_id: window_id.clone(),
             input: input.to_string(),
             cancel_signal: Arc::new(RwLock::new(false)),
         }

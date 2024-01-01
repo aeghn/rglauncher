@@ -31,7 +31,6 @@ impl InputBar {
     pub fn new(
         result_sender: &flume::Sender<ResultMsg>,
         window_sender: &flume::Sender<WindowMsg>,
-        window_id: i32,
     ) -> Self {
         let (input_sender, input_receiver) = flume::unbounded();
 
@@ -47,7 +46,7 @@ impl InputBar {
                 let text = e.text().to_string();
                 result_sender
                     .send(ResultMsg::UserInput(Arc::new(UserInput::new(
-                        &text, &window_id,
+                        &text,
                     ))))
                     .expect("TODO: panic message");
             });

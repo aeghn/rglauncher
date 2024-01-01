@@ -25,8 +25,6 @@ pub enum WindowMsg {
 
 #[derive(Clone)]
 pub struct RGWindow {
-    id: i32,
-
     window: ApplicationWindow,
     input_bar: InputBar,
     preview: Preview,
@@ -39,8 +37,6 @@ pub struct RGWindow {
     result_sender: Sender<ResultMsg>,
 }
 
-static WINDOW_ID_COUNT: AtomicI32 = AtomicI32::new(0);
-
 impl RGWindow {
     pub fn new(
         app: &RGLApplication,
@@ -48,8 +44,6 @@ impl RGWindow {
         dispatch_sender: &Sender<DispatchMsg>,
         launcher_sender: &Sender<LauncherMsg>,
     ) -> Self {
-        let id = WINDOW_ID_COUNT.fetch_add(1, SeqCst);
-
         let (sidebar_sender, sidebar_receiver) = flume::unbounded();
         let (preview_sender, preview_receiver) = flume::unbounded();
         let (window_sender, window_receiver) = flume::unbounded();
@@ -77,7 +71,7 @@ impl RGWindow {
 
         window.set_child(Some(&main_box));
 
-        let input_bar = InputBar::new(&result_sender, &window_sender, id);
+        let input_bar = InputBar::new(&result_sender, &window_sender);
         main_box.append(&input_bar.entry);
 
         let bottom_box = gtk::Box::builder()
@@ -109,7 +103,6 @@ impl RGWindow {
         });
 
         Self {
-            id,
             window,
             input_bar,
             preview,
@@ -155,16 +148,14 @@ impl RGWindow {
         match key {
             gdk::Key::Up => {
                     sidebar_sender.send(SidebarMsg::PreviousItem).unwrap();
-                    inputbar_sender.send(InputMessage::Focus).expect("unable to send focus");
                     glib::Propagation::Stop
                 }
             gdk::Key::Down => {
                     sidebar_sender.send(SidebarMsg::NextItem).unwrap();
-                    inputbar_sender.send(InputMessage::Focus).expect("unable to send focus");
                     glib::Propagation::Stop
                 }
             gdk::Key::Escape => {
-
+                        window_sender.send(WindowMsg::Close).expect("unable to close window");
                     glib::Propagation::Stop
                 }
             gdk::Key::Return => {
