@@ -1,13 +1,13 @@
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
+use fork::Fork;
 use freedesktop_desktop_entry::DesktopEntry;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
-use std::option::Option::None;
-use std::process::{Command, exit, Stdio};
-use fork::Fork;
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::option::Option::None;
+use std::process::{exit, Command, Stdio};
 use tracing::{error, info};
 
 use crate::util::score_utils;
@@ -27,38 +27,35 @@ pub struct AppResult {
 }
 
 lazy_static! {
-    static ref PLACE_HOLDER_REPLACER : Regex = Regex::new(r"%\w").unwrap();
+    static ref PLACE_HOLDER_REPLACER: Regex = Regex::new(r"%\w").unwrap();
 }
 
 pub const TYPE_ID: &str = "app_result";
 
 fn run_command(command: Vec<&str>) {
     match fork::fork() {
-        Ok(Fork::Child) => {
-            match fork::fork() {
-                Ok(Fork::Child) => {
-                    fork::setsid().expect("Failed to setsid");
-                    match Command::new(&command[0])
-                        .args(&command[1..])
-                        .stdin(Stdio::null())
-                        .stdout(Stdio::null())
-                        .stderr(Stdio::null())
-                        .spawn() {
-                        Ok(child) => {
-                            exit(0)
-                        }
-                        Err(err) => {
-                            error!("Error running command: {}", err);
-                            exit(1)
-                        }
+        Ok(Fork::Child) => match fork::fork() {
+            Ok(Fork::Child) => {
+                fork::setsid().expect("Failed to setsid");
+                match Command::new(&command[0])
+                    .args(&command[1..])
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn()
+                {
+                    Ok(child) => exit(0),
+                    Err(err) => {
+                        error!("Error running command: {}", err);
+                        exit(1)
                     }
                 }
-                Err(e) => {
-                    error!("unable to run command: {:?} {}", command, e)
-                }
-                _ => {}
             }
-        }
+            Err(e) => {
+                error!("unable to run command: {:?} {}", command, e)
+            }
+            _ => {}
+        },
         Err(e) => {
             error!("unable running command: {}", e)
         }
@@ -84,13 +81,17 @@ impl PluginResult for AppResult {
     }
 
     fn on_enter(&self) {
-        let mut true_command = PLACE_HOLDER_REPLACER.replace_all(self.exec.as_str(), "").trim().to_string();
+        let mut true_command = PLACE_HOLDER_REPLACER
+            .replace_all(self.exec.as_str(), "")
+            .trim()
+            .to_string();
 
         if self.terminal {
             Command::new("foot")
                 .arg("-e")
                 .arg(true_command)
-                .spawn().expect("unable to spawn terminal app");
+                .spawn()
+                .expect("unable to spawn terminal app");
         } else {
             let cmd_and_args: Vec<&str> = true_command.split(" ").collect();
             run_command(cmd_and_args);

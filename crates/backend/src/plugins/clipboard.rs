@@ -86,7 +86,8 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
         if let Some(conn) = self.connection.as_ref() {
             let mut stmt = conn.prepare(
                 "SELECT content0, mimes, insert_time, update_time, count \
-        from clipboard where content0 like ? order by UPDATE_TIME desc limit 100",)?;
+        from clipboard where content0 like ? order by UPDATE_TIME desc limit 100",
+            )?;
 
             let result = stmt
                 .query_map([format!("%{}%", user_input.input.as_str())], |row| {
@@ -97,7 +98,7 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
                         insert_time: row.get(2)?,
                         update_time: row.get(3)?,
                         count: row.get(4)?,
-                        id: format!("{:x}", md5::compute(&(row.get::<usize, String>(0)?)))
+                        id: format!("{:x}", md5::compute(&(row.get::<usize, String>(0)?))),
                     })
                 })?
                 .collect::<Result<Vec<ClipResult>, rusqlite::Error>>()?;

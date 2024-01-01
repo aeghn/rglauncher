@@ -29,11 +29,9 @@ impl PluginPreview for CalcPreview {
             .build();
         preview.attach(&formula_area, 0, 0, 1, 1);
 
-        let sep = gtk::Separator::builder()
-        .hexpand(true).build();
+        let sep = gtk::Separator::builder().hexpand(true).build();
         preview.attach(&sep, 0, 1, 1, 1);
 
-        
         let result_buffer = gtk::TextBuffer::builder().build();
         let result_area = gtk::TextView::builder()
             .hexpand(true)
