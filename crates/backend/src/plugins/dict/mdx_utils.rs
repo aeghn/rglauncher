@@ -93,8 +93,18 @@ impl MDictMemIndex {
         }
 
         let mdx_header = mdx.into_header();
-        let file_name = path.as_ref().file_name().unwrap().to_str().unwrap_or("Unknown").to_string();
-        let title = mdx_header.attrs().get("Title").unwrap_or(&file_name).to_string();
+        let file_name = path
+            .as_ref()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap_or("Unknown")
+            .to_string();
+        let title = mdx_header
+            .attrs()
+            .get("Title")
+            .unwrap_or(&file_name)
+            .to_string();
 
         Ok(MDictMemIndex {
             mdx_index,

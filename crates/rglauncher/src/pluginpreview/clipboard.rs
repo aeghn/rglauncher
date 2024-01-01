@@ -35,14 +35,20 @@ impl PluginPreview for ClipPreview {
             .focusable(false)
             .build();
 
-        let text_window = gtk::ScrolledWindow::builder().hexpand(true).vexpand(true).build();
+        let text_window = gtk::ScrolledWindow::builder()
+            .hexpand(true)
+            .vexpand(true)
+            .build();
         text_window.set_child(Some(&text_view));
 
         let sep = super::get_seprator();
 
+        let info_grid = gtk::Grid::builder()
+            .hexpand(true)
+            .vexpand(false)
+            .valign(End)
+            .build();
 
-        let info_grid = gtk::Grid::builder().hexpand(true).vexpand(false).valign(End).build();
-        
         let insert_time = super::build_pair_line(&info_grid, 0, "Insert Time: ");
 
         let update_time = super::build_pair_line(&info_grid, 1, "Update Time: ");

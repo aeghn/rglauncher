@@ -34,10 +34,16 @@ impl PluginPreview for AppPreview {
         let desc = gtk::Label::builder().wrap(true).build();
         preview.attach(&desc, 0, 2, 1, 1);
 
-        let exec = gtk::Label::builder().wrap(true).css_classes(["dim-label"]).build();
+        let exec = gtk::Label::builder()
+            .wrap(true)
+            .css_classes(["dim-label"])
+            .build();
         preview.attach(&exec, 0, 3, 1, 1);
 
-        let w= gtk::ScrolledWindow::builder().vexpand(true).hexpand(true).build();
+        let w = gtk::ScrolledWindow::builder()
+            .vexpand(true)
+            .hexpand(true)
+            .build();
         w.set_child(Some(&preview));
 
         AppPreview {

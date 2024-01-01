@@ -15,7 +15,7 @@ pub struct DictResult {
     pub word: String,
     pub html: String,
     pub dict: String,
-    id: String
+    id: String,
 }
 
 impl PluginResult for DictResult {
@@ -57,22 +57,22 @@ pub struct DictionaryPlugin {
 
 impl DictionaryPlugin {
     pub fn new(dir_path: &str) -> Self {
-        let filepaths = crate::util::fs_utils::walk_dir(dir_path, Some(|p: &str| {
-            p.to_lowercase().as_str().ends_with("mdx")
-        }));
-        
-        
+        let filepaths = crate::util::fs_utils::walk_dir(
+            dir_path,
+            Some(|p: &str| p.to_lowercase().as_str().ends_with("mdx")),
+        );
+
         let mdxes: Vec<mdx_utils::MDictMemIndex> = match filepaths {
             Ok(paths) => paths
                 .into_iter()
                 .filter_map(|dr| {
-                        let p = dr.path();
+                    let p = dr.path();
 
-                        match mdx_utils::MDictMemIndex::new(p) {
-                            Ok(mdx) => Some(mdx),
-                            Err(_) => None,
-                        }
-                    })
+                    match mdx_utils::MDictMemIndex::new(p) {
+                        Ok(mdx) => Some(mdx),
+                        Err(_) => None,
+                    }
+                })
                 .collect(),
             Err(_) => {
                 vec![]
@@ -95,7 +95,7 @@ impl DictionaryPlugin {
                         word: word.to_string(),
                         html: explain,
                         dict: mdx.name.to_string(),
-                        id: format!("{}-{}-{}", TYPE_ID, mdx.name.as_str(), word)
+                        id: format!("{}-{}-{}", TYPE_ID, mdx.name.as_str(), word),
                     })
                 } else {
                     None
