@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
 use self::mdx_utils::MDictLookup;
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
@@ -11,6 +13,7 @@ pub const TYPE_ID: &str = "dict";
 
 pub enum DictMsg {}
 
+#[derive(Serialize, Deserialize)]
 pub struct DictResult {
     pub word: String,
     pub html: String,
@@ -18,6 +21,7 @@ pub struct DictResult {
     id: String,
 }
 
+#[typetag::serde]
 impl PluginResult for DictResult {
     fn score(&self) -> i32 {
         return score_utils::middle(0);
@@ -128,7 +132,7 @@ impl Plugin<DictResult, DictMsg> for DictionaryPlugin {
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<DictResult>> {
         if user_input.input.is_empty() {
-            return anyhow::Ok(vec![]);
+            return Err(anyhow!("Empty input"));
         }
 
         anyhow::Ok(self.cycle_seek(user_input.input.as_str()))

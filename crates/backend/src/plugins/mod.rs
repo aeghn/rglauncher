@@ -3,6 +3,7 @@ pub mod calculator;
 pub mod clipboard;
 pub mod dict;
 pub mod windows;
+pub mod history;
 
 use crate::userinput::UserInput;
 use crate::ResultMsg;
@@ -15,6 +16,7 @@ pub enum PluginMsg<T> {
     TypeMsg(T),
 }
 
+#[typetag::serde(tag = "type")]
 pub trait PluginResult: Send + Sync {
     fn score(&self) -> i32;
 

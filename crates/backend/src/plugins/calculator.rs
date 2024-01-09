@@ -7,16 +7,21 @@ use std::option::Option::None;
 
 use crate::util::score_utils;
 use std::sync::Mutex;
+use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 pub const TYPE_ID: &str = "calc";
 
 pub struct CalcMsg {}
 
+#[derive(Serialize, Deserialize)]
 pub struct CalcResult {
     pub formula: String,
     pub result: String,
 }
+
+#[typetag::serde]
 
 impl PluginResult for CalcResult {
     fn score(&self) -> i32 {
@@ -68,6 +73,10 @@ impl Plugin<CalcResult, CalcMsg> for CalculatorPlugin {
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<CalcResult>> {
+        if user_input.input.is_empty() {
+            return Err(anyhow!("empty input"))
+        }
+
         Ok(vec![meval::eval_str(user_input.input.as_str()).map(
             |res| CalcResult {
                 formula: user_input.input.clone(),
