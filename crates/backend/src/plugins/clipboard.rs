@@ -1,11 +1,12 @@
 use anyhow::{anyhow, Error};
 use arboard::Clipboard;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::score_utils;
 use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 pub const TYPE_ID: &str = "clipboard";
@@ -13,6 +14,7 @@ pub const TYPE_ID: &str = "clipboard";
 pub enum ClipMsg {}
 
 #[derive(Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct ClipResult {
     pub content: String,
     score: i32,
@@ -23,6 +25,7 @@ pub struct ClipResult {
     pub id: String,
 }
 
+#[typetag::serde]
 impl PluginResult for ClipResult {
     fn score(&self) -> i32 {
         score_utils::low(self.score as i64)
@@ -83,6 +86,10 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
     fn refresh_content(&mut self) {}
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<ClipResult>> {
+        if user_input.input.is_empty() {
+            return Err(anyhow!("empty input"))
+        }
+
         if let Some(conn) = self.connection.as_ref() {
             let mut stmt = conn.prepare(
                 "SELECT content0, mimes, insert_time, update_time, count \

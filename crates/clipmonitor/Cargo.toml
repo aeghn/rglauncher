@@ -10,4 +10,8 @@ arboard = { version = "3", default-features = false, features = [
     "image-data",
     "wayland-data-control",
 ] }
-rusqlite = { version = "0.29.0", features = ["bundled", "chrono"] }
+rusqlite = { version = "*", features = ["bundled", "chrono"] }
+tokio = "*"
+wayland-client = "0.31.1"
+wayland-protocols = "0.31.0"
+

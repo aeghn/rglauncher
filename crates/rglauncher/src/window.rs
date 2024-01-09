@@ -18,6 +18,7 @@ use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::Arc;
 use tracing::info;
+use backend::userinput::UserInput;
 
 pub enum WindowMsg {
     Close,
@@ -97,6 +98,8 @@ impl RGWindow {
         preview.loop_recv(&arguments);
 
         window.present();
+
+        result_sender.send(ResultMsg::UserInput(Arc::new(UserInput::new("")))).expect("unable to submit initial input");
 
         window.connect_destroy(|win| {
             info!("window destroied");

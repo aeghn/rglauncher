@@ -1,3 +1,7 @@
+* {
+    font-family: "Jost*", sans-serif;
+}
+
 .inputbar {
     margin-top: 30px;
     margin-bottom: 30px;
@@ -60,11 +64,11 @@
     border-radius: 5px;
 }
 
-margin15 {
+.margin15 {
     margin: 15px 15px 15px 15px;
 }
 
-padding15 {
+.padding15 {
     padding: 15px 15px 15px 15px;
 }
 
@@ -72,7 +76,7 @@ padding15 {
 }
 
 .border_debug {
-   border: solid 1px #aa0000;
+    border: solid 1px #aa0000;
 }
 
 .logo-font {

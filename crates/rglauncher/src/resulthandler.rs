@@ -131,7 +131,8 @@ impl ResultHolder {
                         Some(id) => match self.result_holder.get(id as usize) {
                             Some(pr) => {
                                 pr.on_enter();
-                                self.launcher_sender.send(LauncherMsg::SelectSomething);
+                                self.launcher_sender.send(LauncherMsg::SelectSomething).expect("unable to send select");
+                                self.dispatch_sender.send(DispatchMsg::SetHistory(pr.clone())).expect("unable to set history");
                             }
                             _ => {}
                         },

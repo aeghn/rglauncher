@@ -3,21 +3,23 @@ use crate::plugins::calculator::{CalcMsg, CalculatorPlugin};
 use crate::plugins::clipboard::{ClipMsg, ClipboardPlugin};
 use crate::plugins::dict::{DictMsg, DictionaryPlugin};
 use crate::plugins::windows::{HyprWindowMsg, HyprWindowsPlugin};
-use crate::plugins::PluginMsg;
+use crate::plugins::{PluginMsg, PluginResult};
 use crate::userinput::UserInput;
 use crate::ResultMsg;
 use flume::Sender;
 use futures::executor::block_on;
 use std::sync::Arc;
+use crate::plugins::history::HistoryPlugin;
 
 use super::pluginworker::PluginWorker;
 
 pub enum DispatchMsg {
     UserInput(Arc<UserInput>, flume::Sender<ResultMsg>),
     RefreshContent,
+    SetHistory(Arc<dyn PluginResult>),
+    getHistory(bool)
 }
 
-#[derive(Clone)]
 pub struct PluginDispatcher {
     pub dispatch_sender: Sender<DispatchMsg>,
     dispatcher_receiver: flume::Receiver<DispatchMsg>,
@@ -27,11 +29,16 @@ pub struct PluginDispatcher {
     clip_sender: Sender<PluginMsg<ClipMsg>>,
     dict_sender: Sender<PluginMsg<DictMsg>>,
     calc_sender: Sender<PluginMsg<CalcMsg>>,
+
+    history: HistoryPlugin
 }
 
 impl PluginDispatcher {
     fn new(dictionary_dir: &str, clipboard_path: &str) -> PluginDispatcher {
         let (dispatcher_sender, dispatcher_receiver) = flume::unbounded();
+
+        let history = HistoryPlugin::new(clipboard_path);
+        history.try_create_table().expect("Unable to create table");
 
         let dictionary_dir = dictionary_dir.to_string();
         let clipboard_path = clipboard_path.to_string();
@@ -53,6 +60,8 @@ impl PluginDispatcher {
             clip_sender,
             dict_sender,
             calc_sender,
+
+            history
         }
     }
 
@@ -110,6 +119,12 @@ impl PluginDispatcher {
                         self.calc_sender
                             .send(PluginMsg::RefreshContent)
                             .expect("TODO: panic message");
+                    }
+                    DispatchMsg::SetHistory(msg) => {
+                        self.history.update_or_insert(msg).expect("unable to insert history");
+                    }
+                    DispatchMsg::getHistory(with_content) => {
+
                     }
                 },
                 Err(_) => {}

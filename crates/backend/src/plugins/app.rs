@@ -9,12 +9,14 @@ use regex::Regex;
 use std::option::Option::None;
 use std::process::{exit, Command, Stdio};
 use tracing::{error, info};
+use serde::{Deserialize, Serialize};
 
 use crate::util::score_utils;
 
 pub enum AppMsg {}
 
 #[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct AppResult {
     pub icon_name: String,
     pub app_name: String,
@@ -63,6 +65,7 @@ fn run_command(command: Vec<&str>) {
     }
 }
 
+#[typetag::serde]
 impl PluginResult for AppResult {
     fn score(&self) -> i32 {
         score_utils::high(self.score as i64)
@@ -164,6 +167,10 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
             .applications
             .iter()
             .filter_map(|app| {
+                if user_input.input.is_empty()   {
+                    return Some(app.clone())
+                }
+
                 let score = self.matcher.fuzzy_match(&app.app_name, &user_input.input);
 
                 if score.unwrap_or(0) > 0 {

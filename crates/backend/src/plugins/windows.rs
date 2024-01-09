@@ -2,6 +2,7 @@ use std::process::Command;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::plugins::{Plugin, PluginResult};
@@ -14,6 +15,7 @@ pub const TYPE_ID: &str = "hypr_windows";
 pub enum HyprWindowMsg {}
 
 #[derive(Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct HyprWindowResult {
     pub class: String,
     pub title: String,
@@ -28,6 +30,7 @@ pub struct HyprWindowResult {
     pub score: i32,
 }
 
+#[typetag::serde]
 impl PluginResult for HyprWindowResult {
     fn score(&self) -> i32 {
         return score_utils::high(self.score as i64);
