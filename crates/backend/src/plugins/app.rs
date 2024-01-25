@@ -1,22 +1,22 @@
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
+use crate::util::string_utils::parse_cmd_string;
 use fork::Fork;
 use freedesktop_desktop_entry::DesktopEntry;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use lazy_static::lazy_static;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::option::Option::None;
 use std::process::{exit, Command, Stdio};
 use tracing::{error, info};
-use serde::{Deserialize, Serialize};
 
 use crate::util::score_utils;
 
 pub enum AppMsg {}
 
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppResult {
     pub icon_name: String,
     pub app_name: String,
@@ -35,6 +35,7 @@ lazy_static! {
 pub const TYPE_ID: &str = "app_result";
 
 fn run_command(command: Vec<&str>) {
+    println!("{:?}", command);
     match fork::fork() {
         Ok(Fork::Child) => match fork::fork() {
             Ok(Fork::Child) => {
@@ -84,20 +85,23 @@ impl PluginResult for AppResult {
     }
 
     fn on_enter(&self) {
-        let mut true_command = PLACE_HOLDER_REPLACER
-            .replace_all(self.exec.as_str(), "")
-            .trim()
-            .to_string();
-
         if self.terminal {
+            let mut true_command = PLACE_HOLDER_REPLACER
+                .replace_all(self.exec.as_str(), "")
+                .trim()
+                .to_string();
             Command::new("foot")
                 .arg("-e")
                 .arg(true_command)
                 .spawn()
                 .expect("unable to spawn terminal app");
         } else {
-            let cmd_and_args: Vec<&str> = true_command.split(" ").collect();
-            run_command(cmd_and_args);
+            let true_command: Vec<String> = parse_cmd_string(self.exec.as_str())
+                .into_iter()
+                .filter(|e| !e.starts_with("%"))
+                .collect();
+            info!("exec command: {:?}", true_command);
+            run_command(true_command.iter().map(|e| e.as_str()).collect());
         }
     }
 
@@ -124,51 +128,58 @@ impl ApplicationPlugin {
         info!("Creating App Plugin");
         let matcher = SkimMatcherV2::default();
 
-        let applications =
-            freedesktop_desktop_entry::Iter::new(freedesktop_desktop_entry::default_paths())
-                .into_iter()
-                .filter_map(|path| {
-                    if let Ok(bytes) = std::fs::read_to_string(&path) {
-                        if let Ok(entry) = DesktopEntry::decode(&path, &bytes) {
-                            if entry.no_display() {
-                                return None;
-                            }
-
-                            return Some(AppResult {
-                                id: entry.id().to_string(),
-                                icon_name: entry.icon().unwrap_or_default().to_string(),
-                                app_name: entry.name(None).unwrap_or_default().to_string(),
-                                app_desc: entry.comment(None).unwrap_or_default().to_string(),
-                                exec: entry.exec().unwrap_or_default().to_string(),
-                                desktop_path: path.to_str().unwrap_or_default().to_string(),
-                                terminal: entry.terminal(),
-                                score: 0,
-                            });
-                        }
-                    }
-                    None
-                })
-                .collect();
+        let applications = Self::read_applications();
 
         ApplicationPlugin {
             applications,
             matcher,
         }
     }
+
+    fn read_applications() -> Vec<AppResult> {
+        freedesktop_desktop_entry::Iter::new(freedesktop_desktop_entry::default_paths())
+            .into_iter()
+            .filter_map(|path| {
+                if let Ok(bytes) = std::fs::read_to_string(&path) {
+                    if let Ok(entry) = DesktopEntry::decode(&path, &bytes) {
+                        if entry.no_display() {
+                            return None;
+                        }
+
+                        return Some(AppResult {
+                            id: entry.id().to_string(),
+                            icon_name: entry.icon().unwrap_or_default().to_string(),
+                            app_name: entry.name(None).unwrap_or_default().to_string(),
+                            app_desc: entry.comment(None).unwrap_or_default().to_string(),
+                            exec: entry.exec().unwrap_or_default().to_string(),
+                            desktop_path: path.to_str().unwrap_or_default().to_string(),
+                            terminal: entry.terminal(),
+                            score: 0,
+                        });
+                    }
+                }
+                None
+            })
+            .collect()
+    }
 }
 
 impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
     fn handle_msg(&mut self, msg: AppMsg) {}
 
-    fn refresh_content(&mut self) {}
+    fn refresh_content(&mut self) {
+        let mut applications = Self::read_applications();
+        self.applications.clear();
+        self.applications.append(&mut applications);
+    }
 
     fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<AppResult>> {
         let result = self
             .applications
             .iter()
             .filter_map(|app| {
-                if user_input.input.is_empty()   {
-                    return Some(app.clone())
+                if user_input.input.is_empty() {
+                    return Some(app.clone());
                 }
 
                 let score = self.matcher.fuzzy_match(&app.app_name, &user_input.input);
