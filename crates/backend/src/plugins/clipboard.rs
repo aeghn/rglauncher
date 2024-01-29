@@ -6,15 +6,15 @@ use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::score_utils;
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
 use tracing::info;
+use crate::plugins::history::HistoryItem;
 
 pub const TYPE_ID: &str = "clipboard";
 
+#[derive(Clone)]
 pub enum ClipMsg {}
 
 #[derive(Debug)]
-#[derive(Serialize, Deserialize)]
 pub struct ClipResult {
     pub content: String,
     score: i32,
@@ -25,22 +25,21 @@ pub struct ClipResult {
     pub id: String,
 }
 
-#[typetag::serde]
 impl PluginResult for ClipResult {
     fn score(&self) -> i32 {
         score_utils::low(self.score as i64)
     }
 
-    fn sidebar_icon_name(&self) -> String {
-        "xclipboard".to_string()
+    fn icon_name(&self) -> &str {
+        "xclipboard"
     }
 
-    fn sidebar_label(&self) -> Option<String> {
-        Some(self.insert_time.to_string())
+    fn name(&self) -> &str {
+        self.content.as_str()
     }
 
-    fn sidebar_content(&self) -> Option<String> {
-        Some(crate::util::string_utils::truncate(self.content.as_str(), 200).to_string())
+    fn extra(&self) -> Option<&str> {
+        None
     }
 
     fn on_enter(&self) {
@@ -85,7 +84,7 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
 
     fn refresh_content(&mut self) {}
 
-    fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<ClipResult>> {
+    fn handle_input(&self, user_input: &UserInput, history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<ClipResult>> {
         if user_input.input.is_empty() {
             return Err(anyhow!("empty input"))
         }

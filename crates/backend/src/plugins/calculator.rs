@@ -1,43 +1,39 @@
-use lazy_static::lazy_static;
 
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 
-use std::option::Option::None;
 
 use crate::util::score_utils;
-use std::sync::Mutex;
 use anyhow::anyhow;
-use serde::{Deserialize, Serialize};
 use tracing::info;
+use crate::plugins::history::HistoryItem;
 
 pub const TYPE_ID: &str = "calc";
 
+#[derive(Clone)]
 pub struct CalcMsg {}
 
-#[derive(Serialize, Deserialize)]
 pub struct CalcResult {
     pub formula: String,
     pub result: String,
 }
 
-#[typetag::serde]
 
 impl PluginResult for CalcResult {
     fn score(&self) -> i32 {
-        score_utils::highest()
+        score_utils::highest(1000)
     }
 
-    fn sidebar_icon_name(&self) -> String {
-        "calc".to_string()
+    fn icon_name(&self) -> &str {
+        "calc"
     }
 
-    fn sidebar_label(&self) -> Option<String> {
-        Some("calc".to_string())
+    fn name(&self) -> &str {
+        self.formula.as_str()
     }
 
-    fn sidebar_content(&self) -> Option<String> {
-        Some(self.formula.to_string())
+    fn extra(&self) -> Option<&str> {
+        None
     }
 
     fn on_enter(&self) {}
@@ -72,7 +68,7 @@ impl Plugin<CalcResult, CalcMsg> for CalculatorPlugin {
 
     fn refresh_content(&mut self) {}
 
-    fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<CalcResult>> {
+    fn handle_input(&self, user_input: &UserInput, history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<CalcResult>> {
         if user_input.input.is_empty() {
             return Err(anyhow!("empty input"))
         }

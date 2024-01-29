@@ -3,67 +3,48 @@
 <interface>
   <!-- interface-name lll.ui -->
   <requires lib="gtk" version="4.10"/>
-  <template class="SidebarRow" parent="GtkGrid">
-            <property name="margin-top">10</property>
-            <property name="margin-bottom">10</property>
-            <property name="margin-start">10</property>
-            <property name="margin-end">10</property>
+  <template class="SidebarRow" parent="GtkBox">
+    <property name="margin-top">10</property>
+    <property name="margin-bottom">10</property>
+    <property name="margin-start">10</property>
+    <property name="margin-end">10</property>
     <child>
       <object class="GtkImage" id="image">
         <property name="can-focus">False</property>
         <property name="can-target">False</property>
         <property name="focus-on-click">False</property>
-        <property name="pixel-size">48</property>
-        <property name="margin-end">20</property>
-        <layout>
-          <property name="column">0</property>
-          <property name="row">0</property>
-          <property name="row-span">2</property>
-          <property name="column-span">1</property>
-        </layout>
+        <property name="pixel-size">28</property>
+        <property name="margin-end">10</property>
       </object>
     </child>
-        <child>
-          <object class="GtkLabel" id="title">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="selectable">False</property>
-            <property name="ellipsize">end</property>
-            <property name="width-chars">30</property>
-            <property name="single-line-mode">True</property>
-            <property name="max-width-chars">30</property>
-            <property name="lines">1</property>
-            <property name="hexpand">True</property>
-            <style>
-              <class name="sidebar_label"/>
-            </style>
-            <layout>
-              <property name="column">1</property>
-              <property name="column-span">1</property>
-              <property name="row">0</property>
-              <property name="row-span">1</property>
-            </layout>
-          </object>
-        </child>
     <child>
-      <object class="GtkLabel" id="content">
+      <object class="GtkLabel" id="title">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="selectable">False</property>
         <property name="ellipsize">end</property>
-        <property name="width-chars">30</property>
+        <property name="single-line-mode">True</property>
+        <property name="max-width-chars">30</property>
+        <property name="lines">1</property>
+        <property name="hexpand">False</property>
+        <property name="width-request">0</property>
+        <style>
+          <class name="sidebar-label"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkLabel" id="extra">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="selectable">False</property>
+        <property name="ellipsize">end</property>
         <property name="single-line-mode">True</property>
         <property name="max-width-chars">30</property>
         <property name="lines">1</property>
         <style>
-          <class name="sidebar_content"/>
+          <class name="sidebar-extra"/>
         </style>
-        <layout>
-          <property name="column">1</property>
-          <property name="row">1</property>
-          <property name="column-span">1</property>
-          <property name="row-span">1</property>
-        </layout>
       </object>
     </child>
   </template>

@@ -2,24 +2,23 @@ use std::process::Command;
 
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
-use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::plugins::{Plugin, PluginResult};
+use crate::plugins::history::HistoryItem;
 use crate::userinput::UserInput;
 
 use crate::util::score_utils;
 
 pub const TYPE_ID: &str = "hypr_windows";
 
+#[derive(Clone)]
 pub enum HyprWindowMsg {}
 
 #[derive(Clone)]
-#[derive(Serialize, Deserialize)]
 pub struct HyprWindowResult {
     pub class: String,
     pub title: String,
-    pub icon_name: String,
     pub address: String,
     pub mapped: bool,
     pub hidden: bool,
@@ -30,36 +29,21 @@ pub struct HyprWindowResult {
     pub score: i32,
 }
 
-#[typetag::serde]
 impl PluginResult for HyprWindowResult {
     fn score(&self) -> i32 {
-        return score_utils::high(self.score as i64);
+        score_utils::high(self.score as i64)
     }
 
-    fn sidebar_icon_name(&self) -> String {
-        return self.icon_name.to_string();
+    fn icon_name(&self) -> &str {
+        self.class.as_str()
     }
 
-    fn sidebar_label(&self) -> Option<String> {
-        let mut title = self.title.to_string();
-        title.insert(0, ' ');
-        title.insert(0, '');
-        Some(title)
+    fn name(&self) -> &str {
+        self.title.as_str()
     }
 
-    fn sidebar_content(&self) -> Option<String> {
-        let str: String = format!(
-            "{}  {} {}",
-            if self.monitor == 0 {
-                "".to_string()
-            } else {
-                format!(" {}", self.monitor)
-            },
-            self.workspace.clone(),
-            if self.xwayland { "X" } else { "" }
-        );
-
-        Some(str)
+    fn extra(&self) -> Option<&str> {
+        Some(self.workspace.as_str())
     }
 
     fn on_enter(&self) {
@@ -123,7 +107,6 @@ fn get_windows() -> Vec<HyprWindowResult> {
             vec.push(HyprWindowResult {
                 class: class.to_string(),
                 title: e.get("title").unwrap().as_str().unwrap().to_string(),
-                icon_name: get_icon_name(class),
                 address: e.get("address").unwrap().as_str().unwrap().to_string(),
                 mapped: e.get("mapped").unwrap().as_bool().unwrap(),
                 hidden: e.get("hidden").unwrap().as_bool().unwrap(),
@@ -146,23 +129,13 @@ fn get_windows() -> Vec<HyprWindowResult> {
     vec
 }
 
-fn get_icon_name(class: &str) -> String {
-    let c = class;
-
-    if class == "jetbrains-studio" {
-        "android-studio".to_string()
-    } else {
-        c.to_string()
-    }
-}
-
 impl Plugin<HyprWindowResult, HyprWindowMsg> for HyprWindowsPlugin {
     fn refresh_content(&mut self) {
         info!("update windows");
         self.windows = get_windows();
     }
 
-    fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<HyprWindowResult>> {
+    fn handle_input(&self, user_input: &UserInput, history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<HyprWindowResult>> {
         let matcher = SkimMatcherV2::default();
         let mut result: Vec<HyprWindowResult> = vec![];
 

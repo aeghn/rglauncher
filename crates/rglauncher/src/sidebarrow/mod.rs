@@ -1,15 +1,15 @@
 mod imp;
 
-use crate::icon_cache;
+use crate::iconcache;
+use backend::util::string_utils;
 use gtk::glib;
-use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 
 use backend::plugins::PluginResult;
 
 glib::wrapper! {
     pub struct SidebarRow(ObjectSubclass<imp::SidebarRow>)
-        @extends gtk::Widget, gtk::Grid;
+        @extends gtk::Widget, gtk::Box;
 }
 
 impl Default for SidebarRow {
@@ -23,25 +23,23 @@ impl SidebarRow {
         glib::Object::new()
     }
 
-    pub fn set_sidebar(&self, plugin_result: &dyn PluginResult) {
+    pub fn arrange_sidebar(&self, plugin_result: &dyn PluginResult) {
         let imp = self.imp();
 
-        imp.image
-            .set_from_gicon(icon_cache::get_icon(plugin_result.sidebar_icon_name().as_str()).get());
+        imp.image.set_from_gicon(iconcache::get_icon(plugin_result.icon_name()).get());
 
-        match plugin_result.sidebar_label() {
-            None => {}
-            Some(e) => {
-                imp.title.set_label(e.as_str());
-            }
-        };
+        imp.title.set_label(plugin_result.name());
 
-        match plugin_result.sidebar_content() {
-            None => {}
-            Some(e) => {
-                imp.content.set_label(e.as_str());
-            }
-        };
+        plugin_result.extra().map(|desc| {
+            let desc = if desc.len() > 300 {
+                string_utils::truncate(desc, 300)
+            } else {
+                desc
+            };
+
+            imp.extra.set_label(desc)
+        });
+            
     }
 
     pub fn unbind_all(&self) {

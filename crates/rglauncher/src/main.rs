@@ -1,7 +1,7 @@
 mod application;
 mod arguments;
 mod constants;
-mod icon_cache;
+mod iconcache;
 mod inputbar;
 mod launcher;
 mod pluginpreview;
@@ -11,15 +11,12 @@ mod sidebarrow;
 mod window;
 
 use clap::Parser;
-use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::Arc;
 use tracing::*;
 
-use gtk::gdk::*;
 use gtk::prelude::*;
-use gtk::*;
 
 use crate::application::RGLApplication;
 use crate::launcher::LauncherMsg;

@@ -7,16 +7,19 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::option::Option::None;
 use std::process::{exit, Command, Stdio};
 use tracing::{error, info};
 
 use crate::util::score_utils;
 
+use super::history::HistoryItem;
+
+#[derive(Clone)]
 pub enum AppMsg {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct AppResult {
     pub icon_name: String,
     pub app_name: String,
@@ -47,7 +50,7 @@ fn run_command(command: Vec<&str>) {
                     .stderr(Stdio::null())
                     .spawn()
                 {
-                    Ok(child) => exit(0),
+                    Ok(_) => exit(0),
                     Err(err) => {
                         error!("Error running command: {}", err);
                         exit(1)
@@ -66,27 +69,26 @@ fn run_command(command: Vec<&str>) {
     }
 }
 
-#[typetag::serde]
 impl PluginResult for AppResult {
     fn score(&self) -> i32 {
-        score_utils::high(self.score as i64)
+        self.score
     }
 
-    fn sidebar_icon_name(&self) -> String {
-        self.icon_name.clone()
+    fn icon_name(&self) -> &str {
+        self.icon_name.as_str()
     }
 
-    fn sidebar_label(&self) -> Option<String> {
-        Some(self.app_name.clone())
+    fn name(&self) -> &str {
+        self.app_name.as_str()
     }
 
-    fn sidebar_content(&self) -> Option<String> {
-        Some(self.app_desc.clone())
+    fn extra(&self) -> Option<&str> {
+        Some(self.app_desc.as_str())
     }
 
     fn on_enter(&self) {
         if self.terminal {
-            let mut true_command = PLACE_HOLDER_REPLACER
+            let true_command = PLACE_HOLDER_REPLACER
                 .replace_all(self.exec.as_str(), "")
                 .trim()
                 .to_string();
@@ -165,7 +167,9 @@ impl ApplicationPlugin {
 }
 
 impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
-    fn handle_msg(&mut self, msg: AppMsg) {}
+    fn handle_msg(&mut self, msg: AppMsg) {
+
+    }
 
     fn refresh_content(&mut self) {
         let mut applications = Self::read_applications();
@@ -173,19 +177,43 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
         self.applications.append(&mut applications);
     }
 
-    fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<AppResult>> {
+    fn handle_input(&self, user_input: &UserInput, history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<AppResult>> {
+        let history_map = match history {
+            Some(map) => {
+                let res = map.iter()
+                .map(|data| (data.id.clone(), data.score))
+                    .collect::<HashMap<String, i32>>();
+                
+                Some(res)
+            },
+            None => { None },
+        };
+
         let result = self
             .applications
             .iter()
             .filter_map(|app| {
+                let mut app = app.clone();
+                match history_map.as_ref() {
+                    Some(map) => {
+                        if let Some(score) = map.get(app.get_id()) {
+                            app.score = score.clone();
+                            return Some(app);
+                        }
+                    },
+                    None => {},
+                }
+                
                 if user_input.input.is_empty() {
-                    return Some(app.clone());
+                    return Some(app);
                 }
 
-                let score = self.matcher.fuzzy_match(&app.app_name, &user_input.input);
+                let score = self.matcher.fuzzy_match(&app.app_name, &user_input.input).unwrap_or(0);
+                
 
-                if score.unwrap_or(0) > 0 {
-                    Some(app.clone())
+                if score > 0 {
+                    app.score = score_utils::high(score);
+                    Some(app)
                 } else {
                     None
                 }
@@ -197,19 +225,5 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
 
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        plugins::{app::ApplicationPlugin, Plugin},
-        userinput::UserInput,
-    };
-
-    #[test]
-    fn test_app() {
-        let app_plugin = ApplicationPlugin::new();
-        println!("apps: {:?}", app_plugin.handle_input(&UserInput::new("a")));
     }
 }
