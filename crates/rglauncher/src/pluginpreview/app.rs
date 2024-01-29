@@ -1,4 +1,4 @@
-use crate::icon_cache;
+use crate::iconcache;
 use crate::pluginpreview::PluginPreview;
 use backend::plugins::app::AppResult;
 use glib::Cast;
@@ -26,7 +26,7 @@ impl PluginPreview for AppPreview {
         preview.attach(&icon, 0, 0, 1, 1);
 
         let name = gtk::Label::builder()
-            .css_classes(["font32"])
+            .css_classes(["preview-big-font"])
             .wrap(true)
             .build();
         preview.attach(&name, 0, 1, 1, 1);
@@ -61,7 +61,7 @@ impl PluginPreview for AppPreview {
 
     fn set_preview(&self, plugin_result: &Self::PluginResult) {
         self.icon
-            .set_from_gicon(icon_cache::get_icon(plugin_result.icon_name.as_str()).get());
+            .set_from_gicon(iconcache::get_icon(plugin_result.icon_name.as_str()).get());
         self.name.set_label(plugin_result.app_name.as_str());
         self.exec.set_label(plugin_result.desktop_path.as_str());
         self.desc.set_label(plugin_result.app_desc.as_str());

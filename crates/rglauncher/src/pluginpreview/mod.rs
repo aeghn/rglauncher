@@ -4,23 +4,19 @@ use crate::pluginpreview::calculator::CalcPreview;
 use crate::pluginpreview::clipboard::ClipPreview;
 use crate::pluginpreview::dictionary::DictPreview;
 use crate::pluginpreview::windows::HyprWindowPreview;
-use anyhow::anyhow;
 use backend::plugins::app::AppResult;
 use backend::plugins::calculator::CalcResult;
 use backend::plugins::clipboard::ClipResult;
-use backend::plugins::dict::{self, DictResult};
+use backend::plugins::dict::DictResult;
 use backend::plugins::windows::HyprWindowResult;
 use backend::plugins::PluginResult;
 use glib::{clone, MainContext};
-use gtk::pango::WrapMode::{Word, WordChar};
+use gtk::pango::WrapMode::WordChar;
 use gtk::prelude::{GridExt, WidgetExt};
 use gtk::Align::Center;
-use gtk::ResponseType::No;
-use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-use tracing::info;
 
 mod app;
 mod calculator;
@@ -93,33 +89,33 @@ impl PluginPreviewBuilder {
 
     pub fn set_preview(&self, opr: Option<&Arc<dyn PluginResult>>) -> Option<()> {
         if let Some(plugin_result) = opr {
-            let any = plugin_result.as_any();
+            let result = plugin_result.as_any();
 
             let preview_id = plugin_result.get_type_id();
             match preview_id {
                 backend::plugins::windows::TYPE_ID => {
-                    let win = any.downcast_ref::<HyprWindowResult>()?;
-                    self.wind_preview.set_preview(win);
+                    let result = result.downcast_ref::<HyprWindowResult>()?;
+                    self.wind_preview.set_preview(result);
                 }
 
                 backend::plugins::app::TYPE_ID => {
-                    let win = any.downcast_ref::<AppResult>()?;
-                    self.app_preview.set_preview(win);
+                    let result = result.downcast_ref::<AppResult>()?;
+                    self.app_preview.set_preview(result);
                 }
 
                 backend::plugins::calculator::TYPE_ID => {
-                    let win = any.downcast_ref::<CalcResult>()?;
-                    self.calc_preview.set_preview(win);
+                    let result = result.downcast_ref::<CalcResult>()?;
+                    self.calc_preview.set_preview(result);
                 }
 
                 backend::plugins::clipboard::TYPE_ID => {
-                    let win = any.downcast_ref::<ClipResult>()?;
-                    self.clip_preview.set_preview(win);
+                    let result = result.downcast_ref::<ClipResult>()?;
+                    self.clip_preview.set_preview(result);
                 }
 
                 backend::plugins::dict::TYPE_ID => {
-                    let win = any.downcast_ref::<DictResult>()?;
-                    self.dict_preview.set_preview(win);
+                    let result = result.downcast_ref::<DictResult>()?;
+                    self.dict_preview.set_preview(result);
                 }
 
                 _ => {}
