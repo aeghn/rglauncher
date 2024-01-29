@@ -1,6 +1,5 @@
-use anyhow::anyhow;
-use serde::{Deserialize, Serialize};
 use self::mdx_utils::MDictLookup;
+use crate::plugins::history::HistoryItem;
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::{score_utils, string_utils};
@@ -11,32 +10,33 @@ mod mdx_utils;
 
 pub const TYPE_ID: &str = "dict";
 
+#[derive(Clone)]
 pub enum DictMsg {}
 
-#[derive(Serialize, Deserialize)]
 pub struct DictResult {
     pub word: String,
     pub html: String,
     pub dict: String,
     id: String,
+    pub score: i32,
 }
 
-#[typetag::serde]
 impl PluginResult for DictResult {
     fn score(&self) -> i32 {
-        return score_utils::middle(0);
+        self.score
     }
 
-    fn sidebar_icon_name(&self) -> String {
-        "org.gnome.Dictionary".to_string()
+    fn icon_name(&self) -> &str {
+        "org.gnome.Dictionary"
     }
 
-    fn sidebar_label(&self) -> Option<String> {
-        Some(string_utils::truncate(self.dict.as_str(), 60).to_string())
+    fn name(&self) -> &str {
+        self.word.as_str()
+        
     }
 
-    fn sidebar_content(&self) -> Option<String> {
-        Some(self.word.to_string())
+    fn extra(&self) -> Option<&str> {
+        Some(self.dict.as_str())
     }
 
     fn on_enter(&self) {}
@@ -99,7 +99,8 @@ impl DictionaryPlugin {
                         word: word.to_string(),
                         html: explain,
                         dict: mdx.name.to_string(),
-                        id: format!("{}-{}-{}", TYPE_ID, mdx.name.as_str(), word),
+                        id: format!("{}@{}", mdx.name.as_str(), word),
+                        score: 0,
                     })
                 } else {
                     None
@@ -128,18 +129,43 @@ impl DictionaryPlugin {
 }
 
 impl Plugin<DictResult, DictMsg> for DictionaryPlugin {
-    fn refresh_content(&mut self) {}
-
-    fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<DictResult>> {
-        if user_input.input.is_empty() {
-            return Err(anyhow!("Empty input"));
-        }
-
-        anyhow::Ok(self.cycle_seek(user_input.input.as_str()))
-    }
-
     fn handle_msg(&mut self, msg: DictMsg) {
         todo!()
+    }
+
+    fn refresh_content(&mut self) {}
+
+    fn handle_input(
+        &self,
+        user_input: &UserInput,
+        history: Option<Vec<&HistoryItem>>,
+    ) -> anyhow::Result<Vec<DictResult>> {
+        let mut result = vec![];
+        if ! user_input.input.is_empty() {
+            let mut res = self.cycle_seek(user_input.input.as_str());
+            res.iter_mut().for_each(|mut r| {
+                r.score = score_utils::middle(r.score.clone() as i64);
+            });
+            result.extend(res);
+        }
+        
+        let history_matcher = match history {
+            None => {}
+            Some(his) => his.iter().for_each(|h| {
+                let dict_and_word: Vec<&str> = h.id.split("@").collect();
+                let mut temp: Vec<DictResult> = self
+                    .cycle_seek(dict_and_word[1])
+                    .into_iter()
+                    .map(|mut r| {
+                        r.score = h.score;
+                        r
+                    })
+                    .collect();
+                result.extend(temp);
+            }),
+        };
+
+        Ok(result)
     }
 
     fn get_type_id(&self) -> &'static str {

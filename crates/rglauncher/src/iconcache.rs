@@ -1,10 +1,9 @@
 use fragile::Fragile;
-use gio::{AppInfo, Icon, MemoryInputStream};
+use gio::{Icon, MemoryInputStream};
 
 use crate::constants;
 use glib::Bytes;
-use gtk::gdk_pixbuf::{Pixbuf, PixbufLoader};
-use gtk::IconTheme;
+use gtk::gdk_pixbuf::Pixbuf;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -24,6 +23,7 @@ fn load_from_svg(s: &str) -> Pixbuf {
 }
 
 pub fn get_icon(name: &str) -> Arc<Fragile<Icon>> {
+    let name = icon_name_map(name);
     let mut guard = ICON_MAP.lock().unwrap();
     let oficon = guard.get(name);
     if name == "" || name == constants::APP_ID {
@@ -43,4 +43,12 @@ pub fn get_icon(name: &str) -> Arc<Fragile<Icon>> {
 
 pub fn get_logo() -> Arc<Fragile<Icon>> {
     LOGO_ICON.clone()
+}
+
+pub fn icon_name_map(name: &str) -> &str {
+    match name {
+        "jetbrains-studio" => "android-studio",
+        "code-url-handler" => "visual-studio-code",
+        _ => name
+    }
 }

@@ -1,22 +1,18 @@
-use std::borrow::Borrow;
-use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
 use flume::Sender;
-use futures::StreamExt;
 use gio::traits::ListModelExt;
 use gio::{
     glib,
     prelude::{Cast, CastNone},
 };
-use glib::{BoxedAnyObject, ControlFlow, IsA, MainContext, Priority, PropertyGet, StrV, ToVariant};
+use glib::{BoxedAnyObject, IsA, MainContext, Priority, StrV, ToVariant};
 use gtk::prelude::ListItemExt;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use backend::plugins::PluginResult;
 use backend::ResultMsg;
 use gtk::traits::{SelectionModelExt, WidgetExt};
-use tracing::{error, info};
 
 use crate::sidebarrow::SidebarRow;
 
@@ -86,7 +82,7 @@ impl Sidebar {
                 } else {
                     0
                 };
-                self.scroll_to_item(&new_selection, true);
+                self.scroll_to_item(&new_selection);
             }
             SidebarMsg::PreviousItem => {
                 let new_selection = if self.selection_model.selected() > 0 {
@@ -94,11 +90,11 @@ impl Sidebar {
                 } else {
                     0
                 };
-                self.scroll_to_item(&new_selection, true);
+                self.scroll_to_item(&new_selection);
             }
             SidebarMsg::HeadItem => {
                 let new_selection = 0;
-                self.scroll_to_item(&new_selection, true);
+                self.scroll_to_item(&new_selection);
             }
             SidebarMsg::Enter => {
                 let item = self.selection_model.selected_item();
@@ -128,7 +124,7 @@ impl Sidebar {
         }
     }
 
-    fn scroll_to_item(&mut self, new_selection: &u32, change_focus: bool) {
+    fn scroll_to_item(&mut self, new_selection: &u32) {
         self.selection_model
             .select_item(new_selection.clone(), true);
         self.list_view
@@ -142,7 +138,7 @@ impl Sidebar {
             loop {
                 match sidebar.sidebar_receiver.recv_async().await {
                     Ok(sidebar_msg) => {
-                        sidebar.handle_msg(sidebar_msg);
+                        sidebar.handle_msg(sidebar_msg);        
                     }
                     Err(_) => {}
                 }
@@ -150,19 +146,11 @@ impl Sidebar {
         });
     }
 
-    fn get_sidebar_item() -> SidebarRow {
-        SidebarRow::new()
-    }
-
-    fn arrange_sidebar_item(grid: &SidebarRow, pr: &dyn PluginResult) {
-        grid.set_sidebar(pr);
-    }
-
     fn build_signal_list_item_factory() -> gtk::SignalListItemFactory {
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_factory, item| {
             let item = item.downcast_ref::<gtk::ListItem>().unwrap();
-            let row = Sidebar::get_sidebar_item();
+            let row = SidebarRow::new();
             item.set_child(Some(&row));
         });
 
@@ -172,7 +160,7 @@ impl Sidebar {
             let plugin_result = plugin_result_box.borrow::<Arc<dyn PluginResult>>();
 
             let child = item.child().and_downcast::<SidebarRow>().unwrap();
-            Sidebar::arrange_sidebar_item(&child, plugin_result.as_ref())
+            child.arrange_sidebar(plugin_result.as_ref());
         });
 
         factory.connect_unbind(move |_factory, item| {

@@ -1,82 +1,136 @@
-use std::sync::Arc;
-use anyhow::anyhow;
-use rusqlite::{Connection, params};
-use crate::plugins::{Plugin, PluginResult};
+use crate::userinput::UserInput;
+use crate::{plugins::PluginResult, util::score_utils};
 use core::result::Result;
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
+use lru_cache::LruCache;
+use rusqlite::{params, Connection};
+use std::{cell::RefCell, sync::Arc};
 use tracing::info;
 
-pub struct HistoryPlugin {
-    connection: Option<Connection>,
+#[derive(Clone, Debug)]
+pub struct HistoryItem {
+    pub plugin_type: String,
+    pub id: String,
+    pub result_name: String,
+    pub score: i32,
 }
 
+pub struct HistoryPlugin {
+    connection: Connection,
+    memory_cache: RefCell<LruCache<String, HistoryItem>>,
+    matcher: SkimMatcherV2,
+}
 
 impl HistoryPlugin {
-    pub fn new(path: &str) -> Self {
+    pub fn new(path: &str) -> anyhow::Result<Self> {
         info!("Creating History Plugin, path: {}", path);
 
-        match Connection::open(path) {
-            Ok(connection) => HistoryPlugin {
-                connection: Some(connection),
-            },
-            Err(err) => HistoryPlugin { connection: None },
-        }
+        let connection = Connection::open(path)?;
+        Self::try_create_table(&connection).unwrap();
+
+        let mut memory_cache = LruCache::new(268);
+        Self::get_histories_from_db(&connection)?
+            .into_iter()
+            .for_each(|h| {
+                memory_cache.insert(h.id.clone(), h);
+            });
+
+        let matcher = SkimMatcherV2::default();
+
+        Ok(HistoryPlugin {
+            connection,
+            memory_cache: RefCell::new(memory_cache),
+            matcher,
+        })
     }
 
-    pub fn get_only_ids(&self) -> anyhow::Result<Vec<String>> {
-        if let Some(conn) = self.connection.as_ref() {
-            let mut sql = conn.prepare("select id from result_history limit 30 order by update_time desc")?;
-            let result : Vec<String> = sql.query_map([], |row| {
-                row.get(0)
-                })?.collect::<Result<Vec<String>, rusqlite::Error>>()?;
-
-            return Ok(result)
-        }
-
-        Err(anyhow!("unable to read from connection"))
+    pub fn get_histories(&self, user_input: &UserInput) -> Vec<HistoryItem> {
+        self.memory_cache
+            .borrow()
+            .iter()
+            .filter(|(_, v)| {
+                if user_input.input.is_empty() {
+                    true
+                } else {
+                    self.matcher
+                        .fuzzy_match(v.result_name.as_str(), user_input.input.as_str())
+                        .unwrap_or(0)
+                        > 0
+                }
+            })
+            .map(|h| {h.1})
+            .enumerate()
+            .map(|(i, e)| {
+                let mut h = e.clone();
+                h.score = score_utils::highest(i as i16);
+                h
+            })
+            .collect()
     }
 
-    pub fn get_results(&self, input: &str) -> anyhow::Result<Vec<Arc<dyn PluginResult>>> {
-        if let Some(conn) = self.connection.as_ref() {
-            let mut sql = conn.prepare("select id, type, content from result_history where content like ? limit 30 order by update_time desc")?;
-            let result = sql.query_map(params![input], |row| {
-                let result_type: String = row.get(1)?;
-                let result_str: String = row.get(2)?;
+    fn get_histories_from_db(conn: &Connection) -> anyhow::Result<Vec<HistoryItem>> {
+        let mut stmt = conn.prepare("select id, type, name from result_history order by update_time desc limit 268")?;
 
-                Ok(Self::get_result(result_type.as_str(), result_str.as_str()).unwrap())
-            })?.collect::<Result<Vec<Arc<dyn PluginResult>>, rusqlite::Error>>()?;
+        let result = stmt
+            .query_map(params![], |row| {
+                let id: String = row.get("id")?;
+                let plugin_type: String = row.get("type")?;
+                let result_name: String = row.get("name")?;
 
-            return Ok(result)
-        }
+                Ok(HistoryItem {
+                    plugin_type,
+                    id,
+                    result_name,
+                    score: 0,
+                })
+            })?
+            .collect::<Result<Vec<HistoryItem>, rusqlite::Error>>()?;
 
-        Err(anyhow!("unable to read from connection"))
-    }
-
-    fn get_result(result_type: &str, result_str: &str) -> Result<Arc<dyn PluginResult>, serde_json::Error> {
-        serde_json::from_str::<Box<dyn PluginResult>>(result_str).map(|r| Arc::from(r))
+        Ok(result.into_iter().rev().collect())
     }
 
     pub fn update_or_insert(&self, result: Arc<dyn PluginResult>) -> anyhow::Result<()> {
-        let result_str = serde_json::to_string(result.as_ref())?;
-        let conn = self.connection.as_ref().ok_or(anyhow!("There is no connection"))?;
-        let mut stmt = conn.prepare("insert or replace into result_history \
-        (id, type, content, update_time) values (?, ?, ?, datetime(?, 'unixepoch'))")?;
+        let mut stmt = self.connection.prepare(
+            "insert or replace into result_history \
+        (id, type, name, description, update_time) values (?, ?, ?, ?, datetime(?, 'unixepoch'))",
+        )?;
 
-        stmt.insert(params![result.get_id(), result.get_type_id(), result_str,
-            chrono::Utc::now().timestamp()]).expect("TODO: panic message");
+        stmt.insert(params![
+            result.get_id(),
+            result.get_type_id(),
+            result.name(),
+            result.extra(),
+            chrono::Utc::now().timestamp()
+        ])
+        .expect("Unable to insert history");
+
+        self.memory_cache.borrow_mut().insert(
+            result.get_id().to_string(),
+            HistoryItem {
+                plugin_type: result.get_type_id().to_string(),
+                id: result.get_id().to_string(),
+                result_name: result.name().to_string(),
+                score: 0,
+            },
+        );
+        
 
         Ok(())
     }
 
-    pub fn try_create_table(&self) -> anyhow::Result<()> {
-        let conn = self.connection.as_ref().ok_or(anyhow!("There is no connection"))?;
-        conn.prepare("
-CREATE TABLE IF NOT EXISTS result_history (
-id text primary key,
-type text,
-content TEXT,
-update_time TIMESTAMP
-)")?.execute([])?;
-
+    fn try_create_table(conn: &Connection) -> anyhow::Result<()> {
+        conn.prepare(
+            "CREATE TABLE IF NOT EXISTS result_history (
+id TEXT,
+type TEXT,
+name TEXT,
+description TEXT,
+update_time TIMESTAMP,
+PRIMARY KEY (id, type)
+)",
+        )?
+        .execute([])?;
 
         Ok(())
     }

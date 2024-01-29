@@ -1,6 +1,5 @@
 use crate::application::RGLApplication;
 use crate::arguments::Arguments;
-use crate::icon_cache;
 use crate::inputbar::{InputBar, InputMessage};
 use crate::launcher::LauncherMsg;
 use crate::pluginpreview::Preview;
@@ -8,14 +7,11 @@ use crate::resulthandler::ResultHolder;
 use crate::sidebar::SidebarMsg;
 use backend::plugindispatcher::DispatchMsg;
 use backend::ResultMsg;
-use flume::{Receiver, RecvError, Sender};
+use flume::{Receiver, Sender};
 use glib::{clone, MainContext};
-use gtk::prelude::EditableExt;
 use gtk::prelude::EntryBufferExtManual;
 use gtk::traits::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
-use gtk::{gdk, Application, ApplicationWindow, Orientation};
-use std::sync::atomic::AtomicI32;
-use std::sync::atomic::Ordering::SeqCst;
+use gtk::{gdk, ApplicationWindow};
 use std::sync::Arc;
 use tracing::info;
 use backend::userinput::UserInput;
@@ -67,7 +63,6 @@ impl RGWindow {
 
         let main_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
-            .css_classes(["main-box"])
             .build();
 
         window.set_child(Some(&main_box));
@@ -100,10 +95,6 @@ impl RGWindow {
         window.present();
 
         result_sender.send(ResultMsg::UserInput(Arc::new(UserInput::new("")))).expect("unable to submit initial input");
-
-        window.connect_destroy(|win| {
-            info!("window destroied");
-        });
 
         Self {
             window,
@@ -194,10 +185,6 @@ impl RGWindow {
 
         window.setup_keybindings();
         window.receive_messages();
-    }
-
-    pub fn show_window(&self) {
-        self.window.show();
     }
 
     pub fn close_window(window: &ApplicationWindow) {

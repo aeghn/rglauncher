@@ -5,9 +5,7 @@ use crate::arguments::Arguments;
 use crate::window::RGWindow;
 use backend::plugindispatcher::{DispatchMsg, PluginDispatcher};
 use flume::{Receiver, Sender};
-use gio::prelude::*;
 use glib::MainContext;
-use gtk::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Launcher {
@@ -33,14 +31,14 @@ impl Launcher {
         launcher_sender: Sender<LauncherMsg>,
         launcher_receiver: Receiver<LauncherMsg>,
     ) -> Self {
-        let dispatch_sender =
+        let dispatcher_sender =
             PluginDispatcher::start(arguments.dict_dir.as_str(), arguments.clip_db.as_str());
 
         Launcher {
             app: application,
             app_args: arguments,
 
-            dispatcher_sender: dispatch_sender,
+            dispatcher_sender,
 
             launcher_sender,
             launcher_receiver,

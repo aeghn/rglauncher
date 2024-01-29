@@ -6,16 +6,11 @@
     margin-top: 30px;
     margin-bottom: 30px;
     border: solid 1px #eeeeee;
-    /*width: 300px;*/
-    /*min-width: 300px;*/
 }
 
 .sidebar {
-    min-width: 320px;
-    /*width: 320px;*/
-    /*border-radius: 5px;*/
+    min-width: 360px;
     margin: 10px 10px 10px 10px;
-    /*border: none;*/
 }
 
 .sidebar-view {
@@ -23,21 +18,17 @@
     border: 0;
 }
 
-.sidebar_label {
-    /*font-weight: bolder;*/
-
+.sidebar-label {
+    margin-right: 10px;
 }
 
-.main-box {
-
-}
-
-.sidebar_content {
-
+.sidebar-extra {
+    font-style: italic;
+    color: #606060;
 }
 
 .preview {
-    margin: 20px 20px 20px 20px;
+    margin: 5px 5px 5px 5px;
     background: none;
 }
 
@@ -52,31 +43,12 @@
     font-size: 12px;
 }
 
-.font32 {
+.preview-big-font {
     font-size: 32px;
 }
 
-.font16 {
+.preview-little-font {
     font-size: 16px;
-}
-
-.border5 {
-    border-radius: 5px;
-}
-
-.margin15 {
-    margin: 15px 15px 15px 15px;
-}
-
-.padding15 {
-    padding: 15px 15px 15px 15px;
-}
-
-.centercld {
-}
-
-.border_debug {
-    border: solid 1px #aa0000;
 }
 
 .logo-font {
@@ -84,10 +56,6 @@
     font-style: italic;
     font-weight: 900;
     font-family: "Alegyera", serif;
-}
-
-.webview {
-
 }
 
 .horizontal-separator {

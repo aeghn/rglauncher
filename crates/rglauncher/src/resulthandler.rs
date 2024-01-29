@@ -10,7 +10,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
-use tracing::{debug, error, info};
+use tracing::debug;
 
 pub struct ResultHolder {
     user_input: Option<Arc<UserInput>>,

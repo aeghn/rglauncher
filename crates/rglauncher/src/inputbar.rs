@@ -1,16 +1,13 @@
 use backend::userinput::UserInput;
 use backend::ResultMsg;
-use flume::{RecvError, Sender};
-use futures::executor::block_on;
 use std::sync::Arc;
 
 use crate::window::WindowMsg;
 use glib::{ControlFlow, MainContext, StrV};
 use gtk;
-use gtk::prelude::{EntryExt, WidgetExt};
+use gtk::prelude::EntryExt;
 use gtk::traits::EditableExt;
 use gtk::Align::Center;
-use tracing::info;
 
 #[derive(Clone, Debug)]
 pub enum InputMessage {
@@ -37,6 +34,7 @@ impl InputBar {
         let entry = gtk::Entry::builder()
             .placeholder_text("Input Anything...")
             .css_classes(StrV::from(vec!["inputbar"]))
+            .xalign(0.5)
             .halign(Center)
             .build();
 
@@ -54,22 +52,22 @@ impl InputBar {
 
         {
             let result_sender = result_sender.clone();
-            let window_tx = window_sender.clone();
+            let window_sender = window_sender.clone();
             entry.connect_activate(move |e| {
                 result_sender
                     .send(ResultMsg::SelectSomething)
                     .expect("TODO: panic message");
-                window_tx
+                window_sender
                     .send(WindowMsg::Close)
                     .expect("unable to close window");
             });
         }
 
         {
-            let input_rx = input_receiver.clone();
+            let input_receiver = input_receiver.clone();
             let entry = entry.clone();
             MainContext::ref_thread_default().spawn_local(async move {
-                match input_rx.recv_async().await {
+                match input_receiver.recv_async().await {
                     Ok(input_msg) => match input_msg {
                         InputMessage::TextChanged(input) => {
                             entry.set_text(input.as_str());

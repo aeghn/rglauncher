@@ -2,29 +2,31 @@ pub mod app;
 pub mod calculator;
 pub mod clipboard;
 pub mod dict;
-pub mod windows;
 pub mod history;
+pub mod windows;
 
 use crate::userinput::UserInput;
 use crate::ResultMsg;
 use std::any::Any;
 use std::sync::Arc;
 
-pub enum PluginMsg<T> {
-    UserInput(Arc<UserInput>, flume::Sender<ResultMsg>),
+use self::history::HistoryItem;
+
+#[derive(Clone)]
+pub enum PluginMsg<T: Clone> {
+    UserInput(Arc<UserInput>, flume::Sender<ResultMsg>, Arc<Vec<HistoryItem>>),
     RefreshContent,
     TypeMsg(T),
 }
 
-#[typetag::serde(tag = "type")]
 pub trait PluginResult: Send + Sync {
     fn score(&self) -> i32;
 
-    fn sidebar_icon_name(&self) -> String;
+    fn icon_name(&self) -> &str;
 
-    fn sidebar_label(&self) -> Option<String>;
+    fn name(&self) -> &str;
 
-    fn sidebar_content(&self) -> Option<String>;
+    fn extra(&self) -> Option<&str>;
 
     fn on_enter(&self);
 
@@ -45,7 +47,7 @@ where
 
     fn refresh_content(&mut self);
 
-    fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<R>>;
+    fn handle_input(&self, user_input: &UserInput, history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<R>>;
 
     fn get_type_id(&self) -> &'static str;
 }

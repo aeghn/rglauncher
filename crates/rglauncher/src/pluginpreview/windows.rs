@@ -1,4 +1,4 @@
-use crate::icon_cache;
+use crate::iconcache;
 use crate::pluginpreview::PluginPreview;
 use backend::plugins::windows::HyprWindowResult;
 use backend::plugins::PluginResult;
@@ -11,7 +11,6 @@ use gtk::{Grid, Image, Orientation, Widget};
 pub struct HyprWindowPreview {
     preview: gtk::Widget,
     big_pic: gtk::Image,
-    little_pic: gtk::Image,
     title: gtk::Label,
     screen: gtk::Label,
     workspace: gtk::Label,
@@ -36,14 +35,12 @@ impl PluginPreview for HyprWindowPreview {
             .vexpand(true)
             .build();
 
-        let little_pic = gtk::Image::builder().pixel_size(64).hexpand(true).build();
-
         // preview.attach(&big_pic, 0, 0, 1, 1);
         // preview.attach(&little_pic, 0, 1, 1, 1);
         b.append(&big_pic);
 
         let title = gtk::Label::builder()
-            .css_classes(["font16"])
+            .css_classes(["preview-little-font"])
             .wrap(true)
             .wrap_mode(WordChar)
             .selectable(true)
@@ -81,7 +78,6 @@ impl PluginPreview for HyprWindowPreview {
         HyprWindowPreview {
             preview: tb.upcast(),
             big_pic,
-            little_pic,
             title,
             screen,
             workspace,
@@ -103,7 +99,7 @@ impl PluginPreview for HyprWindowPreview {
             .set_label(plugin_result.xwayland.to_string().as_str());
 
         self.big_pic
-            .set_from_gicon(icon_cache::get_icon(plugin_result.icon_name.as_str()).get());
+            .set_from_gicon(iconcache::get_icon(plugin_result.icon_name()).get());
     }
 
     fn get_id(&self) -> &str {
