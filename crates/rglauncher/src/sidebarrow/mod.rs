@@ -3,6 +3,7 @@ mod imp;
 use crate::iconcache;
 use backend::util::string_utils;
 use gtk::glib;
+use gtk::prelude::WidgetExt;
 use gtk::subclass::prelude::*;
 
 use backend::plugins::PluginResult;
@@ -27,18 +28,24 @@ impl SidebarRow {
         let imp = self.imp();
 
         imp.image.set_from_gicon(iconcache::get_icon(plugin_result.icon_name()).get());
+        let name = plugin_result.name();
 
-        imp.title.set_label(plugin_result.name());
+        imp.title.set_label(if name.len() > 300 {string_utils::truncate(name, 300)} else {name});
 
-        plugin_result.extra().map(|desc| {
-            let desc = if desc.len() > 300 {
-                string_utils::truncate(desc, 300)
-            } else {
-                desc
-            };
-
-            imp.extra.set_label(desc)
-        });
+        match plugin_result.extra() {
+            Some(desc) => {
+                let desc = if desc.len() > 300 {
+                    string_utils::truncate(desc, 300)
+                } else {
+                    desc
+                };
+    
+                imp.extra.set_label(desc)
+            },
+            None => {
+                imp.extra.hide();
+            },
+        }
             
     }
 

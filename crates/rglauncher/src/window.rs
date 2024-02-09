@@ -1,5 +1,6 @@
 use crate::application::RGLApplication;
 use crate::arguments::Arguments;
+use crate::constants;
 use crate::inputbar::{InputBar, InputMessage};
 use crate::launcher::LauncherMsg;
 use crate::pluginpreview::Preview;
@@ -57,7 +58,7 @@ impl RGWindow {
             .default_height(600)
             .application(app)
             .resizable(false)
-            .title("RGLauncher")
+            .title(constants::PROJECT_NAME)
             .decorated(false)
             .build();
 

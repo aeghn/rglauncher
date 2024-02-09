@@ -1,4 +1,5 @@
 use crate::arguments::Arguments;
+use crate::constants;
 use crate::pluginpreview::app::AppPreview;
 use crate::pluginpreview::calculator::CalcPreview;
 use crate::pluginpreview::clipboard::ClipPreview;
@@ -65,7 +66,7 @@ impl PluginPreviewBuilder {
         stack.add_named(&wind_preview.get_preview(), Some(wind_preview.get_id()));
 
         let default = gtk::Label::builder()
-            .label(glib::GString::from("RGLauncher"))
+            .label(glib::GString::from(constants::PROJECT_NAME))
             .vexpand(true)
             .hexpand(true)
             .valign(Center)
