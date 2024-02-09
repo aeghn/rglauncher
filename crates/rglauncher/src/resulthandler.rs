@@ -84,7 +84,7 @@ impl ResultHolder {
                 .recv_timeout(Duration::from_millis(next_sleep_time))
             {
                 Ok(msg) => match msg {
-                    ResultMsg::Result(input, mut results) => match self.user_input.as_ref() {
+                    ResultMsg::Result(input, results) => match self.user_input.as_ref() {
                         None => {}
                         Some(user_input) => {
                             if user_input.as_ref() == input.as_ref() {
@@ -99,7 +99,7 @@ impl ResultHolder {
                         }
                     },
                     ResultMsg::UserInput(input) => {
-                        if let Some(mut old_input) = self.user_input.replace(input.clone()) {
+                        if let Some(old_input) = self.user_input.replace(input.clone()) {
                             old_input.cancel();
                             self.current_index.take();
                             self.result_holder.clear();

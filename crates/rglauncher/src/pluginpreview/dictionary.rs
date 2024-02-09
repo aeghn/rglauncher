@@ -3,12 +3,10 @@ use backend::plugins::dict::DictResult;
 use glib::Cast;
 use gtk::prelude::WidgetExt;
 use gtk::Widget;
-use tracing::info;
-use webkit6::gdk::RGBA;
 use webkit6::prelude::WebViewExt;
 use webkit6::UserContentInjectedFrames::AllFrames;
 use webkit6::UserStyleLevel::User;
-use webkit6::{gdk, UserStyleSheet, WebView};
+use webkit6::{UserStyleSheet, WebView};
 
 pub struct DictPreview {
     pub webview: WebView,
