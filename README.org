@@ -1,1 +1,3 @@
-[[../previews/fire.png]]
+This project is currently in a very early stage. I have supported program startup, window switching (Hyprland, possibly with preview in the future), dictionary, calculator, and clipboard (using a fork of my own clipboard).
+
+[[./docs/overview.png]]
