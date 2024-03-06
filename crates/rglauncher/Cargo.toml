@@ -13,7 +13,7 @@ webkit6 = {version = "0.3.0", all-features = false}
 
 fragile = "2.0.0"
 clap = { version = "4.4.10", features = ["derive"] }
-flume = "0.10.14"
+flume = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 chrono = "0.4.24"
 lazy_static = "1.4.0"
