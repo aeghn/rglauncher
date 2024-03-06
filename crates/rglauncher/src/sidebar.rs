@@ -1,18 +1,19 @@
-
 use flume::Sender;
-use gio::traits::ListModelExt;
 use gio::{
     glib,
+    prelude::ListModelExt,
     prelude::{Cast, CastNone},
 };
-use glib::{BoxedAnyObject, IsA, MainContext, Priority, StrV, ToVariant};
-use gtk::prelude::ListItemExt;
+use glib::{object::IsA, variant::ToVariant, BoxedAnyObject, MainContext, Priority, StrV};
+use gtk::{
+    prelude::WidgetExt,
+    prelude::{ListItemExt, SelectionModelExt},
+};
 
 use std::sync::Arc;
 
 use backend::plugins::PluginResult;
 use backend::ResultMsg;
-use gtk::traits::{SelectionModelExt, WidgetExt};
 
 use crate::sidebarrow::SidebarRow;
 
@@ -138,7 +139,7 @@ impl Sidebar {
             loop {
                 match sidebar.sidebar_receiver.recv_async().await {
                     Ok(sidebar_msg) => {
-                        sidebar.handle_msg(sidebar_msg);        
+                        sidebar.handle_msg(sidebar_msg);
                     }
                     Err(_) => {}
                 }

@@ -1,6 +1,7 @@
 use super::PluginPreview;
 use backend::plugins::dict::DictResult;
-use glib::Cast;
+
+use glib::object::Cast;
 use gtk::prelude::WidgetExt;
 use gtk::Widget;
 use webkit6::prelude::WebViewExt;
