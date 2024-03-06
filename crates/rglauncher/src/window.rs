@@ -11,7 +11,7 @@ use backend::ResultMsg;
 use flume::{Receiver, Sender};
 use glib::{clone, MainContext};
 use gtk::prelude::EntryBufferExtManual;
-use gtk::traits::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
+use gtk::prelude::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
 use gtk::{gdk, ApplicationWindow};
 use std::sync::Arc;
 use tracing::info;

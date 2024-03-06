@@ -1,7 +1,7 @@
 use crate::iconcache;
 use crate::pluginpreview::PluginPreview;
 use backend::plugins::app::AppResult;
-use glib::Cast;
+use glib::object::Cast;
 use gtk::prelude::GridExt;
 
 pub struct AppPreview {
