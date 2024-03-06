@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gtk = { version = "0.7.3", package = "gtk4"}
-gio = "0.18"
-glib = "0.18"
-webkit6 = {version = "0.2", all-features = false}
+gtk = { version = "0.8.0", package = "gtk4"}
+gio = "0.19.2"
+glib = "0.19.2"
+webkit6 = {version = "0.3.0", all-features = false}
 
 fragile = "2.0.0"
 clap = { version = "4.4.10", features = ["derive"] }

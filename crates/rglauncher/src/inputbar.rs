@@ -1,12 +1,12 @@
 use backend::userinput::UserInput;
 use backend::ResultMsg;
+use gtk::prelude::EditableExt;
 use std::sync::Arc;
 
 use crate::window::WindowMsg;
 use glib::{ControlFlow, MainContext, StrV};
 use gtk;
 use gtk::prelude::EntryExt;
-use gtk::traits::EditableExt;
 use gtk::Align::Center;
 
 #[derive(Clone, Debug)]

@@ -1,6 +1,6 @@
 use crate::pluginpreview::PluginPreview;
 use backend::plugins::calculator::CalcResult;
-use glib::Cast;
+use glib::object::Cast;
 use gtk::prelude::{GridExt, TextBufferExt};
 use gtk::WrapMode::WordChar;
 

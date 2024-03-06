@@ -1,7 +1,7 @@
 use crate::pluginpreview::PluginPreview;
 use backend::plugins::clipboard::ClipResult;
 use chrono::{DateTime, Local};
-use glib::Cast;
+use glib::object::Cast;
 use gtk::prelude::{BoxExt, GridExt, TextBufferExt};
 use gtk::Align::End;
 use gtk::WrapMode::WordChar;

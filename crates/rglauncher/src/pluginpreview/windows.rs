@@ -2,7 +2,8 @@ use crate::iconcache;
 use crate::pluginpreview::PluginPreview;
 use backend::plugins::windows::HyprWindowResult;
 use backend::plugins::PluginResult;
-use glib::Cast;
+
+use glib::object::Cast;
 use gtk::pango::WrapMode::{Word, WordChar};
 use gtk::prelude::{BoxExt, GridExt};
 use gtk::Align::{Center, End};
