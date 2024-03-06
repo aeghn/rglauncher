@@ -1,14 +1,15 @@
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::string_utils::parse_cmd_string;
-use fork::Fork;
 use freedesktop_desktop_entry::DesktopEntry;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
+use std::io;
 use std::option::Option::None;
+use std::os::unix::process::CommandExt;
 use std::process::{exit, Command, Stdio};
 use tracing::{error, info};
 
@@ -37,35 +38,32 @@ lazy_static! {
 
 pub const TYPE_ID: &str = "app_result";
 
-fn run_command(command: Vec<&str>) {
-    println!("{:?}", command);
-    match fork::fork() {
-        Ok(Fork::Child) => match fork::fork() {
-            Ok(Fork::Child) => {
-                fork::setsid().expect("Failed to setsid");
-                match Command::new(&command[0])
-                    .args(&command[1..])
-                    .stdin(Stdio::null())
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .spawn()
-                {
-                    Ok(_) => exit(0),
-                    Err(err) => {
-                        error!("Error running command: {}", err);
-                        exit(1)
-                    }
+//https://github.com/alacritty/alacritty/blob/f7811548ae9cabb1122f43b42fec4d660318bc96/alacritty/src/daemon.rs#L28
+fn run_command(command_and_args: Vec<&str>) -> io::Result<()> {
+    let mut command = Command::new(&command_and_args[0]);
+    command
+        .args(&command_and_args[1..])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    unsafe {
+        command
+            .pre_exec(|| {
+                match libc::fork() {
+                    -1 => return Err(io::Error::last_os_error()),
+                    0 => (),
+                    _ => libc::_exit(0),
                 }
-            }
-            Err(e) => {
-                error!("unable to run command: {:?} {}", command, e)
-            }
-            _ => {}
-        },
-        Err(e) => {
-            error!("unable running command: {}", e)
-        }
-        _ => {}
+
+                if libc::setsid() == -1 {
+                    return Err(io::Error::last_os_error());
+                }
+                Ok(())
+            })
+            .spawn()?
+            .wait()
+            .map(|_| ())
     }
 }
 
@@ -103,7 +101,8 @@ impl PluginResult for AppResult {
                 .filter(|e| !e.starts_with("%"))
                 .collect();
             info!("exec command: {:?}", true_command);
-            run_command(true_command.iter().map(|e| e.as_str()).collect());
+            run_command(true_command.iter().map(|e| e.as_str()).collect())
+                .map_err(|e| error!("unable to start {}", e));
         }
     }
 
@@ -167,9 +166,7 @@ impl ApplicationPlugin {
 }
 
 impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
-    fn handle_msg(&mut self, msg: AppMsg) {
-
-    }
+    fn handle_msg(&mut self, msg: AppMsg) {}
 
     fn refresh_content(&mut self) {
         let mut applications = Self::read_applications();
@@ -177,16 +174,21 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
         self.applications.append(&mut applications);
     }
 
-    fn handle_input(&self, user_input: &UserInput, history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<AppResult>> {
+    fn handle_input(
+        &self,
+        user_input: &UserInput,
+        history: Option<Vec<&HistoryItem>>,
+    ) -> anyhow::Result<Vec<AppResult>> {
         let history_map = match history {
             Some(map) => {
-                let res = map.iter()
-                .map(|data| (data.id.clone(), data.score))
+                let res = map
+                    .iter()
+                    .map(|data| (data.id.clone(), data.score))
                     .collect::<HashMap<String, i32>>();
-                
+
                 Some(res)
-            },
-            None => { None },
+            }
+            None => None,
         };
 
         let result = self
@@ -200,16 +202,18 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
                             app.score = score.clone();
                             return Some(app);
                         }
-                    },
-                    None => {},
+                    }
+                    None => {}
                 }
-                
+
                 if user_input.input.is_empty() {
                     return Some(app);
                 }
 
-                let score = self.matcher.fuzzy_match(&app.app_name, &user_input.input).unwrap_or(0);
-                
+                let score = self
+                    .matcher
+                    .fuzzy_match(&app.app_name, &user_input.input)
+                    .unwrap_or(0);
 
                 if score > 0 {
                     app.score = score_utils::high(score);
