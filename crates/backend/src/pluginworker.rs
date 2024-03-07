@@ -1,5 +1,5 @@
 use futures::executor;
-use std::{result, sync::Arc};
+use std::{fmt::format, result, sync::Arc};
 use tracing::{error, info};
 
 use crate::{
@@ -24,17 +24,19 @@ where
     P: Plugin<R, M>,
     M: Send + Clone + 'static,
 {
-    pub fn launch<F>(pluginbuilder: F) -> flume::Sender<PluginMsg<M>>
+    pub fn launch<F>(name: &str, pluginbuilder: F) -> flume::Sender<PluginMsg<M>>
     where
         F: Fn() -> P + 'static + Send,
     {
         let (message_sender, message_receiver) = flume::unbounded::<PluginMsg<M>>();
 
-        std::thread::spawn(move || {
+        let name = name.to_owned();
+
+        std::thread::Builder::new().name(format!("rgworker-{}", name)).spawn(move || {
             let mut pool = executor::LocalPool::new();
 
             let mut plugin = pluginbuilder();
-            info!("Finished creating plugin");
+            info!("Finished creating plugin {}", name);
 
             pool.run_until(async {
                 loop {
@@ -78,7 +80,7 @@ where
                     }
                 }
             })
-        });
+        }).unwrap();
 
         message_sender
     }

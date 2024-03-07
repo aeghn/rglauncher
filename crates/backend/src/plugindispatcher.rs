@@ -49,13 +49,13 @@ impl PluginDispatcher {
         let dictionary_dir = dictionary_dir.to_string();
         let clipboard_path = clipboard_path.to_string();
 
-        let wind_sender = PluginWorker::launch(|| HyprWindowsPlugin::new());
-        let app_sender = PluginWorker::launch(|| ApplicationPlugin::new());
+        let wind_sender = PluginWorker::launch("windows", || HyprWindowsPlugin::new());
+        let app_sender = PluginWorker::launch("apps", || ApplicationPlugin::new());
         let clip_sender =
-            PluginWorker::launch(move || ClipboardPlugin::new(clipboard_path.as_str()));
+            PluginWorker::launch("clips", move || ClipboardPlugin::new(clipboard_path.as_str()));
         let dict_sender =
-            PluginWorker::launch(move || DictionaryPlugin::new(dictionary_dir.as_str()));
-        let calc_sender = PluginWorker::launch(|| CalculatorPlugin::new());
+            PluginWorker::launch("dict", move || DictionaryPlugin::new(dictionary_dir.as_str()));
+        let calc_sender = PluginWorker::launch("calc", || CalculatorPlugin::new());
 
         PluginDispatcher {
             dispatch_sender: dispatcher_sender,
