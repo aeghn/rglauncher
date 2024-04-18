@@ -7,6 +7,7 @@ use crate::pluginpreview::Preview;
 use crate::resulthandler::ResultHolder;
 use crate::sidebar::SidebarMsg;
 use backend::plugindispatcher::DispatchMsg;
+use backend::userinput::UserInput;
 use backend::ResultMsg;
 use flume::{Receiver, Sender};
 use glib::{clone, MainContext};
@@ -15,7 +16,6 @@ use gtk::prelude::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
 use gtk::{gdk, ApplicationWindow};
 use std::sync::Arc;
 use tracing::info;
-use backend::userinput::UserInput;
 
 pub enum WindowMsg {
     Close,
@@ -60,22 +60,24 @@ impl RGWindow {
             .resizable(false)
             .title(constants::PROJECT_NAME)
             .decorated(false)
+            .css_classes(["rgwindow"])
             .build();
 
         let main_box = gtk::Box::builder()
-            .orientation(gtk::Orientation::Vertical)
+            .orientation(gtk::Orientation::Horizontal)
             .build();
 
         window.set_child(Some(&main_box));
 
         let input_bar = InputBar::new(&result_sender, &window_sender);
-        main_box.append(&input_bar.entry);
 
-        let bottom_box = gtk::Box::builder()
-            .orientation(gtk::Orientation::Horizontal)
+        let left_box = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
             .vexpand(true)
             .build();
-        main_box.append(&bottom_box);
+
+        main_box.append(&left_box);
+        left_box.append(&input_bar.entry);
 
         let mut sidebar = crate::sidebar::Sidebar::new(
             &result_sender,
@@ -83,19 +85,22 @@ impl RGWindow {
             sidebar_receiver.clone(),
         );
         let sidebar_window = &sidebar.scrolled_window;
+        sidebar_window.set_vexpand(true);
         let sidebar_sender = sidebar.sidebar_sender.clone();
-        bottom_box.append(sidebar_window);
+        left_box.append(sidebar_window);
 
         sidebar.loop_recv();
 
         let preview = Preview::new(preview_sender, preview_receiver);
-        bottom_box.append(&preview.preview_window.clone());
+        main_box.append(&preview.preview_window.clone());
 
         preview.loop_recv(&arguments);
 
         window.present();
 
-        result_sender.send(ResultMsg::UserInput(Arc::new(UserInput::new("")))).expect("unable to submit initial input");
+        result_sender
+            .send(ResultMsg::UserInput(Arc::new(UserInput::new(""))))
+            .expect("unable to submit initial input");
 
         Self {
             window,
