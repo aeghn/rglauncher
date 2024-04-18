@@ -5,6 +5,7 @@ use gtk::subclass::prelude::*;
 use gtk::{glib, style_context_add_provider_for_display, CssProvider, Settings};
 use std::cell::OnceCell;
 use tracing::info;
+use gio::ApplicationHoldGuard;
 
 use std::borrow::Borrow;
 #[derive(Default)]
