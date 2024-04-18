@@ -54,6 +54,7 @@ impl PluginPreview for HyprWindowPreview {
             .hexpand(true)
             .vexpand(false)
             .valign(End)
+            .css_classes(["window-info"])
             .build(); // preview.attach(&extra, 0, 3, 1, 1);
 
         let screen = super::build_pair_line(&extra, 0, "Screen: ");
