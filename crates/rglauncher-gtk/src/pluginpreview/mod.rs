@@ -1,8 +1,12 @@
 use crate::constants;
 use crate::pluginpreview::application::AppPreview;
+#[cfg(feature = "calc")]
 use crate::pluginpreview::calculator::CalcPreview;
+#[cfg(feature = "clip")]
 use crate::pluginpreview::clipboard::ClipPreview;
+#[cfg(feature = "dict")]
 use crate::pluginpreview::dictionary::DictPreview;
+#[cfg(feature = "hyprwin")]
 use crate::pluginpreview::windows::HyprWindowPreview;
 use flume::{Receiver, Sender};
 use glib::{clone, MainContext};
@@ -11,9 +15,13 @@ use gtk::prelude::{GridExt, WidgetExt};
 use gtk::Align::Center;
 use rglcore::config::Config;
 use rglcore::plugins::application::AppResult;
+#[cfg(feature = "calc")]
 use rglcore::plugins::calculator::CalcResult;
+#[cfg(feature = "clip")]
 use rglcore::plugins::clipboard::ClipResult;
+#[cfg(feature = "dict")]
 use rglcore::plugins::dictionary::DictResult;
+#[cfg(feature = "hyprwin")]
 use rglcore::plugins::windows::HyprWindowResult;
 use rglcore::plugins::PluginResult;
 use std::cell::RefCell;
@@ -21,9 +29,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 mod application;
+#[cfg(feature = "calc")]
 mod calculator;
+#[cfg(feature = "clip")]
 mod clipboard;
+#[cfg(feature = "dict")]
 mod dictionary;
+#[cfg(feature = "hyprwin")]
 mod windows;
 
 const DEFAULT_ID: &str = "default";
@@ -46,25 +58,40 @@ pub struct PluginPreviewBuilder {
     stack: gtk::Stack,
 
     app_preview: AppPreview,
+    #[cfg(feature = "calc")]
     calc_preview: CalcPreview,
+    #[cfg(feature = "clip")]
     clip_preview: ClipPreview,
+    #[cfg(feature = "dict")]
     dict_preview: DictPreview,
+    #[cfg(feature = "hyprwin")]
     wind_preview: HyprWindowPreview,
 }
 
 impl PluginPreviewBuilder {
     pub fn new(stack: &gtk::Stack, config: Arc<Config>) -> Self {
-        let dict_preview = DictPreview::new();
         let app_preview = AppPreview::new();
-        let calc_preview = CalcPreview::new();
-        let clip_preview = ClipPreview::new();
-        let wind_preview = HyprWindowPreview::new();
-
+        #[cfg(feature = "dict")]
+        let dict_preview = DictPreview::new();
+        #[cfg(feature = "dict")]
         stack.add_named(&dict_preview.get_preview(), Some(dict_preview.get_id()));
-        stack.add_named(&app_preview.get_preview(), Some(app_preview.get_id()));
+
+        #[cfg(feature = "calc")]
+        let calc_preview = CalcPreview::new();
+        #[cfg(feature = "calc")]
         stack.add_named(&calc_preview.get_preview(), Some(calc_preview.get_id()));
+
+        #[cfg(feature = "clip")]
+        let clip_preview = ClipPreview::new();
+        #[cfg(feature = "clip")]
         stack.add_named(&clip_preview.get_preview(), Some(clip_preview.get_id()));
+
+        #[cfg(feature = "hyprwin")]
+        let wind_preview = HyprWindowPreview::new();
+        #[cfg(feature = "hyprwin")]
         stack.add_named(&wind_preview.get_preview(), Some(wind_preview.get_id()));
+
+        stack.add_named(&app_preview.get_preview(), Some(app_preview.get_id()));
 
         let default = gtk::Label::builder()
             .label(glib::GString::from(constants::PROJECT_NAME))
@@ -77,14 +104,19 @@ impl PluginPreviewBuilder {
         stack.add_named(&default, Some(DEFAULT_ID));
         stack.set_visible_child(&default);
 
+        #[cfg(feature = "dict")]
         dict_preview.add_csses(config.dict.as_ref());
 
         PluginPreviewBuilder {
             stack: stack.clone(),
             app_preview,
+            #[cfg(feature = "calc")]
             calc_preview,
+            #[cfg(feature = "clip")]
             clip_preview,
+            #[cfg(feature = "dict")]
             dict_preview,
+            #[cfg(feature = "hyprwin")]
             wind_preview,
         }
     }
@@ -95,26 +127,27 @@ impl PluginPreviewBuilder {
 
             let preview_id = plugin_result.get_type_id();
             match preview_id {
+                rglcore::plugins::application::TYPE_ID => {
+                    let result = result.downcast_ref::<AppResult>()?;
+                    self.app_preview.set_preview(result);
+                }
+                #[cfg(feature = "hyprwin")]
                 rglcore::plugins::windows::TYPE_ID => {
                     let result = result.downcast_ref::<HyprWindowResult>()?;
                     self.wind_preview.set_preview(result);
                 }
 
-                rglcore::plugins::application::TYPE_ID => {
-                    let result = result.downcast_ref::<AppResult>()?;
-                    self.app_preview.set_preview(result);
-                }
-
+                #[cfg(feature = "calc")]
                 rglcore::plugins::calculator::TYPE_ID => {
                     let result = result.downcast_ref::<CalcResult>()?;
                     self.calc_preview.set_preview(result);
                 }
-
+                #[cfg(feature = "clip")]
                 rglcore::plugins::clipboard::TYPE_ID => {
                     let result = result.downcast_ref::<ClipResult>()?;
                     self.clip_preview.set_preview(result);
                 }
-
+                #[cfg(feature = "dict")]
                 rglcore::plugins::dictionary::TYPE_ID => {
                     let result = result.downcast_ref::<DictResult>()?;
                     self.dict_preview.set_preview(result);
