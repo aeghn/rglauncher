@@ -77,7 +77,7 @@ impl PluginPreviewBuilder {
         stack.add_named(&default, Some(DEFAULT_ID));
         stack.set_visible_child(&default);
 
-        dict_preview.add_csses(config.dict.dir_path.as_str());
+        dict_preview.add_csses(config.dict.as_ref());
 
         PluginPreviewBuilder {
             stack: stack.clone(),

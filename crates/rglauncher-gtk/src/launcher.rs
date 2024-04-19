@@ -4,14 +4,17 @@ use crate::application::RGLApplication;
 use crate::window::RGWindow;
 use flume::{Receiver, Sender};
 use glib::MainContext;
-use rglcore::{config::Config, plugindispatcher::{DispatchMsg, PluginDispatcher}};
+use rglcore::{
+    config::Config,
+    dispatcher::{DispatchMsg, PluginDispatcher},
+};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Launcher {
     app: RGLApplication,
     pub config: Arc<Config>,
 
-    dispatcher_tx: Sender<DispatchMsg>,
+    dispatcher_tx: async_broadcast::Sender<DispatchMsg>,
 
     pub launcher_tx: Sender<LauncherMsg>,
     launcher_rx: Receiver<LauncherMsg>,
@@ -64,7 +67,10 @@ impl Launcher {
                     Ok(msg) => match msg {
                         LauncherMsg::Exit => {}
                         LauncherMsg::NewWindow => {
-                            dispatcher_tx.send(DispatchMsg::RefreshContent).expect("");
+                            dispatcher_tx
+                                .broadcast(DispatchMsg::RefreshContent)
+                                .await
+                                .expect("unable to create new window");
                             RGWindow::setup_one(
                                 &app,
                                 app_args.clone(),

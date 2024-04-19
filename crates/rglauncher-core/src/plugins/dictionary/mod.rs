@@ -1,9 +1,9 @@
 use self::mdx_utils::MDictLookup;
+use crate::config::DictConfig;
 use crate::plugins::history::HistoryItem;
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::score_utils;
-use tracing::info;
 
 #[allow(dead_code)]
 mod mdict;
@@ -60,31 +60,34 @@ pub struct DictionaryPlugin {
 }
 
 impl DictionaryPlugin {
-    pub fn new(dir_path: &str) -> Self {
-        let filepaths = crate::util::fs_utils::walk_dir(
-            dir_path,
-            Some(|p: &str| p.to_lowercase().as_str().ends_with("mdx")),
-        );
+    pub fn new(dict_config: Option<&DictConfig>) -> anyhow::Result<Self> {
+        match dict_config.map(|e| e.dir_path.as_str()) {
+            Some(dir) => {
+                let filepaths = crate::util::fs_utils::walk_dir(
+                    dir,
+                    Some(|p: &str| p.to_lowercase().as_str().ends_with("mdx")),
+                );
 
-        let mdxes: Vec<mdx_utils::MDictMemIndex> = match filepaths {
-            Ok(paths) => paths
-                .into_iter()
-                .filter_map(|dr| {
-                    let p = dr.path();
+                match filepaths {
+                    Ok(paths) => {
+                        let mdxes = paths
+                            .into_iter()
+                            .filter_map(|dr| {
+                                let p = dr.path();
 
-                    match mdx_utils::MDictMemIndex::new(p) {
-                        Ok(mdx) => Some(mdx),
-                        Err(_) => None,
+                                match mdx_utils::MDictMemIndex::new(p) {
+                                    Ok(mdx) => Some(mdx),
+                                    Err(_) => None,
+                                }
+                            })
+                            .collect();
+                        Ok(DictionaryPlugin { mdxes })
                     }
-                })
-                .collect(),
-            Err(_) => {
-                vec![]
+                    Err(err) => anyhow::bail!(err),
+                }
             }
-        };
-
-        info!("Creating Dict Plugin");
-        DictionaryPlugin { mdxes }
+            None => anyhow::bail!("2"),
+        }
     }
 
     pub fn seek(&self, word: &str) -> Vec<DictResult> {
@@ -135,7 +138,7 @@ impl Plugin<DictResult, DictMsg> for DictionaryPlugin {
     fn handle_input(
         &self,
         user_input: &UserInput,
-        history: Option<Vec<&HistoryItem>>,
+        history: Option<Vec<HistoryItem>>,
     ) -> anyhow::Result<Vec<DictResult>> {
         let mut result = vec![];
         if !user_input.input.is_empty() {

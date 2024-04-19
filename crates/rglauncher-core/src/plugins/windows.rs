@@ -4,8 +4,8 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use tracing::info;
 
-use crate::plugins::{Plugin, PluginResult};
 use crate::plugins::history::HistoryItem;
+use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 
 use crate::util::score_utils;
@@ -74,68 +74,66 @@ pub struct HyprWindowsPlugin {
 }
 
 impl HyprWindowsPlugin {
-    pub fn new() -> Self {
+    pub fn new() -> anyhow::Result<Self> {
         info!("Creating Windows Plugin(Hyprland)");
 
-        HyprWindowsPlugin {
-            windows: get_windows(),
-        }
+        Ok(HyprWindowsPlugin {
+            windows: get_windows()?,
+        })
     }
 }
 
-fn get_windows() -> Vec<HyprWindowResult> {
-    let output = Command::new("hyprctl")
-        .arg("clients")
-        .arg("-j")
-        .output()
-        .unwrap();
-    let mut vec: Vec<HyprWindowResult> = vec![];
+fn get_windows() -> anyhow::Result<Vec<HyprWindowResult>> {
+    let output = Command::new("hyprctl").arg("clients").arg("-j").output()?;
 
-    let out = String::from_utf8(output.stdout).unwrap();
+    let out = String::from_utf8(output.stdout)?;
 
     let json = serde_json::from_str::<serde_json::Value>(out.as_str())
         .unwrap_or_else(|_| serde_json::Value::Null);
 
     if let Some(array) = json.as_array() {
-        for e in array {
-            let class = e.get("class").unwrap().as_str().unwrap();
-            let monitor = e.get("monitor").unwrap().as_i64().unwrap();
-            if monitor == -1 {
-                continue;
-            }
+        let vec: Vec<HyprWindowResult> = array
+            .iter()
+            .filter_map(|e| {
+                let class = e.get("class")?.as_str()?;
+                let monitor = e.get("monitor")?.as_i64()?;
+                if monitor == -1 {
+                    return None;
+                }
 
-            vec.push(HyprWindowResult {
-                class: class.to_string(),
-                title: e.get("title").unwrap().as_str().unwrap().to_string(),
-                address: e.get("address").unwrap().as_str().unwrap().to_string(),
-                mapped: e.get("mapped").unwrap().as_bool().unwrap(),
-                hidden: e.get("hidden").unwrap().as_bool().unwrap(),
-                pid: e.get("pid").unwrap().as_i64().unwrap(),
-                xwayland: e.get("xwayland").unwrap().as_bool().unwrap(),
-                monitor: monitor,
-                workspace: e
-                    .get("workspace")
-                    .unwrap()
-                    .get("name")
-                    .unwrap()
-                    .as_str()
-                    .unwrap()
-                    .to_string(),
-                score: 0,
+                Some(HyprWindowResult {
+                    class: class.to_string(),
+                    title: e.get("title")?.as_str()?.to_string(),
+                    address: e.get("address")?.as_str()?.to_string(),
+                    mapped: e.get("mapped")?.as_bool()?,
+                    hidden: e.get("hidden")?.as_bool()?,
+                    pid: e.get("pid")?.as_i64()?,
+                    xwayland: e.get("xwayland")?.as_bool()?,
+                    monitor: monitor,
+                    workspace: e.get("workspace")?.get("name")?.as_str()?.to_string(),
+                    score: 0,
+                })
             })
-        }
+            .collect();
+        Ok(vec)
+    } else {
+        anyhow::bail!("hyprctl out is not a valid json")
     }
-
-    vec
 }
 
 impl Plugin<HyprWindowResult, HyprWindowMsg> for HyprWindowsPlugin {
     fn refresh_content(&mut self) {
         info!("update windows");
-        self.windows = get_windows();
+        if let Ok(windows) = get_windows() {
+            self.windows = windows;
+        }
     }
 
-    fn handle_input(&self, user_input: &UserInput, _history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<HyprWindowResult>> {
+    fn handle_input(
+        &self,
+        user_input: &UserInput,
+        _history: Option<Vec<HistoryItem>>,
+    ) -> anyhow::Result<Vec<HyprWindowResult>> {
         let matcher = SkimMatcherV2::default();
         let mut result: Vec<HyprWindowResult> = vec![];
 

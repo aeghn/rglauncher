@@ -1,11 +1,13 @@
-use crate::userinput::UserInput;
-use crate::{plugins::PluginResult, util::score_utils};
+use crate::config::DbConfig;
+use crate::plugins::PluginResult;
+
 use core::result::Result;
 use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
-use lru_cache::LruCache;
 use rusqlite::{params, Connection};
-use std::{cell::RefCell, sync::Arc};
+use std::{
+    any::Any,
+    sync::{Arc, RwLock},
+};
 use tracing::info;
 
 #[derive(Clone, Debug)]
@@ -17,65 +19,52 @@ pub struct HistoryItem {
 }
 
 pub struct HistoryPlugin {
-    connection: Connection,
-    memory_cache: RefCell<LruCache<String, HistoryItem>>,
-    matcher: SkimMatcherV2,
+    connection: Option<Connection>,
+    memory_cache: Arc<RwLock<Vec<HistoryItem>>>,
 }
 
 impl HistoryPlugin {
-    pub fn new(path: &str) -> anyhow::Result<Self> {
-        info!("Creating History Plugin, path: {}", path);
+    pub fn new(config: Option<&DbConfig>) -> Self {
+        info!("Creating History Plugin, path: {:?}", config);
+        let connection = match config.map(|c| c.db_path.as_str()) {
+            Some(path) => {
+                let connection = Connection::open(path);
+                if let Ok(conn) = connection {
+                    Self::try_create_table(&conn).unwrap();
+                    Some(conn)
+                } else {
+                    None
+                }
+            }
+            None => None,
+        };
 
-        let connection = Connection::open(path)?;
-        Self::try_create_table(&connection).unwrap();
+        let memory_cache = match connection.as_ref() {
+            Some(conn) => Self::get_histories_from_db(&conn).map_or(vec![], |e| e),
+            None => {
+                vec![]
+            }
+        };
 
-        let mut memory_cache = LruCache::new(268);
-        Self::get_histories_from_db(&connection)?
-            .into_iter()
-            .for_each(|h| {
-                memory_cache.insert(h.id.clone(), h);
-            });
-
-        let matcher = SkimMatcherV2::default();
-
-        Ok(HistoryPlugin {
+        HistoryPlugin {
             connection,
-            memory_cache: RefCell::new(memory_cache),
-            matcher,
-        })
+            memory_cache: Arc::new(RwLock::new(memory_cache)),
+        }
     }
 
-    pub fn get_histories(&self, user_input: &UserInput) -> Vec<HistoryItem> {
-        self.memory_cache
-            .borrow()
-            .iter()
-            .filter(|(_, v)| {
-                if user_input.input.is_empty() {
-                    true
-                } else {
-                    self.matcher
-                        .fuzzy_match(v.result_name.as_str(), user_input.input.as_str())
-                        .unwrap_or(0)
-                        > 0
-                }
-            })
-            .map(|h| {h.1})
-            .enumerate()
-            .map(|(i, e)| {
-                let mut h = e.clone();
-                h.score = score_utils::highest(i as i16);
-                h
-            })
-            .collect()
+    pub fn get_cache(&self) -> Arc<RwLock<Vec<HistoryItem>>> {
+        self.memory_cache.clone()
     }
 
     fn get_histories_from_db(conn: &Connection) -> anyhow::Result<Vec<HistoryItem>> {
-        let mut stmt = conn.prepare("select id, type, name from result_history order by update_time desc limit 268")?;
+        let mut stmt = conn.prepare(
+            "select id, plugin_type, name from result_history order by update_time desc limit 268",
+        )?;
 
         let result = stmt
             .query_map(params![], |row| {
                 let id: String = row.get("id")?;
-                let plugin_type: String = row.get("type")?;
+                let plugin_type: String = row.get("plugin_type")?;
                 let result_name: String = row.get("name")?;
 
                 Ok(HistoryItem {
@@ -91,30 +80,32 @@ impl HistoryPlugin {
     }
 
     pub fn update_or_insert(&self, result: Arc<dyn PluginResult>) -> anyhow::Result<()> {
-        let mut stmt = self.connection.prepare(
-            "insert or replace into result_history \
-        (id, type, name, description, update_time) values (?, ?, ?, ?, datetime(?, 'unixepoch'))",
-        )?;
+        if let Some(conn) = self.connection.as_ref() {
+            let mut stmt = conn.prepare(
+                "insert or replace into result_history \
+            (id, plugin_type, name, content, update_time) values (?, ?, ?, ?, datetime(?, 'unixepoch'))",
+            )?;
 
-        stmt.insert(params![
-            result.get_id(),
-            result.get_type_id(),
-            result.name(),
-            result.extra(),
-            chrono::Utc::now().timestamp()
-        ])
-        .expect("Unable to insert history");
+            stmt.insert(params![
+                result.get_id(),
+                result.get_type_id(),
+                result.name(),
+                result.extra(),
+                chrono::Utc::now().timestamp()
+            ])?;
+        }
 
-        self.memory_cache.borrow_mut().insert(
-            result.get_id().to_string(),
-            HistoryItem {
+        if let Ok(mut guard) = self.memory_cache.write() {
+            let vec: &mut Vec<HistoryItem> = guard.as_mut();
+            vec.retain(|e| e.id != result.get_id() && e.plugin_type != result.get_type_id());
+            vec.truncate(100);
+            vec.push(HistoryItem {
                 plugin_type: result.get_type_id().to_string(),
                 id: result.get_id().to_string(),
                 result_name: result.name().to_string(),
                 score: 0,
-            },
-        );
-        
+            })
+        }
 
         Ok(())
     }
@@ -123,11 +114,11 @@ impl HistoryPlugin {
         conn.prepare(
             "CREATE TABLE IF NOT EXISTS result_history (
 id TEXT,
-type TEXT,
+plugin_type TEXT,
 name TEXT,
-description TEXT,
+content TEXT,
 update_time TIMESTAMP,
-PRIMARY KEY (id, type)
+PRIMARY KEY (id, plugin_type)
 )",
         )?
         .execute([])?;

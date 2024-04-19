@@ -131,16 +131,16 @@ pub struct ApplicationPlugin {
 }
 
 impl ApplicationPlugin {
-    pub fn new() -> Self {
+    pub fn new() -> anyhow::Result<Self> {
         info!("Creating App Plugin");
         let matcher = SkimMatcherV2::default();
 
         let applications = Self::read_applications();
 
-        ApplicationPlugin {
+        Ok(ApplicationPlugin {
             applications,
             matcher,
-        }
+        })
     }
 
     fn read_applications() -> Vec<AppResult> {
@@ -183,7 +183,7 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
     fn handle_input(
         &self,
         user_input: &UserInput,
-        history: Option<Vec<&HistoryItem>>,
+        history: Option<Vec<HistoryItem>>,
     ) -> anyhow::Result<Vec<AppResult>> {
         let history_map = match history {
             Some(map) => {
