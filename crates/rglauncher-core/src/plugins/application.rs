@@ -202,27 +202,17 @@ impl Plugin<AppResult, AppMsg> for ApplicationPlugin {
             .iter()
             .filter_map(|app| {
                 let mut app = app.clone();
-                match history_map.as_ref() {
-                    Some(map) => {
-                        if let Some(score) = map.get(app.get_id()) {
-                            app.score = score.clone();
-                            return Some(app);
-                        }
-                    }
-                    None => {}
-                }
-
-                if user_input.input.is_empty() {
-                    return Some(app);
-                }
-
+                let highest = history_map
+                    .as_ref()
+                    .map_or(-1, |e| e.get(app.get_id()).map_or(-1, |s| s.clone()));
                 let score = self
                     .matcher
                     .fuzzy_match(&app.app_name, &user_input.input)
                     .unwrap_or(0);
 
-                if score > 0 {
-                    app.score = score_utils::high(score);
+                if score > 0 || user_input.input.is_empty() {
+                    let high = score_utils::high(score);
+                    app.score = if high > highest { high } else { highest };
                     Some(app)
                 } else {
                     None
