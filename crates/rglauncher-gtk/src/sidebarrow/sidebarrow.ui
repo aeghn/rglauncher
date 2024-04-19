@@ -8,6 +8,9 @@
     <property name="margin-bottom">10</property>
     <property name="margin-start">10</property>
     <property name="margin-end">10</property>
+    <style>
+      <class name="sidebar-row"/>
+    </style>
     <child>
       <object class="GtkImage" id="image">
         <property name="can-focus">False</property>
@@ -29,7 +32,7 @@
         <property name="hexpand">False</property>
         <property name="width-request">0</property>
         <style>
-          <class name="sidebar-label"/>
+          <class name="sidebar-row-label"/>
         </style>
       </object>
     </child>
@@ -43,7 +46,7 @@
         <property name="max-width-chars">30</property>
         <property name="lines">1</property>
         <style>
-          <class name="sidebar-extra"/>
+          <class name="sidebar-row-extra"/>
         </style>
       </object>
     </child>

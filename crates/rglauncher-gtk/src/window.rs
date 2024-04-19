@@ -66,7 +66,6 @@ impl RGWindow {
         let left_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .hexpand(true)
-            .css_classes(["inputbar-line"])
             .build();
 
         main_box.append(&left_box);
@@ -103,7 +102,7 @@ impl RGWindow {
             window_tx,
             window_rx,
 
-            result_tx: result_tx.clone(),
+            result_tx,
 
             sidebar_tx,
         }

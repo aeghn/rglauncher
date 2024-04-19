@@ -8,7 +8,7 @@
   padding: 10px 10px 10px 10px;
 }
 
-entry.inputbar  {
+entry.inputbar {
   font-size: 18px;
   background: transparent;
   margin: 20px 20px 20px 20px;
@@ -16,20 +16,32 @@ entry.inputbar  {
   border: none;
 }
 
-.sidebar {
+listview {
+  border: none;
+  margin-right: 10px;
+}
+
+listview row {
+  border-radius: 5px;
+}
+
+.sidebar-sw {
   min-width: 370px;
 }
 
 .sidebar-view {
   background: transparent;
-  border: 0;
 }
 
-.sidebar-label {
+.sidebar-row {
+  border-radius: 3px;
+}
+
+.sidebar-row-label {
   margin-right: 10px;
 }
 
-.sidebar-extra {
+.sidebar-row-extra {
   font-style: italic;
   color: #606060;
 }
