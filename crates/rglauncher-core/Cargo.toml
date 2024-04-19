@@ -51,6 +51,7 @@ arboard = { version = "3.3.0", default-features = false, features = [
 ], optional = true }
 
 [features]
+default = []
 hyprwin = []
 calc = ["meval"]
 dict = [
@@ -64,4 +65,3 @@ dict = [
     "html-escape",
 ]
 clip = ["arboard"]
-default = ["calc", "hyprwin", "dict", "clip"]
