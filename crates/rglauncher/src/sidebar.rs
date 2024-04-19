@@ -60,6 +60,7 @@ impl Sidebar {
             .focusable(false)
             .can_focus(false)
             .width_request(300)
+            .vexpand(true)
             .build();
 
         Sidebar {

@@ -54,8 +54,8 @@ impl RGWindow {
         );
 
         let window = ApplicationWindow::builder()
-            .default_width(800)
-            .default_height(600)
+            .default_width(790)
+            .default_height(500)
             .application(app)
             .resizable(false)
             .title(constants::PROJECT_NAME)
@@ -73,7 +73,8 @@ impl RGWindow {
 
         let left_box = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
-            .vexpand(true)
+            .hexpand(true)
+            .css_classes(["inputbar-line"])
             .build();
 
         main_box.append(&left_box);
@@ -85,7 +86,6 @@ impl RGWindow {
             sidebar_receiver.clone(),
         );
         let sidebar_window = &sidebar.scrolled_window;
-        sidebar_window.set_vexpand(true);
         let sidebar_sender = sidebar.sidebar_sender.clone();
         left_box.append(sidebar_window);
 

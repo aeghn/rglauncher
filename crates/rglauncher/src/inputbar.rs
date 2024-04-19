@@ -33,9 +33,8 @@ impl InputBar {
 
         let entry = gtk::Entry::builder()
             .placeholder_text("Input Anything...")
-            .css_classes(StrV::from(vec!["inputbar"]))
-            .xalign(0.5)
-            .halign(Center)
+            .css_classes(["inputbar"])
+            .has_frame(false)
             .build();
 
         {
@@ -43,9 +42,7 @@ impl InputBar {
             entry.connect_changed(move |e| {
                 let text = e.text().to_string();
                 result_sender
-                    .send(ResultMsg::UserInput(Arc::new(UserInput::new(
-                        &text,
-                    ))))
+                    .send(ResultMsg::UserInput(Arc::new(UserInput::new(&text))))
                     .expect("TODO: panic message");
             });
         }
