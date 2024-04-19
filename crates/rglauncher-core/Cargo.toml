@@ -20,30 +20,47 @@ futures = { version = "0.3.25" }
 
 md5 = "0.7.0"
 
-# for the Calc Plugin
-meval = "0.2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.79"
+lru-cache = "0.1.2"
+toml = "0.8.12"
 
-# for the Dict Plugin
-bytes = "1.4.0"
-miniz_oxide = "0.7.1"
-encoding_rs = '0.8'
-ripemd128 = '0.1'
-anyhow = "1.0.75"
-adler = "1.0.2"
-minilzo = "0.2.0"
-patricia_tree = "0.8.0"
-html-escape = "0.2.13"
+anyhow = "1.0.82"
 
 # for the App plugin
 freedesktop-desktop-entry = "0.5.0"
 libc = "0.2.153"
 
+# for the Calc Plugin
+meval = { version = "0.2.0", optional = true }
+
+# for the Dict Plugin
+bytes = { version = "1.6.0", optional = true }
+miniz_oxide = { version = "0.7.2", optional = true }
+encoding_rs = { version = "0.8.34", optional = true }
+ripemd128 = { version = "0.1.2", optional = true }
+adler = { version = "1.0.2", optional = true }
+minilzo = { version = "0.2.0", optional = true }
+patricia_tree = { version = "0.8.0", optional = true }
+html-escape = { version = "0.2.0", optional = true }
+
 # for the Clip plugin
 arboard = { version = "3.3.0", default-features = false, features = [
     "wayland-data-control",
-] }
+], optional = true }
 
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.79"
-lru-cache = "0.1.2"
-toml = "0.8.12"
+[features]
+hyprwin = []
+calc = ["meval"]
+dict = [
+    "bytes",
+    "miniz_oxide",
+    "encoding_rs",
+    "ripemd128",
+    "adler",
+    "minilzo",
+    "patricia_tree",
+    "html-escape",
+]
+clip = ["arboard"]
+default = ["calc", "hyprwin", "dict", "clip"]
