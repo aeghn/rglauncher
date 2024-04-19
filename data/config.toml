@@ -1,0 +1,8 @@
+[db]
+db_path="/home/chin/.cache/rglauncher/store.db"
+
+[ui]
+icon_theme="Papirus"
+
+[dict]
+dir_path="/home/chin/files/others/"
