@@ -74,7 +74,7 @@ impl Sidebar {
 
         let scrolled_window = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never) // Disable horizontal scrolling
-            .css_classes(["sidebar"])
+            .css_classes(["sidebar-sw"])
             .child(&list_view)
             .focusable(false)
             .can_focus(false)
