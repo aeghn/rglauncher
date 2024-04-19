@@ -97,14 +97,14 @@ impl HistoryPlugin {
 
         if let Ok(mut guard) = self.memory_cache.write() {
             let vec: &mut Vec<HistoryItem> = guard.as_mut();
-            vec.retain(|e| e.id != result.get_id() && e.plugin_type != result.get_type_id());
+            vec.retain(|e| e.id != result.get_id() || e.plugin_type != result.get_type_id());
             vec.truncate(100);
             vec.push(HistoryItem {
                 plugin_type: result.get_type_id().to_string(),
                 id: result.get_id().to_string(),
                 result_name: result.name().to_string(),
                 score: 0,
-            })
+            });
         }
 
         Ok(())

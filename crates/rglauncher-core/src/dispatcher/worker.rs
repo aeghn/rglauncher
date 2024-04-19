@@ -6,6 +6,7 @@ use tracing::{error, info};
 use crate::{
     plugins::{history::HistoryItem, Plugin, PluginResult},
     userinput::UserInput,
+    util::score_utils,
     ResultMsg,
 };
 
@@ -99,8 +100,14 @@ where
         let this_types: Option<Vec<HistoryItem>> = match history.read() {
             Ok(vec) => Some(
                 vec.iter()
-                    .filter(|h| h.plugin_type == self.plugin.get_type_id())
-                    .map(|e| e.clone())
+                    .enumerate()
+                    .filter(|h| h.1.plugin_type == self.plugin.get_type_id())
+                    .map(|e| {
+                        HistoryItem {
+                            score: score_utils::highest((10000 - e.0 % 10000).try_into().unwrap()),
+                            ..e.1.clone()
+                        }
+                    })
                     .collect(),
             ),
             Err(_) => None,

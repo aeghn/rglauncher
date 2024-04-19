@@ -13,13 +13,7 @@
                     "run",
                     "--bin", 
                     "rglauncher",
-                    "--",
-                    "--dict-dir",
-                    "/home/chin/files/others/dict/",
-                    "--clip-db",
-                    "/home/chin/.cache/rglauncher/store.db",
-                    "--icon", 
-                    "Papirus"
+                    "--"
                 ]
             }
         }
