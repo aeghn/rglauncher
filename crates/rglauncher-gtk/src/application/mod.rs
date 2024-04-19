@@ -24,10 +24,10 @@ impl RGLApplication {
     }
 
     pub fn set_launcher(&mut self, launcher: Launcher) {
-        self.imp()
-            .launcher
-            .set(launcher)
-            .expect("TODO: panic message");
+        match self.imp().launcher.set(launcher) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
     }
 
     pub fn set_hold(&self) {

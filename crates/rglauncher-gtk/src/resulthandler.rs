@@ -2,7 +2,7 @@ use crate::launcher::LauncherMsg;
 use crate::pluginpreview::PreviewMsg;
 use crate::sidebar::SidebarMsg;
 use flume::{Receiver, Sender};
-use rglcore::plugindispatcher::DispatchMsg;
+use rglcore::dispatcher::DispatchMsg;
 use rglcore::plugins::PluginResult;
 use rglcore::userinput::UserInput;
 use rglcore::ResultMsg;
@@ -22,7 +22,7 @@ pub struct ResultHolder {
     result_rx: Receiver<ResultMsg>,
 
     launcher_tx: Sender<LauncherMsg>,
-    dispatch_tx: Sender<DispatchMsg>,
+    dispatch_tx: async_broadcast::Sender<DispatchMsg>,
 
     sidebar_tx: Sender<SidebarMsg>,
     preview_tx: Sender<PreviewMsg>,
@@ -33,7 +33,7 @@ pub struct ResultHolder {
 impl ResultHolder {
     fn new(
         launcher_tx: &Sender<LauncherMsg>,
-        dispatch_tx: &Sender<DispatchMsg>,
+        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
         sidebar_tx: &Sender<SidebarMsg>,
         preview_tx: &Sender<PreviewMsg>,
     ) -> Self {
@@ -107,7 +107,7 @@ impl ResultHolder {
                         }
                         debug!("Send message to dispatcher: {}", input.input);
                         self.dispatch_tx
-                            .send(DispatchMsg::UserInput(
+                            .try_broadcast(DispatchMsg::UserInput(
                                 input.clone(),
                                 self.result_tx.clone(),
                             ))
@@ -135,7 +135,7 @@ impl ResultHolder {
                                     .send(LauncherMsg::SelectSomething)
                                     .expect("unable to send select");
                                 self.dispatch_tx
-                                    .send(DispatchMsg::SetHistory(pr.clone()))
+                                    .try_broadcast(DispatchMsg::SetHistory(pr.clone()))
                                     .expect("unable to set history");
                             }
                             _ => {}
@@ -162,7 +162,7 @@ impl ResultHolder {
 
     pub fn start(
         launcher_tx: &Sender<LauncherMsg>,
-        dispatch_tx: &Sender<DispatchMsg>,
+        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
         sidebar_tx: &Sender<SidebarMsg>,
         preview_tx: &Sender<PreviewMsg>,
     ) -> Sender<ResultMsg> {

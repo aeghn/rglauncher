@@ -4,6 +4,10 @@ members = ["crates/rglauncher-core", "crates/rglauncher-gtk"]
 
 resolver = "2"
 
+[workspace.dependencies]
+async-broadcast = "0.7.0"
+
+
 [profile.release]
 lto = true
 opt-level = 3

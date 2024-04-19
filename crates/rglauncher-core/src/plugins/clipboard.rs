@@ -2,12 +2,13 @@ use anyhow::{anyhow, Error};
 use arboard::Clipboard;
 use chrono::{DateTime, Utc};
 
+use crate::config::DbConfig;
+use crate::plugins::history::HistoryItem;
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use crate::util::score_utils;
 use rusqlite::Connection;
 use tracing::info;
-use crate::plugins::history::HistoryItem;
 
 pub const TYPE_ID: &str = "clipboard";
 
@@ -65,14 +66,19 @@ pub struct ClipboardPlugin {
 }
 
 impl ClipboardPlugin {
-    pub fn new(path: &str) -> Self {
-        info!("Creating Clip Plugin, path: {}", path);
+    pub fn new(config: Option<&DbConfig>) -> anyhow::Result<Self> {
+        match config.map(|e| e.db_path.as_str()) {
+            Some(path) => {
+                info!("Creating Clip Plugin, config: {:?}", path);
 
-        match Connection::open(path) {
-            Ok(connection) => ClipboardPlugin {
-                connection: Some(connection),
-            },
-            Err(_err) => ClipboardPlugin { connection: None },
+                match Connection::open(path) {
+                    Ok(connection) => Ok(ClipboardPlugin {
+                        connection: Some(connection),
+                    }),
+                    Err(err) => Err(err.into()),
+                }
+            }
+            None => anyhow::bail!("missing database path"),
         }
     }
 }
@@ -84,9 +90,13 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
 
     fn refresh_content(&mut self) {}
 
-    fn handle_input(&self, user_input: &UserInput, _history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<ClipResult>> {
+    fn handle_input(
+        &self,
+        user_input: &UserInput,
+        _history: Option<Vec<HistoryItem>>,
+    ) -> anyhow::Result<Vec<ClipResult>> {
         if user_input.input.is_empty() {
-            return Err(anyhow!("empty input"))
+            return Err(anyhow!("empty input"));
         }
 
         if let Some(conn) = self.connection.as_ref() {

@@ -4,9 +4,9 @@ use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    pub db: DbConfig,
-    pub dict: DictConfig,
-    pub ui: UI,
+    pub db: Option<DbConfig>,
+    pub dict: Option<DictConfig>,
+    pub ui: Option<UI>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

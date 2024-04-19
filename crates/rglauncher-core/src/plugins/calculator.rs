@@ -1,12 +1,10 @@
-
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 
-
+use crate::plugins::history::HistoryItem;
 use crate::util::score_utils;
 use anyhow::anyhow;
 use tracing::info;
-use crate::plugins::history::HistoryItem;
 
 pub const TYPE_ID: &str = "calc";
 
@@ -17,7 +15,6 @@ pub struct CalcResult {
     pub formula: String,
     pub result: String,
 }
-
 
 impl PluginResult for CalcResult {
     fn score(&self) -> i32 {
@@ -54,10 +51,10 @@ impl PluginResult for CalcResult {
 pub struct CalculatorPlugin {}
 
 impl CalculatorPlugin {
-    pub fn new() -> Self {
+    pub fn new() -> anyhow::Result<Self> {
         info!("Creating Calc Plugin");
 
-        CalculatorPlugin {}
+        Ok(CalculatorPlugin {})
     }
 }
 
@@ -68,9 +65,13 @@ impl Plugin<CalcResult, CalcMsg> for CalculatorPlugin {
 
     fn refresh_content(&mut self) {}
 
-    fn handle_input(&self, user_input: &UserInput, _history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<CalcResult>> {
+    fn handle_input(
+        &self,
+        user_input: &UserInput,
+        _history: Option<Vec<HistoryItem>>,
+    ) -> anyhow::Result<Vec<CalcResult>> {
         if user_input.input.is_empty() {
-            return Err(anyhow!("empty input"))
+            return Err(anyhow!("empty input"));
         }
 
         Ok(vec![meval::eval_str(user_input.input.as_str()).map(

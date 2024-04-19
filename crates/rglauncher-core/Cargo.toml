@@ -12,6 +12,8 @@ regex = "1.6.0"
 flume = "0.11.0"
 tracing = "0.1.37"
 
+async-broadcast = { workspace = true }
+
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 tracing-tree = "0.3.0"
 rusqlite = { version = "0.30.0", features = ["bundled", "chrono"] }
@@ -22,7 +24,6 @@ md5 = "0.7.0"
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.79"
-lru-cache = "0.1.2"
 toml = "0.8.12"
 
 anyhow = "1.0.82"

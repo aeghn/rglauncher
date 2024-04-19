@@ -11,7 +11,7 @@ use gtk::prelude::EntryBufferExtManual;
 use gtk::prelude::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
 use gtk::{gdk, ApplicationWindow};
 use rglcore::config::Config;
-use rglcore::plugindispatcher::DispatchMsg;
+use rglcore::dispatcher::DispatchMsg;
 use rglcore::userinput::UserInput;
 use rglcore::ResultMsg;
 use std::sync::Arc;
@@ -36,7 +36,7 @@ impl RGWindow {
     pub fn new(
         app: &RGLApplication,
         arguments: Arc<Config>,
-        dispatch_tx: &Sender<DispatchMsg>,
+        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
         launcher_tx: &Sender<LauncherMsg>,
     ) -> Self {
         let (sidebar_tx, sidebar_rx) = flume::unbounded();
@@ -175,7 +175,7 @@ impl RGWindow {
     pub fn setup_one(
         app: &RGLApplication,
         arguments: Arc<Config>,
-        dispatch_tx: &Sender<DispatchMsg>,
+        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
         launcher_tx: &Sender<LauncherMsg>,
     ) {
         let window = Self::new(app, arguments, dispatch_tx, launcher_tx);

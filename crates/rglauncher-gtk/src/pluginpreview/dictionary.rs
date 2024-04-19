@@ -1,4 +1,5 @@
 use super::PluginPreview;
+use rglcore::config::DictConfig;
 use rglcore::plugins::dictionary::DictResult;
 
 use glib::object::Cast;
@@ -14,24 +15,27 @@ pub struct DictPreview {
 }
 
 impl DictPreview {
-    pub fn add_csses(&self, dirpath: &str) {
-        if let Some(ucm) = self.webview.user_content_manager() {
-            ucm.remove_all_style_sheets();
-            let paths = rglcore::util::fs_utils::walk_dir(
-                dirpath,
-                Some(|p: &str| p.to_lowercase().ends_with(".css")),
-            );
+    pub fn add_csses(&self, config: Option<&DictConfig>) {
+        if let Some(dirpath) = config.as_ref().map(|c| c.dir_path.as_str()) {
+            if let Some(ucm) = self.webview.user_content_manager() {
+                ucm.remove_all_style_sheets();
+                let paths = rglcore::util::fs_utils::walk_dir(
+                    dirpath,
+                    Some(|p: &str| p.to_lowercase().ends_with(".css")),
+                );
 
-            if let Ok(des) = paths {
-                for de in des {
-                    let css = std::fs::read_to_string(de.path()).expect("unable to read file");
-                    let ss = UserStyleSheet::new(css.as_str(), AllFrames, User, &[], &[]);
-                    ucm.add_style_sheet(&ss);
+                if let Ok(des) = paths {
+                    for de in des {
+                        if let Ok(css) = std::fs::read_to_string(de.path()) {
+                            let ss = UserStyleSheet::new(css.as_str(), AllFrames, User, &[], &[]);
+                            ucm.add_style_sheet(&ss);
+                        }
+                    }
                 }
             }
-        }
 
-        self.webview.set_css_classes(&["webview"]);
+            self.webview.set_css_classes(&["webview"]);
+        }
     }
 }
 

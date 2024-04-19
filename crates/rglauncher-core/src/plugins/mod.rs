@@ -9,21 +9,10 @@ pub mod history;
 #[cfg(feature = "hyprwin")]
 pub mod windows;
 
-use flume::Sender;
-
 use crate::userinput::UserInput;
-use crate::ResultMsg;
 use std::any::Any;
-use std::sync::Arc;
 
 use self::history::HistoryItem;
-
-#[derive(Clone)]
-pub enum PluginMsg<T: Clone> {
-    UserInput(Arc<UserInput>, Sender<ResultMsg>, Arc<Vec<HistoryItem>>),
-    RefreshContent,
-    TypeMsg(T),
-}
 
 pub trait PluginResult: Send + Sync {
     fn score(&self) -> i32;
@@ -44,7 +33,7 @@ pub trait PluginResult: Send + Sync {
 }
 
 // TODO: async trait
-pub trait Plugin<R, T>
+pub trait Plugin<R, T>: Send
 where
     R: PluginResult,
     T: Send,
@@ -56,7 +45,7 @@ where
     fn handle_input(
         &self,
         user_input: &UserInput,
-        history: Option<Vec<&HistoryItem>>,
+        history: Option<Vec<HistoryItem>>,
     ) -> anyhow::Result<Vec<R>>;
 
     fn get_type_id(&self) -> &'static str;

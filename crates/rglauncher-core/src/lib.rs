@@ -3,9 +3,8 @@ use std::sync::Arc;
 use plugins::PluginResult;
 use userinput::UserInput;
 
-pub mod plugindispatcher;
+pub mod dispatcher;
 pub mod plugins;
-mod pluginworker;
 pub mod userinput;
 pub mod util;
 pub mod config;

@@ -31,7 +31,12 @@ impl ApplicationImpl for RGLApplication {
                 let config = launcher.config.as_ref();
 
                 let settings = Settings::default().expect("Failed to create GTK settings.");
-                settings.set_gtk_icon_theme_name(Some(config.ui.icon_theme.as_str()));
+                match config.ui.as_ref() {
+                    Some(config) => {
+                        settings.set_gtk_icon_theme_name(Some(config.icon_theme.as_str()));
+                    }
+                    None => {}
+                }
 
                 launcher.new_window();
             }
