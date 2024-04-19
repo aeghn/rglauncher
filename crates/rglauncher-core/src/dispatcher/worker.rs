@@ -41,7 +41,6 @@ where
     fn new_and_work(pluginbuilder: F, inner: InnerDispatcher) {
         let plugin = pluginbuilder();
         let mut inner = inner;
-
         match plugin {
             Ok(plugin) => {
                 let mut worker = PluginWorker {
