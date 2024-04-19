@@ -2,10 +2,14 @@ mod worker;
 
 use crate::config::Config;
 use crate::plugins::application::{AppMsg, ApplicationPlugin};
+#[cfg(feature = "calc")]
 use crate::plugins::calculator::{CalcMsg, CalculatorPlugin};
+#[cfg(feature = "clip")]
 use crate::plugins::clipboard::{ClipMsg, ClipboardPlugin};
+#[cfg(feature = "dict")]
 use crate::plugins::dictionary::{DictMsg, DictionaryPlugin};
 use crate::plugins::history::{HistoryItem, HistoryPlugin};
+#[cfg(feature = "hyprwin")]
 use crate::plugins::windows::{HyprWindowMsg, HyprWindowsPlugin};
 use crate::plugins::PluginResult;
 use crate::userinput::UserInput;
@@ -18,9 +22,13 @@ use self::worker::PluginWorker;
 
 pub enum PluginMsg {
     App(AppMsg),
+    #[cfg(feature = "calc")]
     Calc(CalcMsg),
+    #[cfg(feature = "clip")]
     Clip(ClipMsg),
+    #[cfg(feature = "dict")]
     Dict(DictMsg),
+    #[cfg(feature = "hyprwin")]
     Hypr(HyprWindowMsg),
 }
 
@@ -59,12 +67,24 @@ impl PluginDispatcher {
             history: history.get_cache(),
         };
 
-        PluginWorker::launch(|| HyprWindowsPlugin::new(), &inner);
         PluginWorker::launch(|| ApplicationPlugin::new(), &inner);
-        let db_config = config.db.clone();
-        PluginWorker::launch(move || ClipboardPlugin::new(db_config.as_ref()), &inner);
-        let dict_config = config.dict.clone();
-        PluginWorker::launch(move || DictionaryPlugin::new(dict_config.as_ref()), &inner);
+
+        #[cfg(feature = "hyprwin")]
+        PluginWorker::launch(|| HyprWindowsPlugin::new(), &inner);
+
+        #[cfg(feature = "clip")]
+        {
+            let db_config = config.db.clone();
+            PluginWorker::launch(move || ClipboardPlugin::new(db_config.as_ref()), &inner);
+        }
+
+        #[cfg(feature = "dict")]
+        {
+            let dict_config = config.dict.clone();
+            PluginWorker::launch(move || DictionaryPlugin::new(dict_config.as_ref()), &inner);
+        }
+
+        #[cfg(feature = "calc")]
         PluginWorker::launch(|| CalculatorPlugin::new(), &inner);
 
         PluginDispatcher { history, inner }
