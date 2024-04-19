@@ -1,0 +1,94 @@
+* {
+  font-family: "Lexend", "Jost*", sans-serif;
+}
+
+.rgwindow {
+  background-color: #f0f0f0;
+  color: #202020;
+  padding: 10px 10px 10px 10px;
+}
+
+entry.inputbar  {
+  font-size: 18px;
+  background: transparent;
+  margin: 20px 20px 20px 20px;
+  outline-style: none;
+  border: none;
+}
+
+.sidebar {
+  min-width: 370px;
+}
+
+.sidebar-view {
+  background: transparent;
+  border: 0;
+}
+
+.sidebar-label {
+  margin-right: 10px;
+}
+
+.sidebar-extra {
+  font-style: italic;
+  color: #606060;
+}
+
+.preview {
+  min-width: 450px;
+  padding: 10px 10px 10px 10px;
+  background: #ffffff;
+  border-radius: 5px;
+  border: #d0d0d0 1px solid;
+  box-shadow: 0px 0px 4px 4px #3030303f;
+}
+
+.round-box {
+  border-radius: 5px;
+  padding: 10px 10px 10px 10px;
+  border: solid 1px #ccc;
+  color: #fff;
+}
+
+.prev-btm-box {
+  margin: 0px 10px 10px 10px;
+}
+
+.preview-big-font {
+  font-size: 32px;
+}
+
+.preview-little-font {
+  font-size: 16px;
+}
+
+.logo-font {
+  font-size: 32px;
+  font-style: italic;
+  font-weight: 900;
+  font-family: "Alegyera", serif;
+}
+
+.mm-10 {
+  margin-bottom: 10px;
+}
+
+.font-8 {
+  font-size: 8px;
+}
+
+.font-12 {
+  font-size: 12px;
+}
+
+.font-16 {
+  font-size: 16px;
+}
+
+.font-24 {
+  font-size: 16px;
+}
+
+.font-32 {
+  font-size: 32px;
+}
