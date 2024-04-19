@@ -1,8 +1,12 @@
 pub mod application;
+#[cfg(feature = "calc")]
 pub mod calculator;
+#[cfg(feature = "clip")]
 pub mod clipboard;
+#[cfg(feature = "dict")]
 pub mod dictionary;
 pub mod history;
+#[cfg(feature = "hyprwin")]
 pub mod windows;
 
 use flume::Sender;
@@ -49,7 +53,11 @@ where
 
     fn refresh_content(&mut self);
 
-    fn handle_input(&self, user_input: &UserInput, history: Option<Vec<&HistoryItem>>) -> anyhow::Result<Vec<R>>;
+    fn handle_input(
+        &self,
+        user_input: &UserInput,
+        history: Option<Vec<&HistoryItem>>,
+    ) -> anyhow::Result<Vec<R>>;
 
     fn get_type_id(&self) -> &'static str;
 }

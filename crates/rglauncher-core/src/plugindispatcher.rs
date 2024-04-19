@@ -55,6 +55,7 @@ impl PluginDispatcher {
         let clip_tx = PluginWorker::launch("clips", move || {
             ClipboardPlugin::new(clipboard_path.as_str())
         });
+        #[cfg(feature = "dict")]
         let dict_tx = PluginWorker::launch("dict", move || {
             DictionaryPlugin::new(dictionary_dir.as_str())
         });
@@ -63,7 +64,6 @@ impl PluginDispatcher {
         PluginDispatcher {
             dispatch_tx: dispatcher_tx,
             dispatcher_rx,
-
             wind_tx,
             app_tx,
             clip_tx,
