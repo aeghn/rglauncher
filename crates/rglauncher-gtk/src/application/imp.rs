@@ -25,21 +25,15 @@ impl ApplicationImpl for RGLApplication {
     fn activate(&self) {
         info!("Activating");
         self.parent_activate();
-        match self.launcher.borrow().get() {
-            None => {}
-            Some(launcher) => {
-                let config = launcher.config.as_ref();
+        if let Some(launcher) = self.launcher.borrow().get() {
+            let config = launcher.config.as_ref();
 
-                let settings = Settings::default().expect("Failed to create GTK settings.");
-                match config.ui.as_ref() {
-                    Some(config) => {
-                        settings.set_gtk_icon_theme_name(Some(config.icon_theme.as_str()));
-                    }
-                    None => {}
-                }
-
-                launcher.new_window();
+            let settings = Settings::default().expect("Failed to create GTK settings.");
+            if let Some(Some(icon_theme)) = config.ui.as_ref().map(|ui| &ui.icon_theme) {
+                settings.set_gtk_icon_theme_name(Some(icon_theme.as_str()));
             }
+
+            launcher.new_window();
         }
     }
 
@@ -53,7 +47,26 @@ impl GtkApplicationImpl for RGLApplication {}
 impl RGLApplication {
     fn load_css(&self) {
         let provider = CssProvider::new();
-        provider.load_from_data(include_str!("../style.css"));
+        let layout_css = include_str!("../styles/layout.css");
+        let light_css = include_str!("../styles/light.css");
+        let dark_css = include_str!("../styles/dark.css");
+
+        let dark_mode = match self.launcher.borrow().get() {
+            Some(launcher) => launcher
+                .config
+                .ui
+                .as_ref()
+                .map_or(false, |e| e.dark_mode.is_some_and(|m| m)),
+            None => false,
+        };
+
+        let css = format!(
+            "{}\n{}",
+            if dark_mode { dark_css } else { light_css },
+            layout_css
+        );
+
+        provider.load_from_data(&css);
 
         style_context_add_provider_for_display(
             &Display::default().expect("Could not connect to a display."),

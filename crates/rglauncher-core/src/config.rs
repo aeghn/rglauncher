@@ -21,7 +21,8 @@ pub struct DictConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct UI {
-    pub icon_theme: String,
+    pub icon_theme: Option<String>,
+    pub dark_mode: Option<bool>,
 }
 
 impl Config {
