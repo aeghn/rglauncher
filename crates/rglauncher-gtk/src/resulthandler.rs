@@ -116,6 +116,7 @@ impl ResultHolder {
                             Err(err) => {
                                 error!("unable send to dispatcher {}", err);
                                 self.dispatch_tx.close();
+                                break;
                             }
                         }
                     }
