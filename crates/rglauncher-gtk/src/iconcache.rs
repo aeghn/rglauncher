@@ -1,5 +1,6 @@
 use fragile::Fragile;
 use gio::{Icon, MemoryInputStream};
+use tracing::{debug, info};
 
 use crate::constants;
 use glib::Bytes;
@@ -46,9 +47,11 @@ pub fn get_logo() -> Arc<Fragile<Icon>> {
 }
 
 pub fn icon_name_map(name: &str) -> &str {
+    debug!("icon name map: {}", name);
     match name {
         "jetbrains-studio" => "android-studio",
         "code-url-handler" => "visual-studio-code",
-        _ => name
+        "Code" => "visual-studio-code",
+        _ => name,
     }
 }
