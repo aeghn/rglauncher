@@ -26,7 +26,7 @@ impl PluginPreview for AppPreview {
         preview.attach(&icon, 0, 0, 1, 1);
 
         let name = gtk::Label::builder()
-            .css_classes(["preview-big-font"])
+            .css_classes(["font-32"])
             .wrap(true)
             .build();
         preview.attach(&name, 0, 1, 1, 1);

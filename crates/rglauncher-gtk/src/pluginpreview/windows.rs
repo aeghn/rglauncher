@@ -41,7 +41,7 @@ impl PluginPreview for HyprWindowPreview {
         b.append(&big_pic);
 
         let title = gtk::Label::builder()
-            .css_classes(["preview-little-font"])
+            .css_classes(["font-16"])
             .wrap(true)
             .wrap_mode(WordChar)
             .selectable(true)
