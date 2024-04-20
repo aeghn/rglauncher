@@ -17,6 +17,7 @@ use crate::ResultMsg;
 use flume::Sender;
 use futures::executor::block_on;
 use std::sync::{Arc, RwLock};
+use tracing::info;
 
 use self::worker::PluginWorker;
 
@@ -67,25 +68,33 @@ impl PluginDispatcher {
             history: history.get_cache(),
         };
 
-        PluginWorker::launch(|| ApplicationPlugin::new(), &inner);
+        PluginWorker::launch(|| ApplicationPlugin::new(), &inner, "app");
 
         #[cfg(feature = "hyprwin")]
-        PluginWorker::launch(|| HyprWindowsPlugin::new(), &inner);
+        PluginWorker::launch(|| HyprWindowsPlugin::new(), &inner, "hyprwin");
 
         #[cfg(feature = "clip")]
         {
             let db_config = config.db.clone();
-            PluginWorker::launch(move || ClipboardPlugin::new(db_config.as_ref()), &inner);
+            PluginWorker::launch(
+                move || ClipboardPlugin::new(db_config.as_ref()),
+                &inner,
+                "clip",
+            );
         }
 
         #[cfg(feature = "mdict")]
         {
             let dict_config = config.dict.clone();
-            PluginWorker::launch(move || DictionaryPlugin::new(dict_config.as_ref()), &inner);
+            PluginWorker::launch(
+                move || DictionaryPlugin::new(dict_config.as_ref()),
+                &inner,
+                "mdict",
+            );
         }
 
         #[cfg(feature = "calc")]
-        PluginWorker::launch(|| CalculatorPlugin::new(), &inner);
+        PluginWorker::launch(|| CalculatorPlugin::new(), &inner, "calc");
 
         PluginDispatcher { history, inner }
     }
@@ -107,12 +116,15 @@ impl PluginDispatcher {
         dispatch_tx.set_overflow(true);
 
         let config = config.clone();
-        std::thread::spawn(move || {
+        std::thread::Builder::new()
+            .name("dispatcher".to_string())
+            .spawn(move || {
             block_on(async {
                 let dispatcher = PluginDispatcher::new(&config, dispatch_rx);
                 dispatcher.forward().await
             })
-        });
+            })
+            .unwrap();
 
         dispatch_tx
     }

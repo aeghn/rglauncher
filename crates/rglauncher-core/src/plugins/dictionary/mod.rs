@@ -93,7 +93,7 @@ impl DictionaryPlugin {
                     Err(err) => anyhow::bail!(err),
                 }
             }
-            None => anyhow::bail!("2"),
+            None => anyhow::bail!("missing dict config!"),
         }
     }
 

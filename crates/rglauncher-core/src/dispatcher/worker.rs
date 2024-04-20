@@ -32,14 +32,15 @@ where
     M: Send + Clone + 'static,
     F: Fn() -> anyhow::Result<P> + 'static + Send,
 {
-    pub fn launch(pluginbuilder: F, inner_dispatcher: &InnerDispatcher) {
+    pub fn launch(pluginbuilder: F, inner_dispatcher: &InnerDispatcher, plugin_type: &'static str) {
         let inner: InnerDispatcher = inner_dispatcher.clone();
         std::thread::Builder::new()
-            .spawn(move || Self::new_and_work(pluginbuilder, inner))
+            .name(format!("rgworker-{}", plugin_type))
+            .spawn(move || Self::new_and_work(pluginbuilder, inner, plugin_type))
             .unwrap();
     }
 
-    fn new_and_work(pluginbuilder: F, inner: InnerDispatcher) {
+    fn new_and_work(pluginbuilder: F, inner: InnerDispatcher, plugin_type: &str) {
         let plugin = pluginbuilder();
         let mut inner = inner;
         match plugin {
@@ -102,11 +103,9 @@ where
                 vec.iter()
                     .enumerate()
                     .filter(|h| h.1.plugin_type == self.plugin.get_type_id())
-                    .map(|e| {
-                        HistoryItem {
+                    .map(|e| HistoryItem {
                             score: score_utils::highest((10000 - e.0 % 10000).try_into().unwrap()),
                             ..e.1.clone()
-                        }
                     })
                     .collect(),
             ),
