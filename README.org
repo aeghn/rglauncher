@@ -1,5 +1,10 @@
 This project is currently in a very early stage.
 
+* Quick start
+#+begin_src shell
+cargo run --bin rglauncher --features calc
+#+end_src
+
 * Preview
 ** Application Launcher
 [[./docs/app.png]]
