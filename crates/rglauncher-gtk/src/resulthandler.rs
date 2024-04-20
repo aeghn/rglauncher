@@ -107,12 +107,12 @@ impl ResultHolder {
                         }
                         debug!("Send message to dispatcher: {}", input.input);
                         match self.dispatch_tx.try_broadcast(DispatchMsg::UserInput(
-                                input.clone(),
-                                self.result_tx.clone(),
+                            input.clone(),
+                            self.result_tx.clone(),
                         )) {
                             Ok(_) => {
-                        self.last = Instant::now();
-                    }
+                                self.last = Instant::now();
+                            }
                             Err(err) => {
                                 error!("unable send to dispatcher {}", err);
                                 self.dispatch_tx.close();

@@ -119,10 +119,10 @@ impl PluginDispatcher {
         std::thread::Builder::new()
             .name("dispatcher".to_string())
             .spawn(move || {
-            block_on(async {
-                let dispatcher = PluginDispatcher::new(&config, dispatch_rx);
-                dispatcher.forward().await
-            })
+                block_on(async {
+                    let dispatcher = PluginDispatcher::new(&config, dispatch_rx);
+                    dispatcher.forward().await
+                })
             })
             .unwrap();
 

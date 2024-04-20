@@ -67,8 +67,8 @@ where
                     }
                 })
             }
-            Err(_) => {
-                inner.dispatch_rx.close();
+            Err(err) => {
+                error!("unable to create plugin {}, {}", plugin_type, err);
             }
         }
     }
@@ -104,8 +104,8 @@ where
                     .enumerate()
                     .filter(|h| h.1.plugin_type == self.plugin.get_type_id())
                     .map(|e| HistoryItem {
-                            score: score_utils::highest((10000 - e.0 % 10000).try_into().unwrap()),
-                            ..e.1.clone()
+                        score: score_utils::highest((10000 - e.0 % 10000).try_into().unwrap()),
+                        ..e.1.clone()
                     })
                     .collect(),
             ),
