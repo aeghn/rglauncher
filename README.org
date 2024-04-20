@@ -6,6 +6,18 @@ cargo run --bin rglauncher --features calc
 #+end_src
 
 * Preview
+** Dark Mode
+As many people asked for a DARK mode, here it is:
+
+[[./docs/dark-mode.png]]
+
+=~/.config/rglauncher/config.toml=
+#+begin_src toml 
+[ui]
+dark_mode=true
+#+end_src
+
+
 ** Application Launcher
 [[./docs/app.png]]
 
