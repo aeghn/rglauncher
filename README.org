@@ -1,3 +1,20 @@
-This project is currently in a very early stage. I have supported program startup, window switching (Hyprland, possibly with preview in the future), dictionary, calculator, and clipboard (using a fork of my own clipboard).
+This project is currently in a very early stage.
 
-[[./docs/overview.png]]
+* Preview
+** Application Launcher
+[[./docs/app.png]]
+
+** Calculator
+[[./docs/calc.png]]
+
+** Windows Switcher (Hyprland only currently)
+[[./docs/win.png]]
+
+** Clipboard(Text only currently)
+[[./docs/clip.png]]
+
+** C/S and multi windows
+[[./docs/multi-client.png]]
+
+* Credits
+  - https://github.com/12101111/mdict_rs
