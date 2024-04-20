@@ -4,7 +4,7 @@ use crate::pluginpreview::application::AppPreview;
 use crate::pluginpreview::calculator::CalcPreview;
 #[cfg(feature = "clip")]
 use crate::pluginpreview::clipboard::ClipPreview;
-#[cfg(feature = "dict")]
+#[cfg(feature = "mdict")]
 use crate::pluginpreview::dictionary::DictPreview;
 #[cfg(feature = "hyprwin")]
 use crate::pluginpreview::windows::HyprWindowPreview;
@@ -19,7 +19,7 @@ use rglcore::plugins::application::AppResult;
 use rglcore::plugins::calculator::CalcResult;
 #[cfg(feature = "clip")]
 use rglcore::plugins::clipboard::ClipResult;
-#[cfg(feature = "dict")]
+#[cfg(feature = "mdict")]
 use rglcore::plugins::dictionary::DictResult;
 #[cfg(feature = "hyprwin")]
 use rglcore::plugins::windows::HyprWindowResult;
@@ -33,7 +33,7 @@ mod application;
 mod calculator;
 #[cfg(feature = "clip")]
 mod clipboard;
-#[cfg(feature = "dict")]
+#[cfg(feature = "mdict")]
 mod dictionary;
 #[cfg(feature = "hyprwin")]
 mod windows;
@@ -62,7 +62,7 @@ pub struct PluginPreviewBuilder {
     calc_preview: CalcPreview,
     #[cfg(feature = "clip")]
     clip_preview: ClipPreview,
-    #[cfg(feature = "dict")]
+    #[cfg(feature = "mdict")]
     dict_preview: DictPreview,
     #[cfg(feature = "hyprwin")]
     wind_preview: HyprWindowPreview,
@@ -71,9 +71,9 @@ pub struct PluginPreviewBuilder {
 impl PluginPreviewBuilder {
     pub fn new(stack: &gtk::Stack, config: Arc<Config>) -> Self {
         let app_preview = AppPreview::new();
-        #[cfg(feature = "dict")]
+        #[cfg(feature = "mdict")]
         let dict_preview = DictPreview::new();
-        #[cfg(feature = "dict")]
+        #[cfg(feature = "mdict")]
         stack.add_named(&dict_preview.get_preview(), Some(dict_preview.get_id()));
 
         #[cfg(feature = "calc")]
@@ -104,7 +104,7 @@ impl PluginPreviewBuilder {
         stack.add_named(&default, Some(DEFAULT_ID));
         stack.set_visible_child(&default);
 
-        #[cfg(feature = "dict")]
+        #[cfg(feature = "mdict")]
         dict_preview.add_csses(config.dict.as_ref());
 
         PluginPreviewBuilder {
@@ -114,7 +114,7 @@ impl PluginPreviewBuilder {
             calc_preview,
             #[cfg(feature = "clip")]
             clip_preview,
-            #[cfg(feature = "dict")]
+            #[cfg(feature = "mdict")]
             dict_preview,
             #[cfg(feature = "hyprwin")]
             wind_preview,
@@ -147,7 +147,7 @@ impl PluginPreviewBuilder {
                     let result = result.downcast_ref::<ClipResult>()?;
                     self.clip_preview.set_preview(result);
                 }
-                #[cfg(feature = "dict")]
+                #[cfg(feature = "mdict")]
                 rglcore::plugins::dictionary::TYPE_ID => {
                     let result = result.downcast_ref::<DictResult>()?;
                     self.dict_preview.set_preview(result);

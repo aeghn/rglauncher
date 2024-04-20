@@ -3,7 +3,7 @@ pub mod application;
 pub mod calculator;
 #[cfg(feature = "clip")]
 pub mod clipboard;
-#[cfg(feature = "dict")]
+#[cfg(feature = "mdict")]
 pub mod dictionary;
 pub mod history;
 #[cfg(feature = "hyprwin")]
