@@ -51,7 +51,7 @@ arboard = { version = "3.3.0", default-features = false, features = [
 ], optional = true }
 
 [features]
-default = ["mdict"]
+default = []
 hyprwin = []
 calc = ["meval"]
 mdict = [
