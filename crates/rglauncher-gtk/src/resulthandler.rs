@@ -10,7 +10,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
-use tracing::debug;
+use tracing::{debug, error};
 
 pub struct ResultHolder {
     user_input: Option<Arc<UserInput>>,
@@ -106,13 +106,18 @@ impl ResultHolder {
                             self.result_id_set.clear();
                         }
                         debug!("Send message to dispatcher: {}", input.input);
-                        self.dispatch_tx
-                            .try_broadcast(DispatchMsg::UserInput(
+                        match self.dispatch_tx.try_broadcast(DispatchMsg::UserInput(
                                 input.clone(),
                                 self.result_tx.clone(),
-                            ))
-                            .expect("todo");
+                        )) {
+                            Ok(_) => {
                         self.last = Instant::now();
+                    }
+                            Err(err) => {
+                                error!("unable send to dispatcher {}", err);
+                                self.dispatch_tx.close();
+                            }
+                        }
                     }
                     ResultMsg::RemoveWindow => {}
                     ResultMsg::ChangeSelect(item) => {

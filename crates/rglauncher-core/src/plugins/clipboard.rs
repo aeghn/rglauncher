@@ -78,7 +78,7 @@ impl ClipboardPlugin {
                     Err(err) => Err(err.into()),
                 }
             }
-            None => anyhow::bail!("missing database path"),
+            None => anyhow::bail!("missing database config"),
         }
     }
 }
