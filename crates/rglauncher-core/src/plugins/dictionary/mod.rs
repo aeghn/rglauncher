@@ -1,3 +1,6 @@
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
+
 use self::mdx_utils::MDictLookup;
 use crate::config::DictConfig;
 use crate::plugins::history::HistoryItem;
@@ -57,6 +60,7 @@ impl PluginResult for DictResult {
 
 pub struct DictionaryPlugin {
     mdxes: Vec<mdx_utils::MDictMemIndex>,
+    matcher: SkimMatcherV2,
 }
 
 impl DictionaryPlugin {
@@ -81,7 +85,10 @@ impl DictionaryPlugin {
                                 }
                             })
                             .collect();
-                        Ok(DictionaryPlugin { mdxes })
+                        Ok(DictionaryPlugin {
+                            mdxes,
+                            matcher: SkimMatcherV2::default(),
+                        })
                     }
                     Err(err) => anyhow::bail!(err),
                 }
@@ -149,20 +156,29 @@ impl Plugin<DictResult, DictMsg> for DictionaryPlugin {
             result.extend(res);
         }
 
-        let _history_matcher = match history {
-            None => {}
-            Some(his) => his.iter().for_each(|h| {
-                let dict_and_word: Vec<&str> = h.id.split("@").collect();
-                let temp: Vec<DictResult> = self
-                    .cycle_seek(dict_and_word[1])
-                    .into_iter()
-                    .map(|mut r| {
-                        r.score = h.score;
-                        r
-                    })
-                    .collect();
-                result.extend(temp);
-            }),
+        if let Some(history) = history {
+            history
+                .iter()
+                .filter(|it| {
+                    user_input.input.is_empty()
+                        || self
+                            .matcher
+                            .fuzzy_match(&it.result_name, &user_input.input)
+                            .unwrap_or(-1)
+                            > -1
+                })
+                .for_each(|h| {
+                    let dict_and_word: Vec<&str> = h.id.split("@").collect();
+                    let temp: Vec<DictResult> = self
+                        .cycle_seek(dict_and_word[1])
+                        .into_iter()
+                        .map(|mut r| {
+                            r.score = h.score;
+                            r
+                        })
+                        .collect();
+                    result.extend(temp);
+                })
         };
 
         Ok(result)

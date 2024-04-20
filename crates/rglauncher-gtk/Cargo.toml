@@ -29,7 +29,7 @@ async-broadcast = { workspace = true }
 
 [features]
 default = ["rglcore"]
-mdict = ["webkit6", "rglcore?/dict"]
+mdict = ["webkit6", "rglcore?/mdict"]
 calc = ["rglcore?/calc"]
 hyprwin = ["rglcore?/hyprwin"]
 clip = ["rglcore?/clip"]

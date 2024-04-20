@@ -6,7 +6,7 @@ use crate::plugins::application::{AppMsg, ApplicationPlugin};
 use crate::plugins::calculator::{CalcMsg, CalculatorPlugin};
 #[cfg(feature = "clip")]
 use crate::plugins::clipboard::{ClipMsg, ClipboardPlugin};
-#[cfg(feature = "dict")]
+#[cfg(feature = "mdict")]
 use crate::plugins::dictionary::{DictMsg, DictionaryPlugin};
 use crate::plugins::history::{HistoryItem, HistoryPlugin};
 #[cfg(feature = "hyprwin")]
@@ -26,7 +26,7 @@ pub enum PluginMsg {
     Calc(CalcMsg),
     #[cfg(feature = "clip")]
     Clip(ClipMsg),
-    #[cfg(feature = "dict")]
+    #[cfg(feature = "mdict")]
     Dict(DictMsg),
     #[cfg(feature = "hyprwin")]
     Hypr(HyprWindowMsg),
@@ -78,7 +78,7 @@ impl PluginDispatcher {
             PluginWorker::launch(move || ClipboardPlugin::new(db_config.as_ref()), &inner);
         }
 
-        #[cfg(feature = "dict")]
+        #[cfg(feature = "mdict")]
         {
             let dict_config = config.dict.clone();
             PluginWorker::launch(move || DictionaryPlugin::new(dict_config.as_ref()), &inner);
