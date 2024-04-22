@@ -2,6 +2,7 @@ use crate::launcher::LauncherMsg;
 use crate::pluginpreview::PreviewMsg;
 use crate::sidebar::SidebarMsg;
 use flume::{Receiver, Sender};
+use rglcore::config::Config;
 use rglcore::dispatcher::DispatchMsg;
 use rglcore::plugins::PluginResult;
 use rglcore::userinput::UserInput;
@@ -28,6 +29,8 @@ pub struct ResultHolder {
     preview_tx: Sender<PreviewMsg>,
 
     last: Instant,
+
+    config: Arc<Config>,
 }
 
 impl ResultHolder {
@@ -36,6 +39,7 @@ impl ResultHolder {
         dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
         sidebar_tx: &Sender<SidebarMsg>,
         preview_tx: &Sender<PreviewMsg>,
+        config: Arc<Config>,
     ) -> Self {
         let (result_tx, result_rx) = flume::unbounded();
 
@@ -52,6 +56,7 @@ impl ResultHolder {
             sidebar_tx: sidebar_tx.clone(),
             preview_tx: preview_tx.clone(),
             last: Instant::now(),
+            config,
         }
     }
 
@@ -136,7 +141,11 @@ impl ResultHolder {
                         None => {}
                         Some(id) => match self.result_holder.get(id as usize) {
                             Some(pr) => {
-                                pr.on_enter();
+                                if let Some(general) = &self.config.general {
+                                    pr.on_enter(general.term.clone());
+                                } else {
+                                    pr.on_enter(None);
+                                }
                                 self.launcher_tx
                                     .send(LauncherMsg::SelectSomething)
                                     .expect("unable to send select");
@@ -171,8 +180,15 @@ impl ResultHolder {
         dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
         sidebar_tx: &Sender<SidebarMsg>,
         preview_tx: &Sender<PreviewMsg>,
+        config: &Arc<Config>,
     ) -> Sender<ResultMsg> {
-        let mut result_handler = Self::new(launcher_tx, dispatch_tx, sidebar_tx, preview_tx);
+        let mut result_handler = Self::new(
+            launcher_tx,
+            dispatch_tx,
+            sidebar_tx,
+            preview_tx,
+            config.clone(),
+        );
 
         let result_tx = result_handler.result_tx.clone();
 

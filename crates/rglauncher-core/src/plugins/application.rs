@@ -84,17 +84,25 @@ impl PluginResult for AppResult {
         Some(self.app_desc.as_str())
     }
 
-    fn on_enter(&self) {
+    fn on_enter(&self, term: Option<String>) {
         if self.terminal {
             let true_command = PLACE_HOLDER_REPLACER
                 .replace_all(self.exec.as_str(), "")
                 .trim()
                 .to_string();
-            Command::new("foot")
-                .arg("-e")
-                .arg(true_command)
-                .spawn()
-                .expect("unable to spawn terminal app");
+            if let Some(term) = term {
+                Command::new(term)
+                    .arg("-e")
+                    .arg(true_command)
+                    .spawn()
+                    .expect("unable to spawn terminal app");
+            } else {
+                Command::new("foot")
+                    .arg("-e")
+                    .arg(true_command)
+                    .spawn()
+                    .expect("unable to spawn terminal app");
+            }
         } else {
             let true_command: Vec<String> = parse_cmd_string(self.exec.as_str())
                 .into_iter()

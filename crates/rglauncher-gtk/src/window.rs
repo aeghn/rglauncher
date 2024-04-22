@@ -1,10 +1,10 @@
 use crate::application::RGLApplication;
-use crate::constants;
 use crate::inputbar::{InputBar, InputMessage};
 use crate::launcher::LauncherMsg;
 use crate::pluginpreview::Preview;
 use crate::resulthandler::ResultHolder;
 use crate::sidebar::SidebarMsg;
+use crate::{arguments, constants};
 use flume::{Receiver, Sender};
 use glib::{clone, MainContext};
 use gtk::prelude::EntryBufferExtManual;
@@ -43,7 +43,13 @@ impl RGWindow {
         let (preview_tx, preview_rx) = flume::unbounded();
         let (window_tx, window_rx) = flume::unbounded();
 
-        let result_tx = ResultHolder::start(launcher_tx, dispatch_tx, &sidebar_tx, &preview_tx);
+        let result_tx = ResultHolder::start(
+            launcher_tx,
+            dispatch_tx,
+            &sidebar_tx,
+            &preview_tx,
+            &arguments,
+        );
 
         let window = ApplicationWindow::builder()
             .default_width(810)
@@ -77,6 +83,7 @@ impl RGWindow {
             &sidebar_rx,
             &window_tx,
             &inputbar.input_tx,
+            &arguments,
         );
         let sidebar_window = &sidebar.scrolled_window;
         let sidebar_tx = sidebar.sidebar_tx.clone();

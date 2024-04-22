@@ -23,7 +23,7 @@ pub trait PluginResult: Send + Sync {
 
     fn extra(&self) -> Option<&str>;
 
-    fn on_enter(&self);
+    fn on_enter(&self, term: Option<String>);
 
     fn get_type_id(&self) -> &'static str;
 

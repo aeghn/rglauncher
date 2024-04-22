@@ -33,7 +33,7 @@ impl PluginResult for CalcResult {
         None
     }
 
-    fn on_enter(&self) {}
+    fn on_enter(&self, term: Option<String>) {}
 
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID

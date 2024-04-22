@@ -11,8 +11,8 @@ use gtk::{
 
 use std::sync::Arc;
 
-use rglcore::plugins::PluginResult;
 use rglcore::ResultMsg;
+use rglcore::{config::Config, plugins::PluginResult};
 
 use crate::{inputbar::InputMessage, sidebarrow::SidebarRow, window::WindowMsg};
 
@@ -34,6 +34,8 @@ pub struct Sidebar {
 
     pub sidebar_tx: Sender<SidebarMsg>,
     sidebar_rx: Receiver<SidebarMsg>,
+
+    config: Arc<Config>,
 }
 
 impl Sidebar {
@@ -43,6 +45,7 @@ impl Sidebar {
         sidebar_rx: &Receiver<SidebarMsg>,
         window_tx: &Sender<WindowMsg>,
         inputbar_tx: &Sender<InputMessage>,
+        config: &Arc<Config>,
     ) -> Self {
         let list_store = gio::ListStore::new::<BoxedAnyObject>();
         let selection_model = Sidebar::build_selection_model(&list_store, result_tx);
@@ -89,10 +92,12 @@ impl Sidebar {
             list_store,
             sidebar_tx: sidebar_tx.clone(),
             sidebar_rx: sidebar_rx.clone(),
+            config: config.clone(),
         }
     }
 
     fn handle_msg(&mut self, msg: SidebarMsg) {
+        let general_config = self.config.general.clone();
         match msg {
             SidebarMsg::NextItem => {
                 let new_selection = if self.selection_model.n_items() > 0 {
@@ -125,7 +130,11 @@ impl Sidebar {
                             .downcast_ref::<BoxedAnyObject>()
                             .unwrap()
                             .borrow::<Arc<dyn PluginResult>>();
-                        tt.on_enter();
+                        if let Some(general) = general_config {
+                            tt.on_enter(general.term.clone());
+                        } else {
+                            tt.on_enter(None)
+                        }
                     }
                 });
             }
