@@ -1,0 +1,9 @@
+[db]
+db_path = "{HOME}/.cache/rglauncher/store.db"
+
+[ui]
+icon_theme = "Adwaita"
+# dark_mode = true
+
+# [dict]
+# dir_path="{HOME}/files/others/"
