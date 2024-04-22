@@ -43,7 +43,7 @@ impl PluginResult for ClipResult {
         None
     }
 
-    fn on_enter(&self) {
+    fn on_enter(&self, _: Option<String>) {
         let mut clipboard = Clipboard::new().unwrap();
         clipboard.set_text(self.content.as_str()).unwrap();
     }

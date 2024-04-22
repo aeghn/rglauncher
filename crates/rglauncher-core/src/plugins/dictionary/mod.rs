@@ -43,7 +43,7 @@ impl PluginResult for DictResult {
         Some(self.dict.as_str())
     }
 
-    fn on_enter(&self) {}
+    fn on_enter(&self, _: Option<String>) {}
 
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID

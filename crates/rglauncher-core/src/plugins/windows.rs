@@ -46,7 +46,7 @@ impl PluginResult for HyprWindowResult {
         Some(self.workspace.as_str())
     }
 
-    fn on_enter(&self) {
+    fn on_enter(&self, _: Option<String>) {
         // dispatch focuswindow address:
         let _msg = Command::new("hyprctl")
             .arg("dispatch")
