@@ -10,6 +10,8 @@ use crate::util::score_utils;
 use rusqlite::Connection;
 use tracing::info;
 
+pub mod watcher;
+
 pub const TYPE_ID: &str = "clipboard";
 
 #[derive(Clone)]
@@ -72,14 +74,22 @@ impl ClipboardPlugin {
                 info!("Creating Clip Plugin, config: {:?}", path);
 
                 match Connection::open(path) {
-                    Ok(connection) => Ok(ClipboardPlugin {
-                        connection: Some(connection),
-                    }),
+                    Ok(connection) => {
+                        let plugin = ClipboardPlugin {
+                            connection: Some(connection),
+                        };
+
+                        Ok(plugin)
+                    }
                     Err(err) => Err(err.into()),
                 }
             }
             None => anyhow::bail!("missing database config"),
         }
+    }
+
+    fn update(&mut self) {
+        info!("update TODO");
     }
 }
 
@@ -88,38 +98,67 @@ impl Plugin<ClipResult, ClipMsg> for ClipboardPlugin {
         todo!()
     }
 
-    fn refresh_content(&mut self) {}
+    fn refresh_content(&mut self) {
+        self.update()
+    }
 
     fn handle_input(
         &self,
         user_input: &UserInput,
         _history: Option<Vec<HistoryItem>>,
     ) -> anyhow::Result<Vec<ClipResult>> {
-        if user_input.input.is_empty() {
-            return Err(anyhow!("empty input"));
-        }
+        if let Some(conn) = &self.connection {
+            let mut clip_results = Vec::new();
 
-        if let Some(conn) = self.connection.as_ref() {
-            let mut stmt = conn.prepare(
-                "SELECT content0, mimes, insert_time, update_time, count \
-        from clipboard where content0 like ? order by UPDATE_TIME desc limit 100",
-            )?;
+            let like_stmt = "
+SELECT content, mime, insert_time, update_time, count, id
+FROM clipboard
+WHERE content LIKE ?
+ORDER BY update_time DESC
+LIMIT 100
+";
 
-            let result = stmt
-                .query_map([format!("%{}%", user_input.input.as_str())], |row| {
-                    Ok(ClipResult {
-                        content: row.get(0)?,
-                        score: 0,
-                        mime: row.get(1)?,
-                        insert_time: row.get(2)?,
-                        update_time: row.get(3)?,
-                        count: row.get(4)?,
-                        id: format!("{:x}", md5::compute(&(row.get::<usize, String>(0)?))),
-                    })
-                })?
-                .collect::<Result<Vec<ClipResult>, rusqlite::Error>>()?;
+            let all_stmt = "
+SELECT content, mime, insert_time, update_time, count, id
+FROM clipboard
+ORDER BY update_time DESC
+LIMIT 100
+";
 
-            Ok(result)
+            let (stmt_pharse, query) = if user_input.input.is_empty() {
+                (all_stmt, None)
+            } else {
+                (like_stmt, Some(user_input.input.clone()))
+            };
+
+            let mut stmt = conn.prepare(stmt_pharse)?;
+
+            let mut rows = match query {
+                Some(q) => stmt.query([&q])?,
+                None => stmt.query([])?,
+            };
+
+            while let Some(row) = rows.next()? {
+                let content: String = row.get(0)?;
+                let mime: String = row.get(1)?;
+                let insert_time: DateTime<Utc> = row.get(2)?;
+                let update_time: DateTime<Utc> = row.get(3)?;
+                let count: i64 = row.get(4)?;
+                let id: String = row.get(5)?;
+
+                let clip_result = ClipResult {
+                    content,
+                    score: 0,
+                    mime,
+                    insert_time,
+                    update_time,
+                    count,
+                    id,
+                };
+                clip_results.push(clip_result);
+            }
+
+            Ok(clip_results)
         } else {
             Err(Error::msg("unable to find connection"))
         }

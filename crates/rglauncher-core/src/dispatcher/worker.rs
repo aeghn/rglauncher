@@ -1,6 +1,9 @@
 use flume::{Receiver, Sender};
 use futures::executor;
-use std::sync::{Arc, RwLock};
+use std::{
+    any::Any,
+    sync::{Arc, RwLock},
+};
 use tracing::{error, info};
 
 use crate::{
@@ -19,7 +22,7 @@ where
     M: Send,
     F: Fn() -> anyhow::Result<P> + 'static + Send,
 {
-    plugin: P,
+    pub plugin: P,
     _phantom_m: std::marker::PhantomData<M>,
     _phantom_r: std::marker::PhantomData<R>,
     _phantom_f: std::marker::PhantomData<F>,
@@ -51,6 +54,7 @@ where
                     _phantom_r: std::marker::PhantomData,
                     _phantom_f: std::marker::PhantomData::<F>,
                 };
+
                 let mut pool = executor::LocalPool::new();
                 pool.run_until(async {
                     loop {
