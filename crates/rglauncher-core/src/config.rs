@@ -12,6 +12,7 @@ pub struct Config {
 #[derive(Debug, Clone, Deserialize)]
 pub struct DbConfig {
     pub db_path: String,
+    pub clip_db_path: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

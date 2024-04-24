@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["crates/rglauncher-core", "crates/rglauncher-gtk"]
+members = [ "crates/rglauncher-clip","crates/rglauncher-core", "crates/rglauncher-gtk"]
 
 resolver = "2"
 
