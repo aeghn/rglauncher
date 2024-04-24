@@ -5,7 +5,7 @@ use crate::plugins::application::{AppMsg, ApplicationPlugin};
 #[cfg(feature = "calc")]
 use crate::plugins::calculator::{CalcMsg, CalculatorPlugin};
 #[cfg(feature = "clip")]
-use crate::plugins::clipboard::{ClipMsg, ClipboardPlugin};
+use crate::plugins::clipboard::{watcher, ClipMsg, ClipboardPlugin};
 #[cfg(feature = "mdict")]
 use crate::plugins::dictionary::{DictMsg, DictionaryPlugin};
 use crate::plugins::history::{HistoryItem, HistoryPlugin};
@@ -17,6 +17,7 @@ use crate::ResultMsg;
 use flume::Sender;
 use futures::executor::block_on;
 use std::sync::{Arc, RwLock};
+use std::thread;
 use tracing::info;
 
 use self::worker::PluginWorker;
@@ -76,6 +77,8 @@ impl PluginDispatcher {
         #[cfg(feature = "clip")]
         {
             let db_config = config.db.clone();
+            let conf = config.db.clone();
+            thread::spawn(move || watcher::ClipboardWatcher::watch(conf));
             PluginWorker::launch(
                 move || ClipboardPlugin::new(db_config.as_ref()),
                 &inner,
