@@ -47,21 +47,22 @@ html-escape = { version = "0.2.0", optional = true }
 
 # for the Clip plugin
 arboard = { version = "3.3.0", default-features = false, features = [
-    "wayland-data-control",
+  "wayland-data-control",
 ], optional = true }
+wayland-clipboard-listener = { version = "0.2.5", optional = true }
 
 [features]
 default = []
 hyprwin = []
 calc = ["meval"]
 mdict = [
-    "bytes",
-    "miniz_oxide",
-    "encoding_rs",
-    "ripemd128",
-    "adler",
-    "minilzo",
-    "patricia_tree",
-    "html-escape",
+  "bytes",
+  "miniz_oxide",
+  "encoding_rs",
+  "ripemd128",
+  "adler",
+  "minilzo",
+  "patricia_tree",
+  "html-escape",
 ]
-clip = ["arboard"]
+clip = ["arboard", "wayland-clipboard-listener"]
