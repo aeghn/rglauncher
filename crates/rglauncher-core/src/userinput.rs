@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    cell::RefCell,
+    sync::{Arc, RwLock},
+};
 
 #[derive(Clone, Debug)]
 pub struct UserInput {
@@ -27,5 +30,9 @@ impl UserInput {
         if let Ok(mut cancel_signal) = self.cancel_signal.write() {
             *cancel_signal = true;
         }
+    }
+
+    pub fn cancel1(&self) {
+        self.input = "121123".to_string();
     }
 }
