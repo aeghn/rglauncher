@@ -31,8 +31,4 @@ impl UserInput {
             *cancel_signal = true;
         }
     }
-
-    pub fn cancel1(&self) {
-        self.input = "121123".to_string();
-    }
 }

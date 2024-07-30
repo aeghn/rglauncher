@@ -2,12 +2,8 @@ use crate::config::DbConfig;
 use crate::plugins::PluginResult;
 
 use core::result::Result;
-use fuzzy_matcher::skim::SkimMatcherV2;
 use rusqlite::{params, Connection};
-use std::{
-    any::Any,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 use tracing::info;
 
 #[derive(Clone, Debug)]
