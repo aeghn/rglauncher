@@ -1,92 +1,89 @@
 * {
-  font-family: "Inter", "Jost*", sans-serif;
+    font-family: "Inter", "Jost*", sans-serif;
 }
 
 .rgwindow {
-  background-color: @window-bg-clr;
-  color: @fg-clr;
-  padding: 10px 10px 10px 10px;
+    background-color: @window-bg-clr;
+    color: @fg-clr;
+    padding: 0px 0px 0px 10px;
 }
 
 entry.inputbar {
-  font-size: 18px;
-  background: transparent;
-  margin: 20px 20px 20px 20px;
-  outline-style: none;
-  border: none;
+    font-size: 18px;
+    background: transparent;
+    margin: 20px 20px 20px 20px;
+    outline-style: none;
+    border: none;
 }
 
 listview {
-  border: none;
-  margin-right: 10px;
+    border: none;
+    margin-right: 10px;
 }
 
 listview row {
-  border-radius: 5px;
+    border-radius: 5px;
 }
 
 .sidebar-sw {
-  min-width: 370px;
+    min-width: 370px;
 }
 
 .sidebar-view {
-  background: transparent;
+    background: transparent;
 }
 
 .sidebar-row {
-  border-radius: 3px;
+    border-radius: 3px;
 }
 
 .sidebar-row-label {
-  margin-right: 10px;
-  color: @fg-clr;
+    margin-right: 10px;
+    color: @fg-clr;
 }
 
 .sidebar-row-extra {
-  font-style: italic;
-  color: @fg-clr-alt;
+    font-style: italic;
+    color: @fg-clr-alt;
 }
 
 .preview {
-  min-width: 450px;
-  padding: 10px 10px 10px 10px;
-  background: @prev-bg-clr;
-  border-radius: 5px;
-  border: @prev-bd-clr 1px solid;
-  box-shadow: 0px 0px 4px 4px @prev-shd-clr;
+    min-width: 450px;
+    background: @prev-bg-clr;
+    border-left: @prev-bd-clr 1px solid;
 }
 
 .prev-btm-box {
-  margin: 0px 10px 10px 10px;
+    margin: 0px 10px 10px 10px;
 }
 
 .logo-font {
-  font-size: 32px;
-  font-style: italic;
-  font-weight: 900;
-  font-family: "Alegyera", serif;
+    font-size: 32px;
+    font-style: italic;
+    font-weight: 900;
+    font-family: "Alegyera", serif;
 }
 
 .mm-10 {
-  margin-bottom: 10px;
+    margin-bottom: 10px;
 }
 
 .font-8 {
-  font-size: 8px;
+    font-size: 8px;
 }
 
 .font-12 {
-  font-size: 12px;
+    font-size: 12px;
 }
 
 .font-16 {
-  font-size: 16px;
+    font-size: 16px;
 }
 
 .font-24 {
-  font-size: 16px;
+    font-size: 16px;
 }
 
 .font-32 {
-  font-size: 32px;
+    font-size: 32px;
 }
