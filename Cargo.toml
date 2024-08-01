@@ -6,7 +6,9 @@ resolver = "2"
 
 [workspace.dependencies]
 async-broadcast = "0.7.0"
-
+enum_dispatch = "0.3.13"
+arc-swap = "1.7.1"
+tokio = { version = "1.39.2", features = ["full"] }
 
 [profile.release]
 lto = true

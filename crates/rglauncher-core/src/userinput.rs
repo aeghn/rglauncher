@@ -1,12 +1,9 @@
-use std::{
-    cell::RefCell,
-    sync::{Arc, RwLock},
-};
+use crate::misc::KTicket;
 
 #[derive(Clone, Debug)]
 pub struct UserInput {
     pub input: String,
-    cancel_signal: Arc<RwLock<bool>>,
+    ticket: KTicket,
 }
 impl PartialEq for UserInput {
     fn eq(&self, other: &Self) -> bool {
@@ -15,20 +12,18 @@ impl PartialEq for UserInput {
 }
 
 impl UserInput {
-    pub fn new(input: &str) -> Self {
+    pub fn new(input: &str, ticket: &KTicket) -> Self {
         UserInput {
             input: input.to_string(),
-            cancel_signal: Arc::new(RwLock::new(false)),
+            ticket: ticket.clone(),
         }
     }
 
     pub fn cancelled(&self) -> bool {
-        *self.cancel_signal.read().unwrap()
+        !self.ticket.is_valid()
     }
 
-    pub fn cancel(&self) {
-        if let Ok(mut cancel_signal) = self.cancel_signal.write() {
-            *cancel_signal = true;
-        }
+    pub fn get_ticket(&self) -> KTicket {
+        self.ticket.clone()
     }
 }

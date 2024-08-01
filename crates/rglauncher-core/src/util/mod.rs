@@ -1,4 +1,5 @@
-pub mod fs_utils;
-pub mod score_utils;
-pub mod string_utils;
-pub mod sqlite3_utils;
+pub mod fileutils;
+pub mod scoreutils;
+pub mod cmdutils;
+pub mod sqlite3utils;
+pub mod stringutils;

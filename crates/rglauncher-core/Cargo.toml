@@ -15,8 +15,8 @@ tracing = "0.1.37"
 async-broadcast = { workspace = true }
 
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-tracing-tree = "0.3.0"
-rusqlite = { version = "0.30.0", features = ["bundled", "chrono"] }
+tracing-tree = "0.4.0"
+async-sqlite = { version = "*", features = ["bundled", "chrono"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 futures = { version = "0.3.25" }
 
@@ -35,33 +35,21 @@ libc = "0.2.153"
 # for the Calc Plugin
 meval = { version = "0.2.0", optional = true }
 
-# for the Dict Plugin
-bytes = { version = "1.6.0", optional = true }
-miniz_oxide = { version = "0.7.2", optional = true }
-encoding_rs = { version = "0.8.34", optional = true }
-ripemd128 = { version = "0.1.2", optional = true }
-adler = { version = "1.0.2", optional = true }
-minilzo = { version = "0.2.0", optional = true }
-patricia_tree = { version = "0.8.0", optional = true }
-html-escape = { version = "0.2.0", optional = true }
-
 # for the Clip plugin
 arboard = { version = "3.3.0", default-features = false, features = [
     "wayland-data-control",
 ], optional = true }
 
+enum_dispatch.workspace = true
+
+mdict = { path = "../../vendor/mdict", optional = true }
+
+tokio.workspace = true
+
 [features]
-default = []
+default = ["full"]
 hyprwin = []
 calc = ["meval"]
-mdict = [
-    "bytes",
-    "miniz_oxide",
-    "encoding_rs",
-    "ripemd128",
-    "adler",
-    "minilzo",
-    "patricia_tree",
-    "html-escape",
-]
+dict = ["mdict"]
 clip = ["arboard"]
+full = ["hyprwin", "calc", "dict", "clip"]

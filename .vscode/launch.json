@@ -11,12 +11,17 @@
             "cargo": {
                 "args": [
                     "run",
-                    "--bin", 
-                    "rglauncher",
+                    "--bin",
+                    "rglauncher-gpui",
                     "--"
-                ]
+                ],
+                "env": {
+                    "WAYLAND_DISPLAY": "wayland-1"
+                }
+            },
+            "env": {
+                "WAYLAND_DISPLAY": "wayland-1"
             }
         }
-        
     ]
 }

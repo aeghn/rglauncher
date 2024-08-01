@@ -1,11 +1,4 @@
-pub fn truncate(s: &str, max_chars: usize) -> &str {
-    match s.char_indices().nth(max_chars) {
-        None => s,
-        Some((idx, _)) => &s[..idx],
-    }
-}
-
-pub fn parse_cmd_string(input: &str) -> Vec<String> {
+pub fn split_cmd_to_args(input: &str) -> Vec<String> {
     let mut result = Vec::new();
     let mut current_word = String::new();
     let mut in_quotes = false;
@@ -64,25 +57,31 @@ pub fn parse_cmd_string(input: &str) -> Vec<String> {
     result
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn it_works() {
-        let vvv = |vec: Vec<&'static str>| -> Vec<String> {
-            vec.iter()
-            .map(|s| {s.to_string()}).collect()
-        };
-
-
+        let vvv =
+            |vec: Vec<&'static str>| -> Vec<String> { vec.iter().map(|s| s.to_string()).collect() };
 
         // assert_eq!(parse_cmd_string("who are you"), vvv(vec!["who","are","you"]));
-        assert_eq!(parse_cmd_string("who \"are\" you"), vvv(vec!["who","are","you"]));
-        assert_eq!(parse_cmd_string("who 'are' you"), vvv(vec!["who","are","you"]));
-        assert_eq!(parse_cmd_string("who 'a\"re' you"), vvv(vec!["who","a\"re","you"])); 
-        assert_eq!(parse_cmd_string("who 'a\"r\\\\e' you"), vvv(vec!["who","a\"r\\e","you"]));
+        assert_eq!(
+            split_cmd_to_args("who \"are\" you"),
+            vvv(vec!["who", "are", "you"])
+        );
+        assert_eq!(
+            split_cmd_to_args("who 'are' you"),
+            vvv(vec!["who", "are", "you"])
+        );
+        assert_eq!(
+            split_cmd_to_args("who 'a\"re' you"),
+            vvv(vec!["who", "a\"re", "you"])
+        );
+        assert_eq!(
+            split_cmd_to_args("who 'a\"r\\\\e' you"),
+            vvv(vec!["who", "a\"r\\e", "you"])
+        );
     }
 }

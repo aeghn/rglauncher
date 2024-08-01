@@ -4,19 +4,18 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use tracing::info;
 
-use crate::plugins::history::HistoryItem;
-use crate::plugins::{Plugin, PluginResult};
+use crate::plugins::{PluginItemTrait, PluginTrait};
 use crate::userinput::UserInput;
 
-use crate::util::score_utils;
+use crate::util::scoreutils;
 
-pub const TYPE_ID: &str = "hypr_windows";
+pub const TYPE: &str = "hypr_windows";
 
 #[derive(Clone)]
 pub enum HyprWindowMsg {}
 
 #[derive(Clone)]
-pub struct HyprWindowResult {
+pub struct HyprWindowItem {
     pub class: String,
     pub title: String,
     pub address: String,
@@ -29,24 +28,12 @@ pub struct HyprWindowResult {
     pub score: i32,
 }
 
-impl PluginResult for HyprWindowResult {
-    fn score(&self) -> i32 {
-        score_utils::high(self.score as i64)
+impl PluginItemTrait for HyprWindowItem {
+    fn get_score(&self) -> i32 {
+        scoreutils::high(self.score as i64)
     }
 
-    fn icon_name(&self) -> &str {
-        self.class.as_str()
-    }
-
-    fn name(&self) -> &str {
-        self.title.as_str()
-    }
-
-    fn extra(&self) -> Option<&str> {
-        Some(self.workspace.as_str())
-    }
-
-    fn on_enter(&self) {
+    fn on_activate(&self) {
         // dispatch focuswindow address:
         let _msg = Command::new("hyprctl")
             .arg("dispatch")
@@ -56,12 +43,8 @@ impl PluginResult for HyprWindowResult {
             .expect("unable to switch to the window");
     }
 
-    fn get_type_id(&self) -> &'static str {
-        &TYPE_ID
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self as &dyn std::any::Any
+    fn get_type(&self) -> &'static str {
+        &TYPE
     }
 
     fn get_id(&self) -> &str {
@@ -70,7 +53,7 @@ impl PluginResult for HyprWindowResult {
 }
 
 pub struct HyprWindowsPlugin {
-    windows: Vec<HyprWindowResult>,
+    windows: Vec<HyprWindowItem>,
 }
 
 impl HyprWindowsPlugin {
@@ -83,7 +66,7 @@ impl HyprWindowsPlugin {
     }
 }
 
-fn get_windows() -> anyhow::Result<Vec<HyprWindowResult>> {
+fn get_windows() -> anyhow::Result<Vec<HyprWindowItem>> {
     let output = Command::new("hyprctl").arg("clients").arg("-j").output()?;
 
     let out = String::from_utf8(output.stdout)?;
@@ -92,7 +75,7 @@ fn get_windows() -> anyhow::Result<Vec<HyprWindowResult>> {
         .unwrap_or_else(|_| serde_json::Value::Null);
 
     if let Some(array) = json.as_array() {
-        let vec: Vec<HyprWindowResult> = array
+        let vec: Vec<HyprWindowItem> = array
             .iter()
             .filter_map(|e| {
                 let class = e.get("class")?.as_str()?;
@@ -101,7 +84,7 @@ fn get_windows() -> anyhow::Result<Vec<HyprWindowResult>> {
                     return None;
                 }
 
-                Some(HyprWindowResult {
+                Some(HyprWindowItem {
                     class: class.to_string(),
                     title: e.get("title")?.as_str()?.to_string(),
                     address: e.get("address")?.as_str()?.to_string(),
@@ -121,21 +104,21 @@ fn get_windows() -> anyhow::Result<Vec<HyprWindowResult>> {
     }
 }
 
-impl Plugin<HyprWindowResult, HyprWindowMsg> for HyprWindowsPlugin {
-    fn refresh_content(&mut self) {
+impl PluginTrait for HyprWindowsPlugin {
+    type Msg = HyprWindowMsg;
+
+    type Item = HyprWindowItem;
+
+    async fn refresh(&mut self) {
         info!("update windows");
         if let Ok(windows) = get_windows() {
             self.windows = windows;
         }
     }
 
-    fn handle_input(
-        &self,
-        user_input: &UserInput,
-        _history: Option<Vec<HistoryItem>>,
-    ) -> anyhow::Result<Vec<HyprWindowResult>> {
+    async fn handle_input(&self, user_input: &UserInput) -> anyhow::Result<Vec<HyprWindowItem>> {
         let matcher = SkimMatcherV2::default();
-        let mut result: Vec<HyprWindowResult> = vec![];
+        let mut result: Vec<HyprWindowItem> = vec![];
 
         for window in &self.windows {
             let mut score: i32 = 0;
@@ -158,11 +141,7 @@ impl Plugin<HyprWindowResult, HyprWindowMsg> for HyprWindowsPlugin {
         Ok(result)
     }
 
-    fn handle_msg(&mut self, _msg: HyprWindowMsg) {
-        todo!()
-    }
-
-    fn get_type_id(&self) -> &'static str {
-        &TYPE_ID
+    fn get_type(&self) -> &'static str {
+        &TYPE
     }
 }
