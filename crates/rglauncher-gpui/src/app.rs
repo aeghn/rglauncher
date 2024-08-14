@@ -73,13 +73,11 @@ impl Render for RGLApp {
 
         div()
             .rounded_xl()
-            .border_1()
             .border_color(theme.overlay0)
             .size_full()
             .child(
                 div()
                     .bg(theme.base_blur)
-                    .rounded_xl()
                     .flex()
                     .flex_col()
                     .size_full()

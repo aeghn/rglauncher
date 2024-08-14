@@ -53,6 +53,7 @@ pub fn get_window_options(cx: &mut AppContext) -> WindowOptions {
         //     appears_transparent: true,
         //     traffic_light_position: Some(Point::new(px(8.), px(8.))),
         // }),
+        
         ..Default::default()
     }
 }
