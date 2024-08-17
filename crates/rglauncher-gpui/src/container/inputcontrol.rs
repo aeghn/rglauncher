@@ -1,10 +1,9 @@
-use crate::app::RGLAppMsg;
 use crate::components::input::*;
 use crate::plugindispatcher::PluginDispatcherMsg;
 use crate::theme::*;
 use flume::Sender;
 use gpui::*;
-use tracing::{error, info};
+use tracing::error;
 
 pub struct InputControl {
     text_input: View<TextInput>,

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::container::sidebar::{SelectDown, SelectUp, Sidebar};
+use crate::container::itemlist::{ItemList, SelectDown, SelectUp};
 use crate::plugindispatcher::PluginDispatcherMsg;
 use crate::theme::*;
 use crate::{container::inputcontrol::InputControl, plugindispatcher::ArcPluginItem};
@@ -13,7 +13,7 @@ pub enum RGLAppMsg {
 }
 
 pub struct RGLApp {
-    pub list_view: View<Sidebar>,
+    pub list_view: View<ItemList>,
     pub input_view: View<InputControl>,
     receiver: Receiver<RGLAppMsg>,
 }
@@ -24,7 +24,7 @@ impl RGLApp {
         pd_tx: Sender<PluginDispatcherMsg>,
         app_rx: Receiver<RGLAppMsg>,
     ) -> View<Self> {
-        let list_view = Sidebar::new(cx);
+        let list_view = ItemList::new(cx);
         let input_view = InputControl::new(cx, &pd_tx);
         let view = cx.new_view(move |_| RGLApp {
             list_view,

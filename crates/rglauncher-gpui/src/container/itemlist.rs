@@ -4,12 +4,12 @@ use tracing::error;
 
 actions!(sidebar, [SelectUp, SelectDown]);
 
-pub struct Sidebar {
+pub struct ItemList {
     state: ListState,
     cursor: Model<usize>,
 }
 
-impl Render for Sidebar {
+impl Render for ItemList {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
         div()
             .size_full()
@@ -20,11 +20,11 @@ impl Render for Sidebar {
     }
 }
 
-impl Sidebar {
+impl ItemList {
     pub fn new(cx: &mut WindowContext) -> View<Self> {
         cx.new_view(|cx| {
             let state = cx.global::<StateModel>().inner.clone();
-            cx.subscribe(&state, |this: &mut Sidebar, model, _event, cx| {
+            cx.subscribe(&state, |this: &mut ItemList, model, _event, cx| {
                 let items = model.read(cx).items.load();
                 let cursor = *this.cursor.read(cx);
                 this.state = ListState::new(
@@ -49,7 +49,7 @@ impl Sidebar {
 
             let cursor = cx.new_model(|_cx| 0);
 
-            Sidebar {
+            ItemList {
                 state: ListState::new(0, ListAlignment::Bottom, Pixels(20.), move |_, _| {
                     div().into_any_element()
                 }),

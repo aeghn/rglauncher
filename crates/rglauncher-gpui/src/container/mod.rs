@@ -1,2 +1,2 @@
 pub mod inputcontrol;
-pub mod sidebar;
+pub mod itemlist;

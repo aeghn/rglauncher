@@ -1,7 +1,7 @@
 use app::{RGLApp, RGLAppMsg};
 use assets::Assets;
 use components::input::*;
-use container::sidebar::{SelectDown, SelectUp};
+use container::itemlist::{SelectDown, SelectUp};
 use gpui::*;
 use plugindispatcher::{PluginDispatcher, PluginDispatcherMsg};
 use state::StateModel;
@@ -43,11 +43,9 @@ fn main() {
             KeyBinding::new("cmd-a", SelectAll, None),
             KeyBinding::new("home", Home, None),
             KeyBinding::new("end", End, None),
-            KeyBinding::new("ctrl-cmd-space", ShowCharacterPalette, None),
             KeyBinding::new("cmd-q", Quit, None),
             KeyBinding::new("up", SelectUp, None),
             KeyBinding::new("down", SelectDown, None),
-
         ]);
 
         // Bring the menu bar to the foreground (so you can see the menu bar)
