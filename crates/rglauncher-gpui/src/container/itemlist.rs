@@ -4,6 +4,14 @@ use tracing::error;
 
 actions!(sidebar, [SelectUp, SelectDown]);
 
+pub fn init(cx: &mut AppContext) {
+    let context = Some("ItemList");
+    cx.bind_keys([
+        KeyBinding::new("up", SelectUp, context),
+        KeyBinding::new("down", SelectDown, context),
+    ]);
+}
+
 pub struct ItemList {
     state: ListState,
     cursor: Model<usize>,
@@ -14,6 +22,7 @@ impl Render for ItemList {
         div()
             .size_full()
             .flex()
+            .key_context("ItemList")
             .on_action(cx.listener(Self::down))
             .on_action(cx.listener(Self::up))
             .child(list(self.state.clone()).w_full().h_full())
@@ -45,7 +54,7 @@ impl ItemList {
                 );
                 cx.notify();
             })
-            .detach();
+                .detach();
 
             let cursor = cx.new_model(|_cx| 0);
 
@@ -59,11 +68,10 @@ impl ItemList {
     }
 
     pub fn up(&mut self, _: &SelectUp, cx: &mut ViewContext<Self>) {
+        error!("up");
         let index = *self.cursor.read(cx);
 
         let new = index.saturating_sub(1);
-
-        error!("up {}", new);
 
         self.state.scroll_to_reveal_item(index);
         self.cursor.update(cx, |e, v| {
@@ -73,10 +81,11 @@ impl ItemList {
     }
 
     pub fn down(&mut self, _: &SelectDown, cx: &mut ViewContext<Self>) {
+        error!("down");
+        
         let index = *self.cursor.read(cx);
         let new = index.saturating_add(1);
 
-        error!("down {}", new);
         self.state.scroll_to_reveal_item(index);
         self.cursor.update(cx, |e, v| {
             *e = new;

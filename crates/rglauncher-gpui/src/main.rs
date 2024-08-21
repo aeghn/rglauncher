@@ -1,7 +1,7 @@
 use app::{RGLApp, RGLAppMsg};
 use assets::Assets;
-use components::input::*;
-use container::itemlist::{SelectDown, SelectUp};
+use components::input::{*, self};
+use container::itemlist::{SelectDown, SelectUp, self};
 use gpui::*;
 use plugindispatcher::{PluginDispatcher, PluginDispatcherMsg};
 use state::StateModel;
@@ -34,19 +34,10 @@ fn main() {
 
     App::new().with_assets(Assets).run(|cx: &mut AppContext| {
         cx.bind_keys([
-            KeyBinding::new("backspace", Backspace, None),
-            KeyBinding::new("delete", Delete, None),
-            KeyBinding::new("left", Left, None),
-            KeyBinding::new("right", Right, None),
-            KeyBinding::new("shift-left", SelectLeft, None),
-            KeyBinding::new("shift-right", SelectRight, None),
-            KeyBinding::new("cmd-a", SelectAll, None),
-            KeyBinding::new("home", Home, None),
-            KeyBinding::new("end", End, None),
             KeyBinding::new("cmd-q", Quit, None),
-            KeyBinding::new("up", SelectUp, None),
-            KeyBinding::new("down", SelectDown, None),
         ]);
+        itemlist::init(cx);
+        input::init(cx);
 
         // Bring the menu bar to the foreground (so you can see the menu bar)
         cx.activate(true);
@@ -80,12 +71,12 @@ fn main() {
                         }
                     }
                 })
-                .detach();
+                    .detach();
             }
 
             RGLApp::new(cx, pd_tx, app_rx)
         })
-        .unwrap();
+            .unwrap();
     });
 }
 

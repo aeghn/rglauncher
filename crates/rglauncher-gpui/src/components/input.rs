@@ -22,6 +22,21 @@ actions!(
     ]
 );
 
+pub fn init(cx: &mut AppContext) {
+    let context = Some("TextInput");
+    cx.bind_keys([
+        KeyBinding::new("backspace", Backspace, context),
+        KeyBinding::new("delete", Delete, context),
+        KeyBinding::new("left", Left, context),
+        KeyBinding::new("right", Right, context),
+        KeyBinding::new("shift-left", SelectLeft, context),
+        KeyBinding::new("shift-right", SelectRight, context),
+        KeyBinding::new("cmd-a", SelectAll, context),
+        KeyBinding::new("home", Home, context),
+        KeyBinding::new("end", End, context),
+    ]);
+}
+
 pub struct TextInput {
     pub focus_handle: FocusHandle,
     pub content: SharedString,
@@ -262,7 +277,7 @@ impl ViewInputHandler for TextInput {
 
         self.content =
             (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])
-                .into();
+            .into();
         self.selected_range = range.start + new_text.len()..range.start + new_text.len();
         self.marked_range.take();
         cx.notify();
@@ -284,7 +299,7 @@ impl ViewInputHandler for TextInput {
 
         self.content =
             (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])
-                .into();
+            .into();
         self.marked_range = Some(range.start..range.start + new_text.len());
         self.selected_range = new_selected_range_utf16
             .as_ref()
@@ -405,9 +420,9 @@ impl Element for TextElement {
                     ..run.clone()
                 },
             ]
-            .into_iter()
-            .filter(|run| run.len > 0)
-            .collect()
+                .into_iter()
+                .filter(|run| run.len > 0)
+                .collect()
         } else {
             vec![run]
         };

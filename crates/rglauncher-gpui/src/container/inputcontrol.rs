@@ -33,7 +33,6 @@ impl InputControl {
         })
         .detach();
 
-        cx.focus_view(&text_input);
 
         cx.new_view(|cx| InputControl { text_input })
     }
