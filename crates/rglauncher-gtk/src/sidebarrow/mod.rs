@@ -27,8 +27,9 @@ impl SidebarRow {
     pub fn arrange_sidebar(&self, plugin_result: &dyn PluginResult) {
         let imp = self.imp();
 
-        imp.image
-            .set_from_gicon(iconcache::get_icon(plugin_result.icon_name()).get());
+        if let Some(icon) = iconcache::get_icon(plugin_result.icon_name()) {
+            imp.image.set_from_gicon(icon.get());
+        }
         let name = plugin_result.name();
 
         imp.title.set_label(if name.len() > 300 {

@@ -1,6 +1,6 @@
 use crate::iconcache;
 use crate::pluginpreview::PluginPreview;
-use rglcore::plugins::windows::HyprWindowResult;
+use rglcore::plugins::windows::WMWindowResult;
 use rglcore::plugins::PluginResult;
 
 use glib::object::Cast;
@@ -9,20 +9,18 @@ use gtk::prelude::BoxExt;
 use gtk::Align::{Center, End};
 use gtk::{Image, Orientation, Widget};
 
-pub struct HyprWindowPreview {
+pub struct WMWindowPreview {
     preview: gtk::Widget,
     big_pic: gtk::Image,
     title: gtk::Label,
-    screen: gtk::Label,
     workspace: gtk::Label,
-    xwayland: gtk::Label,
 }
 
-impl PluginPreview for HyprWindowPreview {
-    type PluginResult = HyprWindowResult;
+impl PluginPreview for WMWindowPreview {
+    type PluginResult = WMWindowResult;
 
     fn new() -> Self {
-        let b = gtk::Box::builder()
+        let r#box = gtk::Box::builder()
             .vexpand(true)
             .hexpand(true)
             .valign(Center)
@@ -38,7 +36,7 @@ impl PluginPreview for HyprWindowPreview {
 
         // preview.attach(&big_pic, 0, 0, 1, 1);
         // preview.attach(&little_pic, 0, 1, 1, 1);
-        b.append(&big_pic);
+        r#box.append(&big_pic);
 
         let title = gtk::Label::builder()
             .css_classes(["font-16"])
@@ -47,7 +45,7 @@ impl PluginPreview for HyprWindowPreview {
             .selectable(true)
             .build();
         // preview.attach(&title, 0, 2, 1, 1);
-        b.append(&title);
+        r#box.append(&title);
 
         let sep = super::get_seprator();
         let extra = gtk::Grid::builder()
@@ -57,15 +55,13 @@ impl PluginPreview for HyprWindowPreview {
             .css_classes(["prev-btm-box"])
             .build(); // preview.attach(&extra, 0, 3, 1, 1);
 
-        let screen = super::build_pair_line(&extra, 0, "Screen: ");
         let workspace = super::build_pair_line(&extra, 1, "Workspace: ");
-        let xwayland = super::build_pair_line(&extra, 2, "Xwayland: ");
 
         let sw = gtk::ScrolledWindow::builder()
             .vexpand(true)
             .hexpand(true)
             .build();
-        sw.set_child(Some(&b));
+        sw.set_child(Some(&r#box));
 
         let tb = gtk::Box::builder()
             .vexpand(true)
@@ -77,13 +73,11 @@ impl PluginPreview for HyprWindowPreview {
         tb.append(&sep);
         tb.append(&extra);
 
-        HyprWindowPreview {
+        WMWindowPreview {
             preview: tb.upcast(),
             big_pic,
             title,
-            screen,
             workspace,
-            xwayland,
         }
     }
 
@@ -94,14 +88,11 @@ impl PluginPreview for HyprWindowPreview {
     fn set_preview(&self, plugin_result: &Self::PluginResult) {
         self.title.set_text(plugin_result.title.as_str());
 
-        self.screen
-            .set_label(plugin_result.monitor.to_string().as_str());
         self.workspace.set_label(&plugin_result.workspace);
-        self.xwayland
-            .set_label(plugin_result.xwayland.to_string().as_str());
-
-        self.big_pic
-            .set_from_gicon(iconcache::get_icon(plugin_result.icon_name()).get());
+        if let Some(icon) = iconcache::get_icon(plugin_result.icon_name()) {
+            self.big_pic
+                .set_from_gicon(icon.get());
+        }
     }
 
     fn get_id(&self) -> &str {

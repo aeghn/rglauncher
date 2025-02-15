@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gtk = { version = "0.8.0", package = "gtk4" }
-gio = "0.19.2"
-glib = "0.19.2"
-webkit6 = { version = "0.3.0", optional = true }
+gtk = { version = "0.9.5", package = "gtk4" }
+gio = "0.20.7"
+glib = "0.20.7"
+webkit6 = { version = "0.4.0", optional = true }
 
 fragile = "2.0.0"
 clap = { version = "4.4.10", features = ["derive"] }
@@ -26,10 +26,12 @@ once_cell = "1.19.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.108", default_features = false, optional = true }
 async-broadcast = { workspace = true }
+arc-swap = "1.7.1"
+smol_str = "0.3.2"
 
 [features]
-default = ["rglcore"]
+default = ["rglcore","wmwin", "calc"]
 mdict = ["webkit6", "rglcore?/mdict"]
 calc = ["rglcore?/calc"]
-hyprwin = ["rglcore?/hyprwin"]
+wmwin = ["rglcore?/wmwin"]
 clip = ["rglcore?/clip"]

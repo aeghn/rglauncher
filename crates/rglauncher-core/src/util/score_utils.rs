@@ -8,10 +8,11 @@ fn limit_to(base: i32, size: i32, origin: i64) -> i32 {
     let scale = if origin <= 0 {
         0
     } else {
-        (origin / i64::max_value() * (size as i64)) as i32
+        let scale = origin.ilog2() as i32;
+        if scale < size {scale} else {size}
     };
 
-    return base + scale;
+    return base + scale as i32;
 }
 
 pub fn highest(origin: i16) -> i32 {

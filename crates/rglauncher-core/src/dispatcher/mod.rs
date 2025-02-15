@@ -9,8 +9,8 @@ use crate::plugins::clipboard::{ClipMsg, ClipboardPlugin};
 #[cfg(feature = "mdict")]
 use crate::plugins::dictionary::{DictMsg, DictionaryPlugin};
 use crate::plugins::history::{HistoryItem, HistoryPlugin};
-#[cfg(feature = "hyprwin")]
-use crate::plugins::windows::{HyprWindowMsg, HyprWindowsPlugin};
+#[cfg(feature = "wmwin")]
+use crate::plugins::windows::{WMWindowMsg, WMWindowsPlugin};
 use crate::plugins::PluginResult;
 use crate::userinput::UserInput;
 use crate::ResultMsg;
@@ -29,8 +29,8 @@ pub enum PluginMsg {
     Clip(ClipMsg),
     #[cfg(feature = "mdict")]
     Dict(DictMsg),
-    #[cfg(feature = "hyprwin")]
-    Hypr(HyprWindowMsg),
+    #[cfg(feature = "wmwin")]
+    WM(WMWindowMsg),
 }
 
 #[derive(Clone)]
@@ -70,8 +70,8 @@ impl PluginDispatcher {
 
         PluginWorker::launch(|| ApplicationPlugin::new(), &inner, "app");
 
-        #[cfg(feature = "hyprwin")]
-        PluginWorker::launch(|| HyprWindowsPlugin::new(), &inner, "hyprwin");
+        #[cfg(feature = "wmwin")]
+        PluginWorker::launch(|| WMWindowsPlugin::new(), &inner, "wmwin");
 
         #[cfg(feature = "clip")]
         {

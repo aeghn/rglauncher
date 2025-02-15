@@ -60,8 +60,9 @@ impl PluginPreview for AppPreview {
     }
 
     fn set_preview(&self, plugin_result: &Self::PluginResult) {
-        self.icon
-            .set_from_gicon(iconcache::get_icon(plugin_result.icon_name.as_str()).get());
+        if let Some(icon) = iconcache::get_icon(plugin_result.icon_name.as_str()) {
+            self.icon.set_from_gicon(icon.get());
+        }
         self.name.set_label(plugin_result.app_name.as_str());
         self.exec.set_label(plugin_result.desktop_path.as_str());
         self.desc.set_label(plugin_result.app_desc.as_str());

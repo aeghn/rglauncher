@@ -51,8 +51,8 @@ arboard = { version = "3.3.0", default-features = false, features = [
 ], optional = true }
 
 [features]
-default = []
-hyprwin = []
+default = ["wmwin"]
+wmwin = []
 calc = ["meval"]
 mdict = [
     "bytes",

@@ -6,7 +6,7 @@ pub mod clipboard;
 #[cfg(feature = "mdict")]
 pub mod dictionary;
 pub mod history;
-#[cfg(feature = "hyprwin")]
+#[cfg(feature = "wmwin")]
 pub mod windows;
 
 use crate::userinput::UserInput;

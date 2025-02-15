@@ -1,4 +1,4 @@
-use crate::config::DbConfig;
+use crate::config::DatabaseConfig;
 use crate::plugins::PluginResult;
 
 use core::result::Result;
@@ -20,7 +20,7 @@ pub struct HistoryPlugin {
 }
 
 impl HistoryPlugin {
-    pub fn new(config: Option<&DbConfig>) -> Self {
+    pub fn new(config: Option<&DatabaseConfig>) -> Self {
         info!("Creating History Plugin, path: {:?}", config);
         let connection = match config.map(|c| c.db_path.as_str()) {
             Some(path) => {

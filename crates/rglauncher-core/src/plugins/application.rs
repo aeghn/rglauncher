@@ -161,7 +161,7 @@ impl ApplicationPlugin {
                             exec: entry.exec().unwrap_or_default().to_string(),
                             desktop_path: path.to_str().unwrap_or_default().to_string(),
                             terminal: entry.terminal(),
-                            score: 0,
+                            score: score_utils::middle(0),
                         });
                     }
                 }

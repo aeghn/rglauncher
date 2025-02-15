@@ -6,8 +6,8 @@ use crate::pluginpreview::calculator::CalcPreview;
 use crate::pluginpreview::clipboard::ClipPreview;
 #[cfg(feature = "mdict")]
 use crate::pluginpreview::dictionary::DictPreview;
-#[cfg(feature = "hyprwin")]
-use crate::pluginpreview::windows::HyprWindowPreview;
+#[cfg(feature = "wmwin")]
+use crate::pluginpreview::windows::WMWindowPreview;
 use flume::{Receiver, Sender};
 use glib::{clone, MainContext};
 use gtk::pango::WrapMode::WordChar;
@@ -21,8 +21,8 @@ use rglcore::plugins::calculator::CalcResult;
 use rglcore::plugins::clipboard::ClipResult;
 #[cfg(feature = "mdict")]
 use rglcore::plugins::dictionary::DictResult;
-#[cfg(feature = "hyprwin")]
-use rglcore::plugins::windows::HyprWindowResult;
+#[cfg(feature = "wmwin")]
+use rglcore::plugins::windows::WMWindowResult;
 use rglcore::plugins::PluginResult;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -35,7 +35,7 @@ mod calculator;
 mod clipboard;
 #[cfg(feature = "mdict")]
 mod dictionary;
-#[cfg(feature = "hyprwin")]
+#[cfg(feature = "wmwin")]
 mod windows;
 
 const DEFAULT_ID: &str = "default";
@@ -64,8 +64,8 @@ pub struct PluginPreviewBuilder {
     clip_preview: ClipPreview,
     #[cfg(feature = "mdict")]
     dict_preview: DictPreview,
-    #[cfg(feature = "hyprwin")]
-    wind_preview: HyprWindowPreview,
+    #[cfg(feature = "wmwin")]
+    wind_preview: WMWindowPreview,
 }
 
 impl PluginPreviewBuilder {
@@ -86,9 +86,9 @@ impl PluginPreviewBuilder {
         #[cfg(feature = "clip")]
         stack.add_named(&clip_preview.get_preview(), Some(clip_preview.get_id()));
 
-        #[cfg(feature = "hyprwin")]
-        let wind_preview = HyprWindowPreview::new();
-        #[cfg(feature = "hyprwin")]
+        #[cfg(feature = "wmwin")]
+        let wind_preview = WMWindowPreview::new();
+        #[cfg(feature = "wmwin")]
         stack.add_named(&wind_preview.get_preview(), Some(wind_preview.get_id()));
 
         stack.add_named(&app_preview.get_preview(), Some(app_preview.get_id()));
@@ -116,7 +116,7 @@ impl PluginPreviewBuilder {
             clip_preview,
             #[cfg(feature = "mdict")]
             dict_preview,
-            #[cfg(feature = "hyprwin")]
+            #[cfg(feature = "wmwin")]
             wind_preview,
         }
     }
@@ -131,9 +131,9 @@ impl PluginPreviewBuilder {
                     let result = result.downcast_ref::<AppResult>()?;
                     self.app_preview.set_preview(result);
                 }
-                #[cfg(feature = "hyprwin")]
+                #[cfg(feature = "wmwin")]
                 rglcore::plugins::windows::TYPE_ID => {
-                    let result = result.downcast_ref::<HyprWindowResult>()?;
+                    let result = result.downcast_ref::<WMWindowResult>()?;
                     self.wind_preview.set_preview(result);
                 }
 

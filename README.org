@@ -24,7 +24,7 @@ dark_mode=true
 ** Calculator
 [[./docs/calc.png]]
 
-** Windows Switcher (Hyprland only currently)
+** Windows Switcher (WMland only currently)
 [[./docs/win.png]]
 
 ** Clipboard(Text only currently)

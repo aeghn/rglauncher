@@ -3,14 +3,20 @@ use std::env;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct Config {
-    pub db: Option<DbConfig>,
-    pub dict: Option<DictConfig>,
-    pub ui: Option<UI>,
+pub struct CommonConfig {
+    pub icon_paths: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct DbConfig {
+pub struct Config {
+    pub db: Option<DatabaseConfig>,
+    pub dict: Option<DictConfig>,
+    pub ui: Option<UI>,
+    pub common: CommonConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DatabaseConfig {
     pub db_path: String,
 }
 
