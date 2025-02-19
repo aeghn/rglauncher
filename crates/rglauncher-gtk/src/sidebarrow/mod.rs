@@ -1,12 +1,12 @@
 mod imp;
 
 use crate::iconcache;
+use chin_tools::utils::string_util;
 use gtk::glib;
 use gtk::prelude::WidgetExt;
 use gtk::subclass::prelude::*;
-use rglcore::util::string_utils;
 
-use rglcore::plugins::PluginResult;
+use rglcore::plugins::{PluginResult, PluginResultEnum};
 
 glib::wrapper! {
     pub struct SidebarRow(ObjectSubclass<imp::SidebarRow>)
@@ -24,16 +24,16 @@ impl SidebarRow {
         glib::Object::new()
     }
 
-    pub fn arrange_sidebar(&self, plugin_result: &dyn PluginResult) {
+    pub fn arrange_sidebar(&self, plugin_result: &PluginResultEnum) {
         let imp = self.imp();
 
-        if let Some(icon) = iconcache::get_icon(plugin_result.icon_name()) {
-            imp.image.set_from_gicon(icon.get());
-        }
+        imp.image
+            .set_from_gicon(iconcache::get_icon(plugin_result.icon_name()).get());
+
         let name = plugin_result.name();
 
         imp.title.set_label(if name.len() > 300 {
-            string_utils::truncate(name, 300)
+            string_util::truncate(name, 300)
         } else {
             name
         });
@@ -41,7 +41,7 @@ impl SidebarRow {
         match plugin_result.extra() {
             Some(desc) => {
                 let desc = if desc.len() > 300 {
-                    string_utils::truncate(desc, 300)
+                    string_util::truncate(desc, 300)
                 } else {
                     desc
                 };

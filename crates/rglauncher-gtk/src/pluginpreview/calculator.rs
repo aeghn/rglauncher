@@ -2,7 +2,7 @@ use crate::pluginpreview::PluginPreview;
 use glib::object::Cast;
 use gtk::prelude::{GridExt, TextBufferExt};
 use gtk::WrapMode::WordChar;
-use rglcore::plugins::calculator::CalcResult;
+use rglcore::plugins::calc::CalcResult;
 
 pub struct CalcPreview {
     root: gtk::Grid,
@@ -63,6 +63,6 @@ impl PluginPreview for CalcPreview {
     }
 
     fn get_id(&self) -> &str {
-        rglcore::plugins::calculator::TYPE_ID
+        rglcore::plugins::calc::TYPE_ID
     }
 }

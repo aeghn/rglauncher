@@ -9,16 +9,14 @@ use gtk::{
     prelude::{ListItemExt, SelectionModelExt},
 };
 
-use std::sync::Arc;
-
-use rglcore::plugins::PluginResult;
+use rglcore::plugins::{PRWrapper, PluginResult};
 use rglcore::ResultMsg;
 
 use crate::{inputbar::InputMessage, sidebarrow::SidebarRow, window::WindowMsg};
 
 #[allow(dead_code)]
 pub enum SidebarMsg {
-    Result(Vec<Arc<dyn PluginResult>>),
+    Result(Vec<PRWrapper>),
     NextItem,
     PreviousItem,
     HeadItem,
@@ -124,7 +122,7 @@ impl Sidebar {
                         let tt = boxed
                             .downcast_ref::<BoxedAnyObject>()
                             .unwrap()
-                            .borrow::<Arc<dyn PluginResult>>();
+                            .borrow::<PRWrapper>();
                         tt.on_enter();
                     }
                 });
@@ -178,10 +176,10 @@ impl Sidebar {
         factory.connect_bind(move |_factory, item| {
             let item = item.downcast_ref::<gtk::ListItem>().unwrap();
             let plugin_result_box = item.item().and_downcast::<BoxedAnyObject>().unwrap();
-            let plugin_result = plugin_result_box.borrow::<Arc<dyn PluginResult>>();
+            let plugin_result = plugin_result_box.borrow::<PRWrapper>();
 
             let child = item.child().and_downcast::<SidebarRow>().unwrap();
-            child.arrange_sidebar(plugin_result.as_ref());
+            child.arrange_sidebar(&plugin_result.body);
         });
 
         factory.connect_unbind(move |_factory, item| {

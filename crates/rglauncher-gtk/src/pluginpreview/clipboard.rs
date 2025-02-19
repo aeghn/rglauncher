@@ -5,7 +5,7 @@ use gtk::prelude::{BoxExt, TextBufferExt};
 use gtk::Align::End;
 use gtk::WrapMode::WordChar;
 use gtk::{Orientation, TextBuffer, TextView, Widget};
-use rglcore::plugins::clipboard::ClipResult;
+use rglcore::plugins::clip::ClipResult;
 
 pub struct ClipPreview {
     root: gtk::Box,
@@ -88,6 +88,6 @@ impl PluginPreview for ClipPreview {
     }
 
     fn get_id(&self) -> &str {
-        rglcore::plugins::clipboard::TYPE_ID
+        rglcore::plugins::clip::TYPE_ID
     }
 }

@@ -10,6 +10,7 @@ mod sidebar;
 mod sidebarrow;
 mod window;
 
+use chin_tools::AResult;
 use clap::Parser;
 use rglcore::config::Config;
 use std::io::{Read, Write};
@@ -53,7 +54,7 @@ pub fn daemon() {
     app.run_with_args(&empty_args);
 }
 
-fn build_uds(app_msg_tx: &Sender<LauncherMsg>) -> anyhow::Result<()> {
+fn build_uds(app_msg_tx: &Sender<LauncherMsg>) -> AResult<()> {
     if !Path::new(constants::TMP_DIR).exists() {
         std::fs::create_dir(constants::TMP_DIR)?;
     }
@@ -82,7 +83,7 @@ fn build_uds(app_msg_tx: &Sender<LauncherMsg>) -> anyhow::Result<()> {
     }
 }
 
-pub fn try_communicate() -> anyhow::Result<bool> {
+pub fn try_communicate() -> AResult<bool> {
     match UnixStream::connect(constants::UNIX_SOCKET_PATH) {
         Ok(mut stream) => {
             stream.write_all("new_window".as_bytes())?;

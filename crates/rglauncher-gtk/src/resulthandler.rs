@@ -1,28 +1,28 @@
 use crate::launcher::LauncherMsg;
 use crate::pluginpreview::PreviewMsg;
 use crate::sidebar::SidebarMsg;
+use chin_tools::SharedStr;
 use flume::{Receiver, Sender};
 use rglcore::dispatcher::DispatchMsg;
-use rglcore::plugins::PluginResult;
+use rglcore::plugins::{PRWrapper, PluginResult};
 use rglcore::userinput::UserInput;
 use rglcore::ResultMsg;
 use std::collections::HashSet;
-use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use tracing::{debug, error};
 
 pub struct ResultHolder {
-    user_input: Option<Arc<UserInput>>,
+    user_input: Option<UserInput>,
     current_index: Option<u32>,
-    result_holder: Vec<Arc<dyn PluginResult>>,
-    result_id_set: HashSet<String>,
+    result_holder: Vec<PRWrapper>,
+    result_id_set: HashSet<SharedStr>,
 
     pub result_tx: Sender<ResultMsg>,
     result_rx: Receiver<ResultMsg>,
 
     launcher_tx: Sender<LauncherMsg>,
-    dispatch_tx: async_broadcast::Sender<DispatchMsg>,
+    dispatch_tx: flume::Sender<DispatchMsg>,
 
     sidebar_tx: Sender<SidebarMsg>,
     preview_tx: Sender<PreviewMsg>,
@@ -33,7 +33,7 @@ pub struct ResultHolder {
 impl ResultHolder {
     fn new(
         launcher_tx: &Sender<LauncherMsg>,
-        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
+        dispatch_tx: &flume::Sender<DispatchMsg>,
         sidebar_tx: &Sender<SidebarMsg>,
         preview_tx: &Sender<PreviewMsg>,
     ) -> Self {
@@ -56,8 +56,7 @@ impl ResultHolder {
     }
 
     fn send_to_sidebar(&mut self) {
-        self.result_holder
-            .sort_by(|e1, e2| e2.score().cmp(&e1.score()));
+        self.result_holder.sort_by(|e1, e2| e2.score.cmp(&e1.score));
         let holder = self.result_holder.clone();
 
         let holder_size = holder.len();
@@ -75,7 +74,7 @@ impl ResultHolder {
     }
 
     fn accept_messages(&mut self) {
-        let interval = Duration::from_millis(80);
+        let interval = Duration::from_millis(30);
         let mut received_something = false;
         let mut next_sleep_time = 100000;
         loop {
@@ -87,9 +86,9 @@ impl ResultHolder {
                     ResultMsg::Result(input, results) => match self.user_input.as_ref() {
                         None => {}
                         Some(user_input) => {
-                            if user_input.as_ref() == input.as_ref() {
+                            if user_input == input.as_ref() {
                                 results.into_iter().for_each(|m| {
-                                    if self.result_id_set.insert(m.get_id().to_string()) {
+                                    if self.result_id_set.insert(m.get_id().into()) {
                                         self.result_holder.push(m);
                                     }
                                 });
@@ -100,26 +99,28 @@ impl ResultHolder {
                     },
                     ResultMsg::UserInput(input) => {
                         if let Some(old_input) = self.user_input.replace(input.clone()) {
-                            old_input.cancel();
+                            if !old_input.cancelled() {
+                                old_input.cancel();
+                            }
                             self.current_index.take();
                             self.result_holder.clear();
                             self.result_id_set.clear();
                         }
-                        debug!("Send message to dispatcher: {}", input.input);
-                        match self.dispatch_tx.try_broadcast(DispatchMsg::UserInput(
-                            input.clone(),
-                            self.result_tx.clone(),
-                        )) {
+                        debug!("Send message to dispatcher: {:?}", input.input);
+                        match self
+                            .dispatch_tx
+                            .send(DispatchMsg::UserInput(input.into(), self.result_tx.clone()))
+                        {
                             Ok(_) => {
                                 self.last = Instant::now();
                             }
                             Err(err) => {
                                 error!("unable send to dispatcher {}", err);
-                                self.dispatch_tx.close();
                                 break;
                             }
                         }
                     }
+
                     ResultMsg::RemoveWindow => {}
                     ResultMsg::ChangeSelect(item) => {
                         self.current_index.replace(item.clone());
@@ -141,7 +142,7 @@ impl ResultHolder {
                                     .send(LauncherMsg::SelectSomething)
                                     .expect("unable to send select");
                                 self.dispatch_tx
-                                    .try_broadcast(DispatchMsg::SetHistory(pr.clone()))
+                                    .send(DispatchMsg::SetHistory(pr.clone()))
                                     .expect("unable to set history");
                             }
                             _ => {}
@@ -161,14 +162,13 @@ impl ResultHolder {
                 self.send_to_sidebar();
                 received_something = false;
                 next_sleep_time = 100000;
-            } else {
             }
         }
     }
 
     pub fn start(
         launcher_tx: &Sender<LauncherMsg>,
-        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
+        dispatch_tx: &flume::Sender<DispatchMsg>,
         sidebar_tx: &Sender<SidebarMsg>,
         preview_tx: &Sender<PreviewMsg>,
     ) -> Sender<ResultMsg> {

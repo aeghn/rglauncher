@@ -1,6 +1,8 @@
 use std::fs::DirEntry;
 
-pub fn walk_dir<F>(dirpath: &str, filter: Option<F>) -> anyhow::Result<Vec<DirEntry>>
+use chin_tools::AResult;
+
+pub fn walk_dir<F>(dirpath: &str, filter: Option<F>) -> AResult<Vec<DirEntry>>
 where
     F: Fn(&str) -> bool,
 {

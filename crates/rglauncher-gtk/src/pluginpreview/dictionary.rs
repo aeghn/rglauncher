@@ -1,6 +1,6 @@
 use super::PluginPreview;
 use rglcore::config::DictConfig;
-use rglcore::plugins::dictionary::DictResult;
+use rglcore::plugins::mdict::DictResult;
 
 use glib::object::Cast;
 use gtk::prelude::WidgetExt;
@@ -63,6 +63,6 @@ impl PluginPreview for DictPreview {
     }
 
     fn get_id(&self) -> &str {
-        rglcore::plugins::dictionary::TYPE_ID
+        rglcore::plugins::mdict::TYPE_ID
     }
 }

@@ -1,6 +1,6 @@
 use crate::iconcache;
 use crate::pluginpreview::PluginPreview;
-use rglcore::plugins::windows::WMWindowResult;
+use rglcore::plugins::win::WinResult;
 use rglcore::plugins::PluginResult;
 
 use glib::object::Cast;
@@ -17,7 +17,7 @@ pub struct WMWindowPreview {
 }
 
 impl PluginPreview for WMWindowPreview {
-    type PluginResult = WMWindowResult;
+    type PluginResult = WinResult;
 
     fn new() -> Self {
         let r#box = gtk::Box::builder()
@@ -89,13 +89,11 @@ impl PluginPreview for WMWindowPreview {
         self.title.set_text(plugin_result.title.as_str());
 
         self.workspace.set_label(&plugin_result.workspace);
-        if let Some(icon) = iconcache::get_icon(plugin_result.icon_name()) {
-            self.big_pic
-                .set_from_gicon(icon.get());
-        }
+        self.big_pic
+            .set_from_gicon(iconcache::get_icon(plugin_result.icon_name()).get());
     }
 
     fn get_id(&self) -> &str {
-        rglcore::plugins::windows::TYPE_ID
+        rglcore::plugins::win::TYPE_ID
     }
 }

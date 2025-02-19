@@ -1,4 +1,5 @@
 use arc_swap::ArcSwap;
+use chin_tools::AResult;
 use fragile::Fragile;
 use gio::{Icon, MemoryInputStream};
 
@@ -15,9 +16,12 @@ lazy_static! {
     static ref ICON_PATHS: ArcSwap<Vec<PathBuf>> = ArcSwap::new(Arc::new(Vec::new()));
     static ref ICON_MAP: ArcSwap<HashMap<smol_str::SmolStr, Option<Arc<Fragile<Icon>>>>> =
         ArcSwap::new(Arc::new(HashMap::new()));
+    static ref LOGO: Arc<Fragile<Icon>> = Arc::new(Fragile::new(Icon::from(
+        load_from_svg(include_str!("../../../data/logo.svg")).unwrap()
+    )));
 }
 
-fn load_from_svg(svg_data: &str) -> anyhow::Result<Pixbuf> {
+fn load_from_svg(svg_data: &str) -> AResult<Pixbuf> {
     let image_stream = MemoryInputStream::from_bytes(&Bytes::from(svg_data.as_bytes()));
 
     Ok(Pixbuf::from_stream_at_scale(
@@ -35,7 +39,15 @@ pub fn set_icon_dirs<T: AsRef<Path>>(paths: Vec<T>) {
     ICON_PATHS.store(Arc::new(paths));
 }
 
-pub fn get_icon(name: &str) -> Option<Arc<Fragile<Icon>>> {
+pub fn get_icon(name: &str) -> Arc<Fragile<Icon>> {
+    if let Some(icon) = get_icon_inner(name) {
+        icon
+    } else {
+        LOGO.clone()
+    }
+}
+
+fn get_icon_inner(name: &str) -> Option<Arc<Fragile<Icon>>> {
     if let Some(icon) = ICON_MAP.load().get(name) {
         icon.clone()
     } else {

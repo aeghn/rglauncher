@@ -9,7 +9,7 @@ pub struct CommonConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    pub db: Option<DatabaseConfig>,
+    pub db: DatabaseConfig,
     pub dict: Option<DictConfig>,
     pub ui: Option<UI>,
     pub common: CommonConfig,
@@ -27,7 +27,6 @@ pub struct DictConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct UI {
-    pub icon_theme: Option<String>,
     pub dark_mode: Option<bool>,
 }
 

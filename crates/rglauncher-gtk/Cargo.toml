@@ -17,21 +17,18 @@ flume = "0.11.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 chrono = "0.4.24"
 lazy_static = "1.4.0"
-futures = "0.3.28"
 
 rglcore = { path = "../rglauncher-core", optional = true }
 tracing = "0.1.40"
 anyhow = "1.0.75"
-once_cell = "1.19.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0.108", default_features = false, optional = true }
-async-broadcast = { workspace = true }
+serde_json = { version = "1.0.108", default-features = false, optional = true }
 arc-swap = "1.7.1"
 smol_str = "0.3.2"
+chin-tools = { path = "/home/chin/Projects/chin-tools" }
 
 [features]
 default = ["rglcore","wmwin", "calc"]
-mdict = ["webkit6", "rglcore?/mdict"]
+mdict = ["webkit6", "rglcore?/fmdict"]
 calc = ["rglcore?/calc"]
 wmwin = ["rglcore?/wmwin"]
 clip = ["rglcore?/clip"]

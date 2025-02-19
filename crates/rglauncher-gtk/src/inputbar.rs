@@ -1,8 +1,7 @@
 use flume::Sender;
 use gtk::prelude::EditableExt;
-use rglcore::userinput::UserInput;
+use rglcore::userinput::{Signal, UserInput};
 use rglcore::ResultMsg;
-use std::sync::Arc;
 
 use crate::window::WindowMsg;
 use glib::{ControlFlow, MainContext};
@@ -34,15 +33,20 @@ impl InputBar {
             .has_frame(false)
             .build();
 
+        let signal = Signal::new();
         {
             let result_tx = result_tx.clone();
+            let signal = signal.clone();
             entry.connect_changed(move |e| {
                 let text = e.text().to_string();
                 result_tx
-                    .send(ResultMsg::UserInput(Arc::new(UserInput::new(&text))))
-                    .expect("TODO: panic message");
+                    .send(ResultMsg::UserInput(UserInput::new(&text, &signal)))
+                    .expect("Unable to send user input");
             });
         }
+        result_tx
+            .send(ResultMsg::UserInput(UserInput::new("", &signal)))
+            .expect("Unable to send init message");
 
         {
             let result_tx = result_tx.clone();

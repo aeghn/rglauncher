@@ -14,7 +14,7 @@ pub struct Launcher {
     app: RGLApplication,
     pub config: Arc<Config>,
 
-    dispatcher_tx: async_broadcast::Sender<DispatchMsg>,
+    dispatcher_tx: flume::Sender<DispatchMsg>,
 
     pub launcher_tx: Sender<LauncherMsg>,
     launcher_rx: Receiver<LauncherMsg>,
@@ -33,22 +33,26 @@ impl Launcher {
         launcher_tx: &Sender<LauncherMsg>,
         launcher_rx: &Receiver<LauncherMsg>,
     ) -> Self {
-        let dispatcher_tx = PluginDispatcher::start(&config);
+        let (tx, rx) = flume::unbounded();
+        {
+            let config = config.clone();
+            MainContext::ref_thread_default().spawn_local(async move {
+                if let Err(err) = PluginDispatcher::spawn_blocking(&config, rx).await {
+                    tracing::error!("dispatcher failed: {err}");
+                }
+            });
+        }
 
         Launcher {
             app: application,
             config,
-
-            dispatcher_tx,
-
+            dispatcher_tx: tx,
             launcher_tx: launcher_tx.clone(),
             launcher_rx: launcher_rx.clone(),
         }
     }
 
     pub fn new_window(&self) {
-        // let win = window.clone();
-
         let launcher_rx = self.launcher_rx.clone();
         let launcher_tx = self.launcher_tx.clone();
         let dispatcher_tx = self.dispatcher_tx.clone();
@@ -68,8 +72,7 @@ impl Launcher {
                         LauncherMsg::Exit => {}
                         LauncherMsg::NewWindow => {
                             dispatcher_tx
-                                .broadcast(DispatchMsg::RefreshContent)
-                                .await
+                                .send(DispatchMsg::RefreshContent)
                                 .expect("unable to create new window");
                             RGWindow::setup_one(
                                 &app,

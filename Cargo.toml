@@ -5,7 +5,7 @@ members = ["crates/rglauncher-core", "crates/rglauncher-gtk", "vendor/mdict"]
 resolver = "2"
 
 [workspace.dependencies]
-async-broadcast = "0.7.0"
+chin-tools = { path = "/home/chin/Projects/chin-tools" }
 
 
 [profile.release]

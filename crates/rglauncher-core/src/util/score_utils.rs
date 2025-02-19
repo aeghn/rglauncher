@@ -3,23 +3,24 @@ const MID: i32 = 5000;
 const HIGH: i32 = 6000;
 const HIGHEST: i32 = 9000;
 
-
 fn limit_to(base: i32, size: i32, origin: i64) -> i32 {
     let scale = if origin <= 0 {
         0
     } else {
         let scale = origin.ilog2() as i32;
-        if scale < size {scale} else {size}
+        if scale < size {
+            scale
+        } else {
+            size
+        }
     };
 
-    return base + scale as i32;
+    return base + scale;
 }
 
-pub fn highest(origin: i16) -> i32 {
-    return HIGHEST + 1000 + origin as i32;
+pub fn highest(origin: i64) -> i32 {
+    limit_to(HIGHEST, 1000, origin)
 }
-
-
 
 pub fn high(origin: i64) -> i32 {
     limit_to(HIGH, 1000, origin)

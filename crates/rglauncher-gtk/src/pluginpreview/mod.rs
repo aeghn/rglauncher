@@ -8,22 +8,13 @@ use crate::pluginpreview::clipboard::ClipPreview;
 use crate::pluginpreview::dictionary::DictPreview;
 #[cfg(feature = "wmwin")]
 use crate::pluginpreview::windows::WMWindowPreview;
-use flume::{Receiver, Sender};
-use glib::{clone, MainContext};
+use flume::Receiver;
+use glib::MainContext;
 use gtk::pango::WrapMode::WordChar;
 use gtk::prelude::{GridExt, WidgetExt};
 use gtk::Align::Center;
 use rglcore::config::Config;
-use rglcore::plugins::application::AppResult;
-#[cfg(feature = "calc")]
-use rglcore::plugins::calculator::CalcResult;
-#[cfg(feature = "clip")]
-use rglcore::plugins::clipboard::ClipResult;
-#[cfg(feature = "mdict")]
-use rglcore::plugins::dictionary::DictResult;
-#[cfg(feature = "wmwin")]
-use rglcore::plugins::windows::WMWindowResult;
-use rglcore::plugins::PluginResult;
+use rglcore::plugins::{PRWrapper, PluginResult, PluginResultEnum};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -69,7 +60,7 @@ pub struct PluginPreviewBuilder {
 }
 
 impl PluginPreviewBuilder {
-    pub fn new(stack: &gtk::Stack, config: Arc<Config>) -> Self {
+    pub fn new(stack: &gtk::Stack, config: &Config) -> Self {
         let app_preview = AppPreview::new();
         #[cfg(feature = "mdict")]
         let dict_preview = DictPreview::new();
@@ -121,42 +112,20 @@ impl PluginPreviewBuilder {
         }
     }
 
-    pub fn set_preview(&self, opr: Option<&Arc<dyn PluginResult>>) -> Option<()> {
-        if let Some(plugin_result) = opr {
-            let result = plugin_result.as_any();
-
-            let preview_id = plugin_result.get_type_id();
-            match preview_id {
-                rglcore::plugins::application::TYPE_ID => {
-                    let result = result.downcast_ref::<AppResult>()?;
-                    self.app_preview.set_preview(result);
-                }
-                #[cfg(feature = "wmwin")]
-                rglcore::plugins::windows::TYPE_ID => {
-                    let result = result.downcast_ref::<WMWindowResult>()?;
-                    self.wind_preview.set_preview(result);
-                }
-
-                #[cfg(feature = "calc")]
-                rglcore::plugins::calculator::TYPE_ID => {
-                    let result = result.downcast_ref::<CalcResult>()?;
-                    self.calc_preview.set_preview(result);
-                }
-                #[cfg(feature = "clip")]
-                rglcore::plugins::clipboard::TYPE_ID => {
-                    let result = result.downcast_ref::<ClipResult>()?;
-                    self.clip_preview.set_preview(result);
-                }
+    pub fn set_preview(&self, pr: Option<&PluginResultEnum>) -> Option<()> {
+        if let Some(plugin_result) = pr {
+            match plugin_result {
                 #[cfg(feature = "mdict")]
-                rglcore::plugins::dictionary::TYPE_ID => {
-                    let result = result.downcast_ref::<DictResult>()?;
-                    self.dict_preview.set_preview(result);
-                }
-
-                _ => {}
+                PluginResultEnum::MDict(r) => self.dict_preview.set_preview(r),
+                PluginResultEnum::Calc(r) => self.calc_preview.set_preview(r),
+                PluginResultEnum::App(r) => self.app_preview.set_preview(r),
+                PluginResultEnum::Win(r) => self.wind_preview.set_preview(r),
+                #[cfg(feature = "clip")]
+                PluginResultEnum::Clip(r) => self.clip_preview.set_preview(r),
             };
 
-            self.stack.set_visible_child_name(preview_id);
+            self.stack
+                .set_visible_child_name(plugin_result.get_type_id());
         } else {
             self.stack.set_visible_child_name(DEFAULT_ID);
         }
@@ -194,20 +163,20 @@ fn get_seprator() -> gtk::Separator {
 }
 
 pub enum PreviewMsg {
-    PluginResult(Arc<dyn PluginResult>),
+    PluginResult(PRWrapper),
     Clear,
 }
 
 #[derive(Clone)]
 pub struct Preview {
-    pub preview_tx: Sender<PreviewMsg>,
     preview_rx: Receiver<PreviewMsg>,
 
     pub preview_window: gtk::Stack,
+    config: Arc<Config>,
 }
 
 impl Preview {
-    pub fn new(preview_tx: Sender<PreviewMsg>, preview_rx: Receiver<PreviewMsg>) -> Self {
+    pub fn new(preview_rx: Receiver<PreviewMsg>, config: Arc<Config>) -> Self {
         let preview_window = gtk::Stack::builder()
             .vexpand(true)
             .hexpand(true)
@@ -215,20 +184,20 @@ impl Preview {
             .build();
 
         Preview {
-            preview_tx,
             preview_rx,
             preview_window,
+            config,
         }
     }
 
-    pub fn loop_recv(&self, arguments: &Arc<Config>) {
+    pub fn loop_recv(&self) {
         let preview_window = self.preview_window.clone();
         let preview_rx = self.preview_rx.clone();
-        let arguments = arguments.clone();
+        let config = self.config.clone();
         MainContext::ref_thread_default().spawn_local(async move {
             let plugin_previews = Rc::new(RefCell::new(PluginPreviewBuilder::new(
                 &preview_window,
-                arguments,
+                &config,
             )));
             loop {
                 if let Ok(preview_msg) = preview_rx.recv_async().await {
@@ -237,9 +206,11 @@ impl Preview {
                         PreviewMsg::PluginResult(pr) => Some(pr),
                         PreviewMsg::Clear => None,
                     };
-                    glib::idle_add_local_once(clone!(@strong preview_window => move || {
-                        plugin_preview_builder.borrow().set_preview(opt_plugin_result.as_ref());
-                    }));
+                    glib::idle_add_local_once(move || {
+                        plugin_preview_builder
+                            .borrow()
+                            .set_preview(opt_plugin_result.as_ref().map(|v| &**v));
+                    });
                 }
             }
         });

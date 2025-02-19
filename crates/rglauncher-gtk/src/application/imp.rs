@@ -2,7 +2,7 @@ use crate::launcher::Launcher;
 use gio::ApplicationHoldGuard;
 use gtk::gdk::Display;
 use gtk::subclass::prelude::*;
-use gtk::{glib, style_context_add_provider_for_display, CssProvider, Settings};
+use gtk::{glib, style_context_add_provider_for_display, CssProvider};
 use std::cell::OnceCell;
 use tracing::info;
 
@@ -26,13 +26,6 @@ impl ApplicationImpl for RGLApplication {
         info!("Activating");
         self.parent_activate();
         if let Some(launcher) = self.launcher.borrow().get() {
-            let config = launcher.config.as_ref();
-
-            let settings = Settings::default().expect("Failed to create GTK settings.");
-            if let Some(Some(icon_theme)) = config.ui.as_ref().map(|ui| &ui.icon_theme) {
-                settings.set_gtk_icon_theme_name(Some(icon_theme.as_str()));
-            }
-
             launcher.new_window();
         }
     }

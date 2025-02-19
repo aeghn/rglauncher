@@ -12,7 +12,6 @@ use gtk::prelude::{BoxExt, EntryExt, GtkWindowExt, WidgetExt};
 use gtk::{gdk, ApplicationWindow};
 use rglcore::config::Config;
 use rglcore::dispatcher::DispatchMsg;
-use rglcore::userinput::UserInput;
 use rglcore::ResultMsg;
 use std::sync::Arc;
 
@@ -35,8 +34,8 @@ pub struct RGWindow {
 impl RGWindow {
     pub fn new(
         app: &RGLApplication,
-        arguments: Arc<Config>,
-        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
+        config: Arc<Config>,
+        dispatch_tx: &flume::Sender<DispatchMsg>,
         launcher_tx: &Sender<LauncherMsg>,
     ) -> Self {
         let (sidebar_tx, sidebar_rx) = flume::unbounded();
@@ -84,16 +83,12 @@ impl RGWindow {
 
         sidebar.loop_recv();
 
-        let preview = Preview::new(preview_tx, preview_rx);
+        let preview = Preview::new(preview_rx, config);
         main_box.append(&preview.preview_window.clone());
 
-        preview.loop_recv(&arguments);
+        preview.loop_recv();
 
         window.present();
-
-        result_tx
-            .send(ResultMsg::UserInput(Arc::new(UserInput::new(""))))
-            .expect("unable to submit initial input");
 
         Self {
             window,
@@ -133,28 +128,38 @@ impl RGWindow {
         let window_tx = self.window_tx.clone();
         let window = &self.window;
 
-        controller.connect_key_pressed(
-            clone!(@strong window, @strong entry => move |_, key, _keycode, _| {
-            match key {
-                gdk::Key::Up => {
+        controller.connect_key_pressed(clone!(
+            #[strong]
+            entry,
+            move |_, key, _keycode, _| {
+                match key {
+                    gdk::Key::Up => {
                         sidebar_tx.send(SidebarMsg::PreviousItem).unwrap();
                         glib::Propagation::Stop
                     }
-                gdk::Key::Down => {
+                    gdk::Key::Down => {
                         sidebar_tx.send(SidebarMsg::NextItem).unwrap();
                         glib::Propagation::Stop
                     }
-                gdk::Key::Escape => {
-                            window_tx.send(WindowMsg::Close).expect("unable to close window");
+                    gdk::Key::Escape => {
+                        window_tx
+                            .send(WindowMsg::Close)
+                            .expect("unable to close window");
                         glib::Propagation::Stop
                     }
-                gdk::Key::Return => {
-                        result_tx.send(ResultMsg::SelectSomething).expect("select something");
-                        inputbar_tx.send(InputMessage::Clear).expect("unable to clear");
-                        window_tx.send(WindowMsg::Close).expect("unable to close window");
+                    gdk::Key::Return => {
+                        result_tx
+                            .send(ResultMsg::SelectSomething)
+                            .expect("select something");
+                        inputbar_tx
+                            .send(InputMessage::Clear)
+                            .expect("unable to clear");
+                        window_tx
+                            .send(WindowMsg::Close)
+                            .expect("unable to close window");
                         glib::Propagation::Proceed
                     }
-                _ => {
+                    _ => {
                         if !(key.is_lower() && key.is_upper()) {
                             if let Some(key_name) = key.name() {
                                 let buffer = entry.buffer();
@@ -167,15 +172,15 @@ impl RGWindow {
                         glib::Propagation::Proceed
                     }
                 }
-            }),
-        );
+            }
+        ));
         window.add_controller(controller);
     }
 
     pub fn setup_one(
         app: &RGLApplication,
         arguments: Arc<Config>,
-        dispatch_tx: &async_broadcast::Sender<DispatchMsg>,
+        dispatch_tx: &flume::Sender<DispatchMsg>,
         launcher_tx: &Sender<LauncherMsg>,
     ) {
         let window = Self::new(app, arguments, dispatch_tx, launcher_tx);
