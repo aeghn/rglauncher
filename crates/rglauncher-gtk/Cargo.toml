@@ -24,7 +24,7 @@ anyhow = "1.0.75"
 serde_json = { version = "1.0.108", default-features = false, optional = true }
 arc-swap = "1.7.1"
 smol_str = "0.3.2"
-chin-tools = { path = "/home/chin/Projects/chin-tools" }
+chin-tools = { workspace = true }
 
 [features]
 default = ["rglcore","wmwin", "calc"]

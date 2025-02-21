@@ -110,12 +110,13 @@ impl AppPlugin {
     }
 
     fn read_applications() -> Vec<AppResult> {
+        let locale = sys_locale::get_locale().map_or(vec![], |e| vec![e]);
         freedesktop_desktop_entry::Iter::new(freedesktop_desktop_entry::default_paths())
             .into_iter()
             .filter_map(|path| {
                 if let Ok(Ok(entry)) = std::fs::read_to_string(&path)
                     .as_ref()
-                    .map(|bytes| DesktopEntry::decode(&path, bytes))
+                    .map(|bytes| DesktopEntry::from_str(&path, bytes, Some(&locale)))
                 {
                     if entry.no_display() {
                         return None;
@@ -124,8 +125,8 @@ impl AppPlugin {
                     return Some(AppResult {
                         id: entry.id().into(),
                         icon_name: entry.icon().unwrap_or_default().into(),
-                        app_name: entry.name(None).unwrap_or_default().as_ref().into(),
-                        app_desc: entry.comment(None).unwrap_or_default().as_ref().into(),
+                        app_name: entry.name(&locale).unwrap_or_default().as_ref().into(),
+                        app_desc: entry.comment(&locale).unwrap_or_default().as_ref().into(),
                         exec: entry.exec()?.into(),
                         desktop_path: path.to_str()?.to_owned().into(),
                         terminal: entry.terminal(),

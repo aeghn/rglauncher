@@ -13,7 +13,6 @@ flume = "0.11.0"
 tracing = "0.1.37"
 
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-tracing-tree = "0.3.0"
 rusqlite = { version = "0.33.0", features = ["bundled", "chrono"] }
 chrono = { version = "0.4.31", features = ["serde"] }
 
@@ -26,7 +25,7 @@ toml = "0.8.12"
 anyhow = "1.0.82"
 
 # for the App plugin
-freedesktop-desktop-entry = "0.5.0"
+freedesktop-desktop-entry = "0.7.7"
 libc = "0.2.153"
 
 # for the Calc Plugin
@@ -38,10 +37,11 @@ arboard = { version = "3.3.0", default-features = false, features = [
 ], optional = true }
 
 chin-tools = { workspace = true }
-arc-swap = "*"
+arc-swap = "1.7.1"
 
 mdict = { path = "../../vendor/mdict", optional = true }
 futures = { version = "0.3.31", features = ["thread-pool"], default-features = false}
+sys-locale = "0.3.2"
 
 [features]
 default = ["wmwin", "calc"]
