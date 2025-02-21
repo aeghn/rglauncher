@@ -1,3 +1,6 @@
+use crate::dispatcher::CONNECTION;
+use crate::impl_history;
+use crate::plugins::history::{HistoryDb, HistoryItem};
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 use arc_swap::ArcSwap;
@@ -16,6 +19,8 @@ use std::process::{Command, Stdio};
 use tracing::{error, info};
 
 use crate::util::score_utils;
+
+use super::history::HistoryCache;
 
 #[derive(Clone)]
 pub enum AppReq {}
@@ -93,6 +98,7 @@ impl PluginResult for AppResult {
 
 pub struct AppPlugin {
     applications: ArcSwap<Vec<AppResult>>,
+    history: HistoryCache<AppResult>,
     matcher: SkimMatcherV2,
 }
 
@@ -103,9 +109,13 @@ impl AppPlugin {
 
         let applications = ArcSwap::new(Self::read_applications().into());
 
+        let histories: Vec<HistoryItem<AppResult>> =
+            CONNECTION.with_borrow(|e| HistoryDb::new(e.as_ref()).fetch_histories(TYPE_ID))?;
+
         Ok(AppPlugin {
             applications,
             matcher,
+            history: HistoryCache::new(histories),
         })
     }
 
@@ -145,7 +155,14 @@ impl Plugin for AppPlugin {
     type T = AppReq;
 
     fn refresh_content(&self) {
-        let applications = Self::read_applications().into();
+        let applications: std::sync::Arc<Vec<AppResult>> = Self::read_applications().into();
+        let _ = CONNECTION.with_borrow(|conn| {
+            let ho = HistoryDb::new(conn.as_ref());
+            self.history.remove_unvalid(
+                |k, _| applications.iter().find(|w| w.get_id() == k.as_str()).is_none(),
+                ho,
+            )
+        });
         self.applications.store(applications);
     }
 
@@ -176,6 +193,8 @@ impl Plugin for AppPlugin {
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
     }
+
+impl_history!();
 }
 
 //https://github.com/alacritty/alacritty/blob/f7811548ae9cabb1122f43b42fec4d660318bc96/alacritty/src/daemon.rs#L28

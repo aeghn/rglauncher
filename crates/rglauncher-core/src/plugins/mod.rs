@@ -13,15 +13,15 @@ use std::ops::Deref;
 
 use app::AppPlugin;
 use calc::CalcPlugin;
-use chin_tools::AResult;
+use chin_tools::{AResult, EResult};
 #[cfg(feature = "clip")]
 use clip::ClipPlugin;
+use history::HistoryItem;
 #[cfg(feature = "fmdict")]
 use mdict::DictPlugin;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use win::WinPlugin;
 
-use crate::plugins::app::{AppReq, AppResult};
 #[cfg(feature = "calc")]
 use crate::plugins::calc::{CalcReq, CalcResult};
 #[cfg(feature = "clip")]
@@ -30,6 +30,7 @@ use crate::plugins::clip::{ClipReq, ClipResult};
 use crate::plugins::mdict::{DictMsg, DictResult};
 #[cfg(feature = "wmwin")]
 use crate::plugins::win::{WinResult, WindowMsg};
+use crate::plugins::app::{AppReq, AppResult};
 
 use crate::userinput::UserInput;
 
@@ -44,6 +45,10 @@ pub trait Plugin: Send + Sync {
     fn handle_input(&self, user_input: &UserInput) -> AResult<Vec<(Self::R, i32)>>;
 
     fn get_type_id(&self) -> &'static str;
+
+    fn add_history(&self, item: HistoryItem<Self::R>) -> EResult;
+
+    fn get_history<'a>(&self) -> Vec<HistoryItem<Self::R>>;
 }
 
 pub enum PluginEnum {
@@ -74,6 +79,27 @@ macro_rules! pimpl {
     }};
 }
 
+#[macro_export]
+macro_rules! impl_history {
+    () => {
+        fn add_history(&self, item: HistoryItem<Self::R>) -> chin_tools::EResult {
+            CONNECTION.with_borrow(|conn| {
+                self.history
+                    .add_history(item, HistoryDb::new(conn.as_ref()))
+            })
+        }
+
+        fn get_history<'a>(&self) -> Vec<HistoryItem<Self::R>> {
+            self.history
+                .histories
+                .load()
+                .iter()
+                .map(|(_, t)| t.clone())
+                .collect()
+        }
+    };
+}
+
 impl Plugin for PluginEnum {
     type R = PluginResultEnum;
 
@@ -91,6 +117,54 @@ impl Plugin for PluginEnum {
 
     fn get_type_id(&self) -> &'static str {
         pimpl!(self, get_type_id())
+    }
+
+    fn add_history(&self, item: HistoryItem<Self::R>) -> EResult {
+        match self {
+            PluginEnum::App(plugin) => {
+                if let PluginResultEnum::App(r) = item.body {
+                    let _ =plugin.add_history(HistoryItem {
+                        body: r,
+                        id: item.id,
+                        plugin_type: item.plugin_type,
+                        weight: item.weight,
+                        update_time: item.update_time,
+                    });
+                }
+            }
+            PluginEnum::Calc(plugin) => {
+                if let PluginResultEnum::Calc(r) = item.body {
+                    let _ = plugin.add_history(HistoryItem {
+                        body: r,
+                        id: item.id,
+                        plugin_type: item.plugin_type,
+                        weight: item.weight,
+                        update_time: item.update_time,
+                    });
+                }
+            }
+            PluginEnum::Win(plugin) => {
+                if let PluginResultEnum::Win(r) = item.body {
+                    let _ = plugin.add_history(HistoryItem {
+                        body: r,
+                        id: item.id,
+                        plugin_type: item.plugin_type,
+                        weight: item.weight,
+                        update_time: item.update_time,
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_history<'a>(&self) -> Vec<HistoryItem<Self::R>> {
+        match self {
+            PluginEnum::App(p) => p.get_history().into_iter().map(|e| e.into()).collect(),
+            PluginEnum::Calc(p) => p.get_history().into_iter().map(|e| e.into()).collect(),
+            PluginEnum::Win(p) => p.get_history().into_iter().map(|e| e.into()).collect(),
+        }
     }
 }
 
@@ -134,6 +208,32 @@ pub enum PluginResultEnum {
     #[cfg(feature = "clip")]
     Clip(ClipResult),
 }
+
+macro_rules! plugin_box {
+    ($inner:tt, $one:tt) => {
+        impl Into<PluginResultEnum> for $inner {
+            fn into(self) -> PluginResultEnum {
+                PluginResultEnum::$one(self)
+            }
+        }
+
+        impl Into<HistoryItem<PluginResultEnum>> for HistoryItem<$inner> {
+            fn into(self) -> HistoryItem<PluginResultEnum> {
+                HistoryItem {
+                    body: self.body.into(),
+                    id: self.id,
+                    plugin_type: self.plugin_type,
+                    weight: self.weight,
+                    update_time: self.update_time,
+                }
+            }
+        }
+    };
+}
+
+plugin_box!(AppResult, App);
+plugin_box!(CalcResult, Calc);
+plugin_box!(WinResult, Win);
 
 #[derive(Clone)]
 pub struct PRWrapper {

@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use plugins::PRWrapper;
-use userinput::UserInput;
+use userinput::{Signal, UserInput};
 
 pub mod config;
 pub mod dispatcher;
@@ -10,9 +8,8 @@ pub mod userinput;
 pub mod util;
 
 pub enum ResultMsg {
-    Result(Arc<UserInput>, Vec<PRWrapper>),
+    Result(Signal, Vec<PRWrapper>),
     UserInput(UserInput),
-    RemoveWindow,
     ChangeSelect(u32),
     SelectSomething,
 }

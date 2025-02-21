@@ -5,12 +5,12 @@ mod iconcache;
 mod inputbar;
 mod launcher;
 mod pluginpreview;
-mod resulthandler;
+pub mod resulthandler;
 mod sidebar;
 mod sidebarrow;
 mod window;
 
-use chin_tools::AResult;
+use chin_tools::{AResult, EResult};
 use clap::Parser;
 use rglcore::config::Config;
 use std::io::{Read, Write};
@@ -25,7 +25,7 @@ use crate::launcher::LauncherMsg;
 use flume::Sender;
 use std::os::unix::net::{UnixListener, UnixStream};
 
-pub fn daemon() {
+pub fn daemon() -> EResult {
     tracing_subscriber::fmt()
         .with_max_level(Level::INFO)
         .with_thread_ids(true)
@@ -45,13 +45,15 @@ pub fn daemon() {
     let config = Arc::new(Config::read_from_toml_file(arguments.config_file.as_ref()));
     iconcache::set_icon_dirs(config.common.icon_paths.clone());
 
-    let launcher = launcher::Launcher::new(app.clone(), config, &launcher_tx, &launcher_rx);
+    let launcher = launcher::Launcher::spawn(app.clone(), config, &launcher_tx, &launcher_rx)?;
 
     app.set_launcher(launcher);
     app.set_hold();
 
     let empty_args: Vec<String> = vec![];
     app.run_with_args(&empty_args);
+
+    Ok(())
 }
 
 fn build_uds(app_msg_tx: &Sender<LauncherMsg>) -> AResult<()> {
@@ -83,19 +85,15 @@ fn build_uds(app_msg_tx: &Sender<LauncherMsg>) -> AResult<()> {
     }
 }
 
-pub fn try_communicate() -> AResult<bool> {
+fn main() -> EResult {
     match UnixStream::connect(constants::UNIX_SOCKET_PATH) {
         Ok(mut stream) => {
             stream.write_all("new_window".as_bytes())?;
-            Ok(true)
         }
         Err(_) => {
-            daemon();
-            Ok(true)
+            daemon()?;
         }
     }
-}
 
-fn main() {
-    try_communicate().expect("unable to communicate");
+    Ok(())
 }

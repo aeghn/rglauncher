@@ -40,7 +40,7 @@ impl Signal {
 #[derive(Clone, Debug)]
 pub struct UserInput {
     pub input: SharedStr,
-    signal: Signal,
+    pub signal: Signal,
 }
 
 impl PartialEq for UserInput {
@@ -59,12 +59,16 @@ impl UserInput {
         }
     }
 
+    #[inline]
     pub fn cancelled(&self) -> bool {
         !self.signal.valid()
     }
 
+    #[inline]
     pub fn cancel(&self) {
-        self.signal.deal();
+        if !self.cancelled() {
+            self.signal.deal();
+        }
     }
 }
 

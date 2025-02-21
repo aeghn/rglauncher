@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::application::RGLApplication;
 use crate::window::RGWindow;
+use chin_tools::AResult;
 use flume::{Receiver, Sender};
 use glib::MainContext;
 use rglcore::{
@@ -27,29 +28,28 @@ pub enum LauncherMsg {
 }
 
 impl Launcher {
-    pub fn new(
+    pub fn spawn(
         application: RGLApplication,
         config: Arc<Config>,
         launcher_tx: &Sender<LauncherMsg>,
         launcher_rx: &Receiver<LauncherMsg>,
-    ) -> Self {
-        let (tx, rx) = flume::unbounded();
-        {
-            let config = config.clone();
-            MainContext::ref_thread_default().spawn_local(async move {
-                if let Err(err) = PluginDispatcher::spawn_blocking(&config, rx).await {
-                    tracing::error!("dispatcher failed: {err}");
-                }
-            });
-        }
+    ) -> AResult<Self> {
+        let dispathcer = PluginDispatcher::new(&config)?;
+        let dispatcher_tx = dispathcer.tx.clone();
 
-        Launcher {
+        MainContext::ref_thread_default().spawn_local(async move {
+            if let Err(err) = dispathcer.spawn_blocking().await {
+                tracing::error!("dispatcher failed: {err}");
+            }
+        });
+
+        Ok(Launcher {
             app: application,
             config,
-            dispatcher_tx: tx,
+            dispatcher_tx,
             launcher_tx: launcher_tx.clone(),
             launcher_rx: launcher_rx.clone(),
-        }
+        })
     }
 
     pub fn new_window(&self) {

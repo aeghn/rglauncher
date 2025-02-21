@@ -1,23 +1,16 @@
 use crate::launcher::LauncherMsg;
 use crate::pluginpreview::PreviewMsg;
 use crate::sidebar::SidebarMsg;
-use chin_tools::SharedStr;
 use flume::{Receiver, Sender};
 use rglcore::dispatcher::DispatchMsg;
 use rglcore::plugins::{PRWrapper, PluginResult};
-use rglcore::userinput::UserInput;
+use rglcore::userinput::Signal;
 use rglcore::ResultMsg;
-use std::collections::HashSet;
 use std::thread;
 use std::time::{Duration, Instant};
 use tracing::{debug, error};
 
 pub struct ResultHolder {
-    user_input: Option<UserInput>,
-    current_index: Option<u32>,
-    result_holder: Vec<PRWrapper>,
-    result_id_set: HashSet<SharedStr>,
-
     pub result_tx: Sender<ResultMsg>,
     result_rx: Receiver<ResultMsg>,
 
@@ -27,6 +20,8 @@ pub struct ResultHolder {
     sidebar_tx: Sender<SidebarMsg>,
     preview_tx: Sender<PreviewMsg>,
 
+    current_index: Option<u32>,
+    signal_and_results: Option<(Signal, Vec<PRWrapper>)>,
     last: Instant,
 }
 
@@ -40,10 +35,7 @@ impl ResultHolder {
         let (result_tx, result_rx) = flume::unbounded();
 
         Self {
-            user_input: None,
             current_index: None,
-            result_holder: vec![],
-            result_id_set: HashSet::new(),
 
             result_tx,
             result_rx,
@@ -52,25 +44,28 @@ impl ResultHolder {
             sidebar_tx: sidebar_tx.clone(),
             preview_tx: preview_tx.clone(),
             last: Instant::now(),
+            signal_and_results: None,
         }
     }
 
     fn send_to_sidebar(&mut self) {
-        self.result_holder.sort_by(|e1, e2| e2.score.cmp(&e1.score));
-        let holder = self.result_holder.clone();
+        let holder = if let Some((_, holder)) = self.signal_and_results.as_mut() {
+            let holder = holder.clone();
+            self.last = Instant::now();
+            holder
+        } else {
+            vec![]
+        };
 
-        let holder_size = holder.len();
-        self.sidebar_tx
-            .send(SidebarMsg::Result(holder))
-            .expect("unable to send result to sidebar");
-
-        if holder_size == 0 {
+        if holder.is_empty() {
             self.preview_tx
                 .send(PreviewMsg::Clear)
                 .expect("unable to clear preview");
         }
 
-        self.last = Instant::now();
+        self.sidebar_tx
+            .send(SidebarMsg::Result(holder))
+            .expect("unable to send result to sidebar");
     }
 
     fn accept_messages(&mut self) {
@@ -83,29 +78,20 @@ impl ResultHolder {
                 .recv_timeout(Duration::from_millis(next_sleep_time))
             {
                 Ok(msg) => match msg {
-                    ResultMsg::Result(input, results) => match self.user_input.as_ref() {
-                        None => {}
-                        Some(user_input) => {
-                            if user_input == input.as_ref() {
-                                results.into_iter().for_each(|m| {
-                                    if self.result_id_set.insert(m.get_id().into()) {
-                                        self.result_holder.push(m);
-                                    }
-                                });
+                    ResultMsg::Result(input, extends) => {
+                        if input.valid() {
+                            if let Some((_, results)) = self.signal_and_results.as_mut() {
+                                results.extend(extends);
+                                results.sort_by(|e1, e2| e2.score.cmp(&e1.score));
                                 received_something = true;
                                 next_sleep_time = 50;
                             }
                         }
-                    },
+                    }
                     ResultMsg::UserInput(input) => {
-                        if let Some(old_input) = self.user_input.replace(input.clone()) {
-                            if !old_input.cancelled() {
-                                old_input.cancel();
-                            }
-                            self.current_index.take();
-                            self.result_holder.clear();
-                            self.result_id_set.clear();
-                        }
+                        self.signal_and_results
+                            .replace((input.signal.clone(), vec![]));
+                        self.current_index.take();
                         debug!("Send message to dispatcher: {:?}", input.input);
                         match self
                             .dispatch_tx
@@ -120,12 +106,10 @@ impl ResultHolder {
                             }
                         }
                     }
-
-                    ResultMsg::RemoveWindow => {}
                     ResultMsg::ChangeSelect(item) => {
                         self.current_index.replace(item.clone());
-                        match self.result_holder.get(item as usize) {
-                            Some(pr) => {
+                        match self.signal_and_results.as_ref().map(|(_, r)| r.get(item as usize)) {
+                            Some(Some(pr)) => {
                                 self.preview_tx
                                     .send(PreviewMsg::PluginResult(pr.clone()))
                                     .expect("unable to send preview msg");
@@ -135,8 +119,10 @@ impl ResultHolder {
                     }
                     ResultMsg::SelectSomething => match self.current_index.clone() {
                         None => {}
-                        Some(id) => match self.result_holder.get(id as usize) {
-                            Some(pr) => {
+                        Some(id) => {
+                            if let Some(Some(pr)) =
+                                self.signal_and_results.as_ref().map(|(_, r)| r.get(id as usize))
+                            {
                                 pr.on_enter();
                                 self.launcher_tx
                                     .send(LauncherMsg::SelectSomething)
@@ -145,8 +131,7 @@ impl ResultHolder {
                                     .send(DispatchMsg::SetHistory(pr.clone()))
                                     .expect("unable to set history");
                             }
-                            _ => {}
-                        },
+                        }
                     },
                 },
                 Err(_ex) => {

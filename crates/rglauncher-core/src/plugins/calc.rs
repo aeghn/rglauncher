@@ -1,3 +1,6 @@
+use crate::dispatcher::CONNECTION;
+use crate::impl_history;
+use crate::plugins::history::{HistoryDb, HistoryItem};
 use crate::plugins::{Plugin, PluginResult};
 use crate::userinput::UserInput;
 
@@ -5,6 +8,8 @@ use crate::util::score_utils;
 use chin_tools::{AResult, SharedStr};
 use serde::{Deserialize, Serialize};
 use tracing::info;
+
+use super::history::HistoryCache;
 
 pub const TYPE_ID: &str = "calc";
 
@@ -45,13 +50,20 @@ impl PluginResult for CalcResult {
     }
 }
 
-pub struct CalcPlugin;
+pub struct CalcPlugin {
+    history: HistoryCache<CalcResult>
+}
 
 impl CalcPlugin {
     pub fn new() -> AResult<Self> {
         info!("Creating Calc Plugin");
 
-        Ok(CalcPlugin {})
+        let histories: Vec<HistoryItem<CalcResult>> =
+        CONNECTION.with_borrow(|e| HistoryDb::new(e.as_ref()).fetch_histories(TYPE_ID))?;
+
+        Ok(CalcPlugin {
+            history: HistoryCache::new(histories)
+        })
     }
 }
 
@@ -85,4 +97,6 @@ impl Plugin for CalcPlugin {
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
     }
+
+    impl_history!();
 }

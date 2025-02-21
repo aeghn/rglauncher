@@ -4,7 +4,7 @@ use crate::plugins::app::AppPlugin;
 use crate::plugins::calc::CalcPlugin;
 #[cfg(feature = "clip")]
 use crate::plugins::clip::{ClipPlugin, ClipReq};
-use crate::plugins::history::{HistoryItem, HistoryPlugin};
+use crate::plugins::history::{HistoryDb, HistoryItem};
 #[cfg(feature = "mdict")]
 use crate::plugins::mdict::{DictMsg, DictPlugin};
 #[cfg(feature = "wmwin")]
@@ -14,16 +14,14 @@ use crate::userinput::UserInput;
 use crate::ResultMsg;
 use arc_swap::ArcSwapOption;
 use chin_tools::{AResult, EResult};
-use chrono::NaiveDateTime;
-use flume::Sender;
+use chrono::{NaiveDateTime, Utc};
+use flume::{Receiver, Sender};
 use futures::executor::ThreadPool;
 use futures::task::SpawnExt;
 use lazy_static::lazy_static;
 use rusqlite::Connection;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::{error, info};
 
 lazy_static! {
     static ref CONFIG: ArcSwapOption<Config> = ArcSwapOption::empty();
@@ -37,7 +35,7 @@ pub fn db_init() {
     CONNECTION.with_borrow_mut(|con| {
         let conn = Connection::open(&CONFIG.load().as_ref().unwrap().db.db_path).unwrap();
 
-        let history = history::HistoryPlugin::new(Some(&conn));
+        let history = history::HistoryDb::new(Some(&conn));
         history.try_create_table().unwrap();
 
         con.replace(conn);
@@ -53,6 +51,9 @@ pub enum DispatchMsg {
 }
 
 pub struct PluginDispatcher {
+    pub tx: Sender<DispatchMsg>,
+    rx: Receiver<DispatchMsg>,
+
     app: Arc<AppPlugin>,
     win: Arc<WinPlugin>,
     calc: Arc<CalcPlugin>,
@@ -65,33 +66,47 @@ pub struct PluginDispatcher {
 macro_rules! handle_input {
     ($user_input_arc:expr, $plugin:expr, $executor:expr, $sender:expr ) => {{
         let user_input = $user_input_arc.clone();
-        let sender = $sender.clone();
-        let plugin = $plugin.clone();
-        if let Err(err) = $executor.spawn(async move {
-            match plugin.handle_input(&user_input) {
-                Ok(result) => {
-                    if user_input.cancelled() {
-                        tracing::info!("cancelled");
-                        return;
+        if user_input.input.is_empty() {
+            $sender
+                .send_async(ResultMsg::Result(
+                    user_input.signal.clone(),
+                    $plugin
+                        .get_history()
+                        .into_iter()
+                        .map(|item| (item.body, item.weight as i32).into())
+                        .collect(),
+                ))
+                .await
+                .unwrap();
+        } else {
+            let sender = $sender.clone();
+            let plugin = $plugin.clone();
+            if let Err(err) = $executor.spawn(async move {
+                match plugin.handle_input(&user_input) {
+                    Ok(result) => {
+                        if user_input.cancelled() {
+                            tracing::info!("cancelled");
+                            return;
+                        }
+                        sender
+                            .send_async(ResultMsg::Result(
+                                user_input.signal.clone(),
+                                result.into_iter().map(|e| e.into()).collect(),
+                            ))
+                            .await
+                            .unwrap();
                     }
-                    sender
-                        .send_async(ResultMsg::Result(
-                            user_input,
-                            result.into_iter().map(|e| e.into()).collect(),
-                        ))
-                        .await
-                        .unwrap();
+                    Err(err) => {
+                        tracing::error!(
+                            "unable to handle input: {} -- {}",
+                            plugin.get_type_id(),
+                            err
+                        );
+                    }
                 }
-                Err(err) => {
-                    tracing::error!(
-                        "unable to handle input: {} -- {}",
-                        plugin.get_type_id(),
-                        err
-                    );
-                }
+            }) {
+                tracing::error!("unable to spawn: {}", err);
             }
-        }) {
-            tracing::error!("unable to spawn: {}", err);
         }
     }};
 }
@@ -106,7 +121,12 @@ macro_rules! handle_refresh {
 }
 
 impl PluginDispatcher {
-    fn new(config: &Arc<Config>) -> AResult<PluginDispatcher> {
+    pub fn new(config: &Arc<Config>) -> AResult<PluginDispatcher> {
+        let (tx, rx) = flume::unbounded();
+
+        CONFIG.store(Some(config.clone()));
+        db_init();
+
         let app = AppPlugin::new()?.into();
         let win = WinPlugin::new()?.into();
         #[cfg(feature = "clip")]
@@ -123,24 +143,12 @@ impl PluginDispatcher {
             calc,
             #[cfg(feature = "fmdict")]
             dict,
+            tx,
+            rx,
         })
     }
 
-    pub async fn spawn_blocking(config: &Arc<Config>, rx: flume::Receiver<DispatchMsg>) -> EResult {
-        CONFIG.store(Some(config.clone()));
-
-        let mut histories: HashMap<String, HistoryItem<crate::plugins::PluginResultEnum>> =
-            HashMap::new();
-
-        let dispatcher_arc = Arc::new(PluginDispatcher::new(&config)?);
-        db_init();
-
-        CONNECTION.with_borrow(|e| {
-            if let Ok(historie_recs) = HistoryPlugin::new(e.as_ref()).fetch_histories() {
-                histories.extend(historie_recs.into_iter().map(|h| (h.id.clone(), h)));
-            }
-        });
-
+    pub async fn spawn_blocking(&self) -> EResult {
         let executor = ThreadPool::builder()
             .after_start(move |_| {
                 db_init();
@@ -149,75 +157,65 @@ impl PluginDispatcher {
             .create()?;
 
         loop {
-            match rx.recv_async().await? {
+            match self.rx.recv_async().await? {
                 DispatchMsg::UserInput(user_input, sender) => {
-                    if user_input.input.trim().is_empty() {
-                        let result = histories
-                            .values()
-                            .into_iter()
-                            .map(|e| (e.body.clone(), e.weight as i32).into())
-                            .collect();
-                        sender
-                            .send(ResultMsg::Result(user_input, result))
-                            .expect("unable to send back history");
-                        info!("send back history {}", histories.len());
-                        continue;
-                    }
-
                     let user_input_arc: Arc<UserInput> = user_input;
 
-                    handle_input!(user_input_arc, dispatcher_arc.app, executor, sender);
-                    handle_input!(user_input_arc, dispatcher_arc.win, executor, sender);
-                    handle_input!(user_input_arc, dispatcher_arc.calc, executor, sender);
+                    handle_input!(user_input_arc, self.app, executor, sender);
+                    handle_input!(user_input_arc, self.win, executor, sender);
+                    handle_input!(user_input_arc, self.calc, executor, sender);
                     #[cfg(feature = "clip")]
-                    handle_input!(user_input_arc, dispatcher_arc.clip, executor, sender);
+                    handle_input!(user_input_arc, self.clip, executor, sender);
                     #[cfg(feature = "fmdict")]
-                    handle_input!(user_input_arc, dispatcher_arc.dict, executor, sender);
+                    handle_input!(user_input_arc, self.dict, executor, sender);
                 }
                 DispatchMsg::RefreshContent => {
-                    handle_refresh!(executor, dispatcher_arc.app);
-                    handle_refresh!(executor, dispatcher_arc.win);
-                    handle_refresh!(executor, dispatcher_arc.calc);
+                    handle_refresh!(executor, self.app);
+                    handle_refresh!(executor, self.win);
+                    handle_refresh!(executor, self.calc);
 
                     #[cfg(feature = "clip")]
                     {
-                        handle_refresh!(dispatcher_arc.clip);
+                        handle_refresh!(self.clip);
                     }
 
                     #[cfg(feature = "fmdict")]
                     {
-                        handle_refresh!(dispatcher_arc.dict);
+                        handle_refresh!(self.dict);
                     }
                 }
                 DispatchMsg::SetHistory(prwrapper) => {
-                    let history_id = HistoryPlugin::get_id(&prwrapper.body);
-                    let history = histories.remove(&history_id);
-                    let history = if let Some(history) = history {
-                        HistoryItem {
-                            weight: history.weight + 1.,
-                            update_time: NaiveDateTime::default(),
-                            ..history
-                        }
-                    } else {
-                        HistoryItem {
-                            id: history_id.clone(),
-                            plugin_type: prwrapper.body.get_type_id().into(),
-                            body: prwrapper.body,
-                            weight: 1.,
-                            update_time: NaiveDateTime::default(),
-                        }
-                    };
+                    let history_id = HistoryDb::get_id(&prwrapper.body);
 
-                    {
-                        let history = history.clone();
-                        CONNECTION.with_borrow(|e| {
-                            let history_plg = HistoryPlugin::new(e.as_ref());
-                            if let Err(err) = history_plg.update_or_insert(&history) {
-                                error!("unable to insert history, {}", err);
-                            }
-                        })
+                    match prwrapper.body {
+                        crate::plugins::PluginResultEnum::Calc(body) => {
+                            let _ = self.calc.add_history(HistoryItem {
+                                id: history_id,
+                                plugin_type: body.get_type_id().into(),
+                                body: body,
+                                weight: 1.,
+                                update_time: Utc::now().naive_utc(),
+                            });
+                        }
+                        crate::plugins::PluginResultEnum::Win(body) => {
+                            let _ = self.win.add_history(HistoryItem {
+                                id: history_id,
+                                plugin_type: body.get_type_id().into(),
+                                body: body,
+                                weight: 1.,
+                                update_time: Utc::now().naive_utc(),
+                            });
+                        }
+                        crate::plugins::PluginResultEnum::App(body) => {
+                            let _ = self.app.add_history(HistoryItem {
+                                id: history_id,
+                                plugin_type: body.get_type_id().into(),
+                                body: body,
+                                weight: 1.,
+                                update_time: Utc::now().naive_utc(),
+                            });
+                        }
                     }
-                    histories.insert(history_id, history);
                 }
                 DispatchMsg::PluginMsg => {}
             }

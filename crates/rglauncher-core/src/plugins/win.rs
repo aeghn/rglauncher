@@ -9,10 +9,15 @@ use fuzzy_matcher::FuzzyMatcher;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
-use crate::plugins::{Plugin, PluginResult};
+use crate::dispatcher::CONNECTION;
+use crate::impl_history;
+use crate::plugins::history::{HistoryDb, HistoryItem};
+use crate::plugins::{win, Plugin, PluginResult};
 use crate::userinput::UserInput;
 
 use crate::util::score_utils;
+
+use super::history::HistoryCache;
 
 pub const TYPE_ID: &str = "wmwindows";
 
@@ -207,6 +212,7 @@ impl PluginResult for WinResult {
 
 pub struct WinPlugin {
     windows: arc_swap::ArcSwap<Vec<WinResult>>,
+    history: HistoryCache<WinResult>,
     wm_type: WMEnum,
 }
 
@@ -214,10 +220,28 @@ impl WinPlugin {
     pub fn new() -> AResult<Self> {
         info!("Creating Windows Plugin");
         let wm_type = WMEnum::new()?;
+        let wins: std::sync::Arc<Vec<WinResult>> = wm_type.list_windows()?.into();
+
+        let histories: Vec<HistoryItem<WinResult>> =
+            CONNECTION.with_borrow(|e| HistoryDb::new(e.as_ref()).fetch_histories(TYPE_ID))?;
+        let history = HistoryCache::new(histories);
+
+        let _ = CONNECTION.with_borrow(|e| {
+            let ho = HistoryDb::new(e.as_ref());
+            history.remove_unvalid( 
+                |_, v| {
+                    wins.iter()
+                        .find(|w| w.get_id() == v.body.address.as_str())
+                        .is_some()
+                },
+                ho,
+            )
+        });
 
         Ok(WinPlugin {
-            windows: ArcSwap::new(wm_type.list_windows()?.into()),
+            windows: ArcSwap::new(wins),
             wm_type,
+            history,
         })
     }
 }
@@ -229,6 +253,14 @@ impl Plugin for WinPlugin {
 
     fn refresh_content(&self) {
         if let Ok(windows) = self.wm_type.list_windows() {
+            let _ = CONNECTION.with_borrow(|conn| {
+                let ho = HistoryDb::new(conn.as_ref());
+
+                let _ = self.history.remove_unvalid(
+                    |_, v| windows.iter().find(|w| w.get_id() == v.body.get_id()).is_some(),
+                    ho,
+                );
+            });
             self.windows.store(windows.into());
         }
     }
@@ -264,4 +296,6 @@ impl Plugin for WinPlugin {
     fn get_type_id(&self) -> &'static str {
         &TYPE_ID
     }
+
+    impl_history!();
 }
