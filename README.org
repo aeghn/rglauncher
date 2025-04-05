@@ -1,37 +1,39 @@
-This project is currently in a very early stage.
+#+BEGIN_CENTER
+[[./data/logo.svg]]
 
-* Quick start
-#+begin_src shell
-cargo run --bin rglauncher --features calc
-#+end_src
+*RGLauncher*
+
+GNU/Linux App Launcher based on GTK4 and Rust
+#+END_CENTER
+
+- App Launcher
+- Window Switcher
+- Calculator
+- Dict [Mdict]
+- Clipboard [Text Only, based on wl-clipboard]
+- History
 
 * Preview
-** Dark Mode
-As many people asked for a DARK mode, here it is:
-
-[[./docs/dark-mode.png]]
-
-=~/.config/rglauncher/config.toml=
-#+begin_src toml 
-[ui]
-dark_mode=true
-#+end_src
+  [[./docs/overview.png]]
 
 
-** Application Launcher
-[[./docs/app.png]]
+  The architecture is show as below:
 
-** Calculator
-[[./docs/calc.png]]
+  [[./docs/arch.png]]
 
-** Windows Switcher (WMland only currently)
-[[./docs/win.png]]
 
-** Clipboard(Text only currently)
-[[./docs/clip.png]]
+* Features
+  - Use GTK and Rust.
+  - The launcher uses the plugin mechanism, abstracting and unifying Trait to constrain the behavior of each plugin.
+  - Use the Actor model to implement plugin task processing.
+  - Use Channel lock-free concurrency to process the results returned by plugin concurrency.
+  - Use ArcSwap CoW mechanism to implement concurrent and safe update of GUI display data.
+  - Use Enum Dispatching technology to optimize program speed.
+  - Use Workspace and Feature to optimize project layout.
+  - Customized Lock-Free Token mechanism to ensure the validity of data updates.
+  - C/S and multi windows
 
-** C/S and multi windows
-[[./docs/multi-client.png]]
+  You can get more details from [[./docs/arch.org]]
 
 * Credits
   - https://github.com/12101111/mdict_rs
