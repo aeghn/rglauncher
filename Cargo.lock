@@ -316,21 +316,26 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 [[package]]
 name = "chin-tools"
 version = "0.1.0"
-source = "git+https://github.com/aeghn/chin-tools#11f7934ed4dc7c3ed0aa3eeb946834e4293c12ce"
 dependencies = [
  "anyhow",
  "async-trait",
  "bytes",
+ "chin-tools-base",
  "chrono",
  "hashbrown 0.15.2",
- "quote",
  "serde",
  "serde_json",
- "smol_str",
  "strum",
- "syn",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "chin-tools-base"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "smol_str",
 ]
 
 [[package]]
@@ -1739,8 +1744,6 @@ dependencies = [
  "clap",
  "flume",
  "fragile",
- "gio",
- "glib",
  "gtk4",
  "lazy_static",
  "rglcore",

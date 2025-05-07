@@ -1,9 +1,8 @@
 use flume::{Receiver, Sender};
-use gio::{
-    glib,
-    prelude::{Cast, CastNone, ListModelExt},
-};
-use glib::{object::IsA, variant::ToVariant, BoxedAnyObject, MainContext, Priority};
+use gtk::gio::prelude::{Cast, CastNone, ListModelExt};
+use gtk::glib::{object::IsA, variant::ToVariant, BoxedAnyObject, MainContext, Priority};
+use gtk::prelude::BoxExt;
+use gtk::{gio, glib};
 use gtk::{
     prelude::WidgetExt,
     prelude::{ListItemExt, SelectionModelExt},
@@ -70,10 +69,13 @@ impl Sidebar {
             });
         }
 
+        let gbox = gtk::ListBox::builder().vexpand(true).build();
+        gbox.append(&list_view);
+
         let scrolled_window = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never) // Disable horizontal scrolling
             .css_classes(["sidebar-sw"])
-            .child(&list_view)
+            .child(&gbox)
             .focusable(false)
             .can_focus(false)
             .width_request(300)
