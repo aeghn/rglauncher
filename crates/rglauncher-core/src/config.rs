@@ -2,7 +2,7 @@ use std::{
     collections::HashMap, env, ops::Deref, path::{Path, PathBuf}, str::FromStr
 };
 
-use chin_tools::AResult;
+use chin_tools::{aanyhow, AResult};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -78,7 +78,7 @@ impl Config {
                 } else {
                     config_path
                         .parent()
-                        .ok_or(chin_tools::anyhow::aanyhow!("Parent dir is none"))?
+                        .ok_or(aanyhow!("Parent dir is none"))?
                         .join(&icon_path)
                 };
                 let config_content = std::fs::read_to_string(&icon_path)?;

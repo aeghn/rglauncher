@@ -69,7 +69,7 @@ impl Sidebar {
             });
         }
 
-        let gbox = gtk::ListBox::builder().vexpand(true).build();
+        let gbox = gtk::Box::builder().vexpand(true).build();
         gbox.append(&list_view);
 
         let scrolled_window = gtk::ScrolledWindow::builder()

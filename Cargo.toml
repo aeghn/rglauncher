@@ -5,9 +5,8 @@ members = ["crates/rglauncher-core", "crates/rglauncher-gtk", "vendor/mdict"]
 resolver = "2"
 
 [workspace.dependencies]
-chin-tools = { path = "../chin-tools/crates/chin-tools", features = [
-    "wayland-niri",
-] }
+chin-tools = { path = "../chin-tools/crates/chin-tools" }
+chin-wayland-utils = { path = "../chin-tools/crates/chin-wayland-utils" }
 
 [profile.release]
 lto = true
